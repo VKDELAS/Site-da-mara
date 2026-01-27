@@ -86,9 +86,13 @@ export default function AdminCaixaPage() {
     }
   }
 
-  const handleOrderClick = (order: Order) => {
+  const handleOrderClick = (order: Order, date: string) => {
     setSelectedOrder(order)
     setIsOrderDialogOpen(true)
+    // Garantir que a data permaneça expandida
+    if (expandedDate !== date) {
+      setExpandedDate(date)
+    }
   }
 
   if (loading || !isAdmin) {
@@ -275,7 +279,7 @@ export default function AdminCaixaPage() {
                                 {dateOrders[day.date].map((order) => (
                                   <div
                                     key={order.id}
-                                    onClick={() => handleOrderClick(order)}
+                                    onClick={() => handleOrderClick(order, day.date)}
                                     className="p-4 bg-gradient-to-r from-yellow-50 to-white rounded-xl border border-yellow-200 hover:border-yellow-400 hover:shadow-md transition-all cursor-pointer group"
                                   >
                                     <div className="flex items-start justify-between gap-4">
@@ -403,6 +407,14 @@ export default function AdminCaixaPage() {
                   <p className="text-gray-600 font-semibold">Método de Pagamento</p>
                   <p className="font-bold text-gray-900 capitalize">{selectedOrder?.paymentMethod}</p>
                 </div>
+                {selectedOrder?.paymentMethod === 'dinheiro' && selectedOrder?.notes?.includes('Troco para:') && (
+                  <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                    <p className="text-blue-600 font-semibold">Troco Solicitado</p>
+                    <p className="font-bold text-blue-700">
+                      {selectedOrder.notes.split('Troco para:')[1].trim().split('\n')[0]}
+                    </p>
+                  </div>
+                )}
                 {selectedOrder?.couponCode && (
                   <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                     <p className="text-gray-600 font-semibold">Cupom Aplicado</p>
