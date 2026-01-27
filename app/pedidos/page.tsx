@@ -1,0 +1,302 @@
+"use client"
+
+import { HeaderWrapper } from "@/components/header-wrapper"
+import { Footer } from "@/components/footer"
+import { OrderSummary } from "@/components/order-summary"
+import { FeedbackModal } from "@/components/feedback-modal"
+import { useAuth } from "@/lib/auth-context"
+import { useRouter } from "next/navigation"
+import { useEffect, useState } from "react"
+import { ArrowLeft, Clock, MapPin, Phone, MessageSquare, ChevronRight, Package, ShoppingBag, XCircle, Loader2 } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { ordersManager, type Order } from "@/lib/orders-manager"
+
+export default function PedidosPage() {
+  const { user, loading } = useAuth()
+  const router = useRouter()
+  const [orders, setOrders] = useState<Order[]>([])
+  const [isLoadingOrders, setIsLoadingOrders] = useState(true)
+  const [cancellingOrderId, setCancellingOrderId] = useState<string | null>(null)
+  const [feedbackModalOrder, setFeedbackModalOrder] = useState<Order | null>(null)
+  const [evaluatedOrders, setEvaluatedOrders] = useState<string[]>([])
+
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push("/login")
+    }
+  }, [user, loading, router])
+
+  useEffect(() => {
+    if (user) {
+      loadOrders()
+      loadEvaluatedOrders()
+    }
+  }, [user])
+
+  // Verificar se deve mostrar o modal de feedback ao carregar a página
+  useEffect(() => {
+    if (orders.length > 0) {
+      checkForPendingFeedback()
+    }
+  }, [orders, evaluatedOrders])
+
+  const loadEvaluatedOrders = () => {
+    const evaluated = JSON.parse(localStorage.getItem("evaluated-orders") || "[]")
+    setEvaluatedOrders(evaluated)
+  }
+
+  const checkForPendingFeedback = () => {
+    // Pegar o pedido mais recente que ainda não foi avaliado
+    // Removida a trava de "delivered" para abrir assim que o usuário volta ao site
+    const unEvaluatedOrders = orders.filter(
+      (order) => !evaluatedOrders.includes(order.id) && order.status !== "cancelled"
+    )
+
+    if (unEvaluatedOrders.length > 0) {
+      const mostRecentOrder = unEvaluatedOrders.sort(
+        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      )[0]
+      
+      // Verificar se já mostrou o modal nesta sessão para este pedido específico
+      const shownInSession = sessionStorage.getItem(`feedback-shown-${mostRecentOrder.id}`)
+      
+      if (!shownInSession) {
+        // Pequeno delay para garantir que a página carregou visualmente
+        setTimeout(() => {
+          setFeedbackModalOrder(mostRecentOrder)
+          sessionStorage.setItem(`feedback-shown-${mostRecentOrder.id}`, "true")
+        }, 1000)
+      }
+    }
+  }
+
+  const loadOrders = async () => {
+    if (!user) return
+    setIsLoadingOrders(true)
+    try {
+      const allOrders = await ordersManager.getTodayOrders()
+      
+      // Filtro melhorado: tenta por user_id primeiro, depois por telefone ou nome
+      const userOrders = allOrders.filter(o => {
+        // Se o pedido tem o user_id do usuário logado
+        const isMyId = (o as any).user_id === user.id;
+        
+        // Se o telefone ou nome batem (fallback para pedidos feitos antes do login ou com dados manuais)
+        const userPhone = user.user_metadata?.phone?.replace(/\D/g, "");
+        const orderPhone = o.customerPhone?.replace(/\D/g, "");
+        const isMyPhone = userPhone && orderPhone && (userPhone === orderPhone || orderPhone.includes(userPhone) || userPhone.includes(orderPhone));
+        
+        const isMyName = user.user_metadata?.full_name && o.customerName === user.user_metadata?.full_name;
+        
+        // Também verifica se o ID do pedido está no localStorage (para pedidos feitos como anônimo)
+        const anonymousOrders = JSON.parse(localStorage.getItem("anonymous-orders") || "[]");
+        const isAnonymousOrder = anonymousOrders.includes(o.id);
+        
+        return isMyId || isMyPhone || isMyName || isAnonymousOrder;
+      })
+      
+      setOrders(userOrders)
+    } catch (error) {
+      console.error("Erro ao carregar pedidos:", error)
+    } finally {
+      setIsLoadingOrders(false)
+    }
+  }
+
+  const handleCancelOrder = async (order: Order) => {
+    if (!confirm("Tem certeza que deseja cancelar este pedido?")) return
+
+    setCancellingOrderId(order.id)
+    try {
+      await ordersManager.cancelOrder(order.id)
+      
+      // Mensagem para o WhatsApp
+      const message = `Olá, gostaria de cancelar meu pedido #${order.orderNumber || order.id.slice(0, 4)}.\n\n*Detalhes do Pedido:*\nCliente: ${order.customerName}\nTotal: R$ ${order.total.toFixed(2).replace('.', ',')}`
+      const whatsappUrl = `https://wa.me/5514997361015?text=${encodeURIComponent(message)}`
+      
+      window.open(whatsappUrl, "_blank")
+      await loadOrders()
+    } catch (error) {
+      console.error("Erro ao cancelar pedido:", error)
+      alert("Erro ao cancelar pedido. Por favor, entre em contato via WhatsApp.")
+    } finally {
+      setCancellingOrderId(null)
+    }
+  }
+
+  const getStatusLabel = (status: string) => {
+    const labels: Record<string, string> = {
+      pending: "Aguardando confirmação",
+      preparing: "Preparando",
+      ready: "Pronto para entrega",
+      delivered: "Entregue",
+      cancelled: "Cancelado",
+    }
+    return labels[status] || status
+  }
+
+  const getStatusColor = (status: string) => {
+    const colors: Record<string, string> = {
+      pending: "text-yellow-600 bg-yellow-50",
+      preparing: "text-orange-600 bg-orange-50",
+      ready: "text-blue-600 bg-blue-50",
+      delivered: "text-green-600 bg-green-50",
+      cancelled: "text-red-600 bg-red-50",
+    }
+    return colors[status] || "text-gray-600 bg-gray-50"
+  }
+
+  const canCancel = (createdAt: Date) => {
+    const now = new Date()
+    const orderDate = new Date(createdAt)
+    const diffInMinutes = (now.getTime() - orderDate.getTime()) / (1000 * 60)
+    return diffInMinutes <= 5
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <HeaderWrapper />
+        <main className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-500 mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Carregando...</p>
+          </div>
+        </main>
+        <Footer />
+        <OrderSummary />
+      </div>
+    )
+  }
+
+  if (!user) return null
+
+  return (
+    <div className="min-h-screen flex flex-col bg-gray-50">
+      <HeaderWrapper />
+      
+      <main className="flex-1 pb-24 lg:pb-8">
+        {/* Mobile Header */}
+        <div className="lg:hidden sticky top-0 z-30 bg-white border-b">
+          <div className="flex items-center gap-4 px-4 py-4">
+            <button onClick={() => router.back()} className="p-2 -ml-2 hover:bg-gray-100 rounded-full transition-colors">
+              <ArrowLeft className="h-6 w-6 text-gray-800" />
+            </button>
+            <h1 className="text-lg font-black text-gray-800">MEUS PEDIDOS</h1>
+          </div>
+        </div>
+
+        {/* Desktop Header */}
+        <div className="hidden lg:block container mx-auto px-4 py-8">
+          <h1 className="text-3xl font-black text-gray-800 mb-2">Meus Pedidos</h1>
+          <p className="text-gray-500">Acompanhe o histórico de suas compras</p>
+        </div>
+
+        <div className="container mx-auto px-4 max-w-2xl">
+          {isLoadingOrders ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-500"></div>
+            </div>
+          ) : orders.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 lg:py-20">
+              <div className="w-48 h-48 mb-6 bg-yellow-50 rounded-full flex items-center justify-center">
+                <ShoppingBag className="h-24 w-24 text-yellow-200" />
+              </div>
+              <h2 className="text-xl font-black text-gray-800 text-center mb-2">Você ainda não pediu</h2>
+              <p className="text-gray-500 text-center mb-8 max-w-sm">Que tal conhecer as melhores opções do Batatop?</p>
+              <Button onClick={() => router.push("/cardapio")} className="bg-yellow-500 hover:bg-yellow-600 text-white font-black px-8 py-3 rounded-xl shadow-lg shadow-yellow-100 transition-all active:scale-95">
+                Ir para o Cardápio
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {orders.map((order) => (
+                <div key={order.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-all">
+                  <div className="p-5">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-xl bg-yellow-50 flex items-center justify-center text-yellow-600">
+                          <Package className="h-5 w-5" />
+                        </div>
+                        <div>
+                          <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Pedido #{order.orderNumber || order.id.slice(0, 4)}</p>
+                          <p className="text-sm font-black text-gray-800">{new Date(order.createdAt).toLocaleDateString('pt-BR')}</p>
+                        </div>
+                      </div>
+                      <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${getStatusColor(order.status)}`}>
+                        {getStatusLabel(order.status)}
+                      </span>
+                    </div>
+
+                    <div className="space-y-2 mb-4">
+                      {order.items.map((item, idx) => (
+                        <div key={idx} className="flex justify-between text-sm">
+                          <span className="text-gray-600">{item.quantity}x {item.name}</span>
+                          <span className="font-bold text-gray-800">R$ {(item.price * item.quantity).toFixed(2).replace('.', ',')}</span>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="flex items-center justify-between pt-4 border-t border-gray-50">
+                      <div>
+                        <p className="text-[10px] font-bold text-gray-400 uppercase">Total</p>
+                        <p className="text-lg font-black text-gray-800">R$ {order.total.toFixed(2).replace('.', ',')}</p>
+                      </div>
+                      <div className="flex gap-2">
+                        {["pending", "preparing"].includes(order.status) && canCancel(order.createdAt) && (
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="text-red-500 font-bold hover:bg-red-50 hover:text-red-600" 
+                            onClick={() => handleCancelOrder(order)}
+                            disabled={cancellingOrderId === order.id}
+                          >
+                            {cancellingOrderId === order.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <>
+                                <XCircle className="h-4 w-4 mr-1" /> Cancelar
+                              </>
+                            )}
+                          </Button>
+                        )}
+                        {!evaluatedOrders.includes(order.id) && order.status !== "cancelled" && (
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="text-yellow-600 font-bold hover:bg-yellow-50" 
+                            onClick={() => setFeedbackModalOrder(order)}
+                          >
+                            ⭐ Avaliar
+                          </Button>
+                        )}
+                        <Button variant="ghost" size="sm" className="text-yellow-600 font-bold hover:bg-yellow-50" onClick={() => router.push(`/pedidos/${order.id}`)}>
+                          Detalhes <ChevronRight className="h-4 w-4 ml-1" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </main>
+
+      <Footer />
+      <OrderSummary />
+
+      {/* Feedback Modal */}
+      {feedbackModalOrder && (
+        <FeedbackModal
+          orderId={feedbackModalOrder.id}
+          orderNumber={feedbackModalOrder.orderNumber || feedbackModalOrder.id.slice(0, 4)}
+          onClose={() => setFeedbackModalOrder(null)}
+          onSuccess={() => {
+            loadEvaluatedOrders()
+          }}
+        />
+      )}
+    </div>
+  )
+}
