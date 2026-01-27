@@ -5,9 +5,10 @@ import { HeaderWrapper } from "@/components/header-wrapper"
 import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { useAuth } from "@/lib/auth-context"
 import { useRouter } from "next/navigation"
-import { DollarSign, Calendar, TrendingUp, ArrowLeft, Package, CheckCircle, Clock, ChevronDown, ChevronUp, BarChart3, Eye, EyeOff } from "lucide-react"
+import { DollarSign, Calendar, TrendingUp, ArrowLeft, Package, CheckCircle, Clock, ChevronDown, ChevronUp, BarChart3, Eye, EyeOff, MapPin, Phone, Utensils, X } from "lucide-react"
 import { ordersManager, type DailySales, type Order } from "@/lib/orders-manager"
 import Link from "next/link"
 
@@ -30,6 +31,8 @@ export default function AdminCaixaPage() {
   const [loadingOrders, setLoadingOrders] = useState<string | null>(null)
   const [showRevenue, setShowRevenue] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
+  const [isOrderDialogOpen, setIsOrderDialogOpen] = useState(false)
 
   useEffect(() => {
     if (!loading) {
@@ -83,6 +86,11 @@ export default function AdminCaixaPage() {
     }
   }
 
+  const handleOrderClick = (order: Order) => {
+    setSelectedOrder(order)
+    setIsOrderDialogOpen(true)
+  }
+
   if (loading || !isAdmin) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-yellow-50 to-white">
@@ -108,20 +116,20 @@ export default function AdminCaixaPage() {
               </Button>
             </Link>
 
-            <div className="flex items-center justify-between gap-4">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
               <div className="flex items-center gap-4">
                 <div className="h-14 w-14 bg-gradient-to-br from-yellow-400 to-yellow-500 rounded-2xl flex items-center justify-center shadow-lg">
                   <BarChart3 className="h-7 w-7 text-white" />
                 </div>
                 <div>
-                  <h1 className="text-4xl md:text-5xl font-black text-gray-900">Resumo de Vendas</h1>
-                  <p className="text-gray-500 text-sm md:text-base">Acompanhe o faturamento e histórico de receitas</p>
+                  <h1 className="text-3xl md:text-5xl font-black text-gray-900">Resumo de Vendas</h1>
+                  <p className="text-gray-500 text-xs md:text-base">Acompanhe o faturamento e histórico de receitas</p>
                 </div>
               </div>
               <Button
                 onClick={handleRefresh}
                 disabled={refreshing}
-                className="bg-yellow-400 hover:bg-yellow-500 text-white font-bold rounded-xl gap-2 shadow-lg"
+                className="bg-yellow-400 hover:bg-yellow-500 text-white font-bold rounded-xl gap-2 shadow-lg w-full md:w-auto"
               >
                 <Clock className={`h-5 w-5 ${refreshing ? "animate-spin" : ""}`} />
                 {refreshing ? "Atualizando..." : "Atualizar"}
@@ -225,14 +233,14 @@ export default function AdminCaixaPage() {
                       }`}
                     >
                       <CardContent className="p-6">
-                        <div className="flex items-center justify-between gap-4">
-                          <div className="flex items-center gap-4 flex-1">
+                        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                          <div className="flex items-center gap-4 flex-1 w-full">
                             <div className={`h-12 w-12 rounded-xl flex items-center justify-center flex-shrink-0 transition-all ${
                               expandedDate === day.date ? "bg-yellow-500 text-white shadow-lg" : "bg-blue-50 text-blue-600"
                             }`}>
                               <Calendar className="h-6 w-6" />
                             </div>
-                            <div>
+                            <div className="flex-1">
                               <p className="font-bold text-gray-900 text-lg">
                                 {new Date(day.date + 'T12:00:00').toLocaleDateString("pt-BR", {
                                   weekday: "long",
@@ -246,7 +254,7 @@ export default function AdminCaixaPage() {
                               </p>
                             </div>
                           </div>
-                          <div className="flex items-center gap-6">
+                          <div className="flex items-center gap-6 w-full md:w-auto justify-between md:justify-end">
                             <div className="text-right">
                               <p className="text-2xl font-black text-yellow-600">R$ {day.total.toFixed(2)}</p>
                               <p className="text-xs text-gray-500 font-semibold">Faturamento</p>
@@ -263,34 +271,26 @@ export default function AdminCaixaPage() {
                                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-500"></div>
                               </div>
                             ) : dateOrders[day.date]?.length > 0 ? (
-                              <div className="overflow-x-auto">
-                                <table className="w-full text-sm text-left">
-                                  <thead>
-                                    <tr className="text-gray-400 font-bold border-b border-gray-50">
-                                      <th className="pb-3 px-2">Pedido</th>
-                                      <th className="pb-3 px-2">Cliente</th>
-                                      <th className="pb-3 px-2">Itens</th>
-                                      <th className="pb-3 px-2 text-right">Total</th>
-                                    </tr>
-                                  </thead>
-                                  <tbody className="divide-y divide-gray-50">
-                                    {dateOrders[day.date].map((order) => (
-                                      <tr key={order.id} className="hover:bg-yellow-50 transition-colors">
-                                        <td className="py-3 px-2 font-bold text-gray-700">#{order.orderNumber}</td>
-                                        <td className="py-3 px-2">
-                                          <p className="font-bold text-gray-800">{order.customerName}</p>
-                                          <p className="text-[10px] text-gray-400">{new Date(order.createdAt).toLocaleTimeString()}</p>
-                                        </td>
-                                        <td className="py-3 px-2 text-gray-600">
-                                          {order.items.map(i => `${i.quantity}x ${i.name}`).join(", ")}
-                                        </td>
-                                        <td className="py-3 px-2 text-right font-black text-yellow-600">
-                                          R$ {order.total.toFixed(2)}
-                                        </td>
-                                      </tr>
-                                    ))}
-                                  </tbody>
-                                </table>
+                              <div className="space-y-3">
+                                {dateOrders[day.date].map((order) => (
+                                  <div
+                                    key={order.id}
+                                    onClick={() => handleOrderClick(order)}
+                                    className="p-4 bg-gradient-to-r from-yellow-50 to-white rounded-xl border border-yellow-200 hover:border-yellow-400 hover:shadow-md transition-all cursor-pointer group"
+                                  >
+                                    <div className="flex items-start justify-between gap-4">
+                                      <div className="flex-1">
+                                        <p className="font-bold text-gray-900 text-lg">Pedido #{order.orderNumber}</p>
+                                        <p className="text-sm text-gray-600 font-semibold mb-2">{order.customerName}</p>
+                                        <p className="text-xs text-gray-500">{new Date(order.createdAt).toLocaleTimeString()}</p>
+                                      </div>
+                                      <div className="text-right">
+                                        <p className="text-xl font-black text-yellow-600">R$ {order.total.toFixed(2)}</p>
+                                        <p className="text-xs text-gray-500 font-semibold">{order.items.length} item(ns)</p>
+                                      </div>
+                                    </div>
+                                  </div>
+                                ))}
                               </div>
                             ) : (
                               <p className="text-center text-gray-400 py-4">Nenhum detalhe encontrado.</p>
@@ -306,6 +306,143 @@ export default function AdminCaixaPage() {
           </div>
         </div>
       </main>
+
+      {/* Pop-up Modal do Pedido - Estilo iFood */}
+      <Dialog open={isOrderDialogOpen} onOpenChange={setIsOrderDialogOpen}>
+        <DialogContent className="bg-white rounded-3xl border-0 shadow-2xl max-w-md p-0 overflow-hidden">
+          {/* Header Amarelo */}
+          <div className="bg-gradient-to-r from-yellow-400 to-yellow-500 px-6 py-6 text-white">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <p className="text-xs font-semibold opacity-90">Pedido Nº</p>
+                <h2 className="text-3xl font-black">#{selectedOrder?.orderNumber}</h2>
+              </div>
+              <button
+                onClick={() => setIsOrderDialogOpen(false)}
+                className="p-2 hover:bg-yellow-600 rounded-full transition-colors"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+          </div>
+
+          {/* Conteúdo */}
+          <div className="px-6 py-6 space-y-6 max-h-[calc(90vh-200px)] overflow-y-auto">
+            {/* Informações do Cliente */}
+            <div className="space-y-4">
+              <h3 className="font-bold text-gray-900 text-lg">Informações do Cliente</h3>
+              <div className="space-y-3">
+                <div className="flex items-start gap-3">
+                  <div className="h-10 w-10 bg-yellow-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <Package className="h-5 w-5 text-yellow-600" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 font-semibold">Nome</p>
+                    <p className="font-bold text-gray-900">{selectedOrder?.customerName}</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="h-10 w-10 bg-yellow-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <Phone className="h-5 w-5 text-yellow-600" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 font-semibold">Telefone</p>
+                    <p className="font-bold text-gray-900">{selectedOrder?.customerPhone}</p>
+                  </div>
+                </div>
+                {selectedOrder?.deliveryType === 'delivery' && (
+                  <div className="flex items-start gap-3">
+                    <div className="h-10 w-10 bg-yellow-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <MapPin className="h-5 w-5 text-yellow-600" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500 font-semibold">Endereço</p>
+                      <p className="font-bold text-gray-900">{selectedOrder?.address}</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Itens do Pedido */}
+            <div className="space-y-4">
+              <h3 className="font-bold text-gray-900 text-lg">Itens do Pedido</h3>
+              <div className="space-y-3">
+                {selectedOrder?.items.map((item, index) => (
+                  <div key={index} className="flex items-start justify-between p-4 bg-gray-50 rounded-xl">
+                    <div className="flex-1">
+                      <p className="font-bold text-gray-900">{item.name}</p>
+                      {item.adicionais && item.adicionais.length > 0 && (
+                        <div className="mt-2 space-y-1">
+                          {item.adicionais.map((adicional: any, idx: number) => (
+                            <p key={idx} className="text-xs text-gray-600">
+                              • {adicional.name || adicional}
+                            </p>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <div className="text-right ml-4">
+                      <p className="font-bold text-gray-900">{item.quantity}x</p>
+                      <p className="text-sm text-yellow-600 font-bold">R$ {(item.price * item.quantity).toFixed(2)}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Detalhes do Pedido */}
+            <div className="space-y-4">
+              <h3 className="font-bold text-gray-900 text-lg">Detalhes</h3>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <p className="text-gray-600 font-semibold">Tipo de Entrega</p>
+                  <p className="font-bold text-gray-900 capitalize">{selectedOrder?.deliveryType === 'delivery' ? 'Entrega' : 'Retirada'}</p>
+                </div>
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <p className="text-gray-600 font-semibold">Método de Pagamento</p>
+                  <p className="font-bold text-gray-900 capitalize">{selectedOrder?.paymentMethod}</p>
+                </div>
+                {selectedOrder?.couponCode && (
+                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <p className="text-gray-600 font-semibold">Cupom Aplicado</p>
+                    <p className="font-bold text-gray-900">{selectedOrder.couponCode}</p>
+                  </div>
+                )}
+                {selectedOrder?.discountAmount && selectedOrder.discountAmount > 0 && (
+                  <div className="flex items-center justify-between p-3 bg-red-50 rounded-lg">
+                    <p className="text-gray-600 font-semibold">Desconto</p>
+                    <p className="font-bold text-red-600">-R$ {selectedOrder.discountAmount.toFixed(2)}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Notas */}
+            {selectedOrder?.notes && (
+              <div className="space-y-4">
+                <h3 className="font-bold text-gray-900 text-lg">Observações</h3>
+                <p className="p-4 bg-blue-50 rounded-xl text-gray-700 text-sm">{selectedOrder.notes}</p>
+              </div>
+            )}
+          </div>
+
+          {/* Footer com Total */}
+          <div className="bg-gradient-to-r from-yellow-50 to-white border-t border-yellow-200 px-6 py-6">
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-gray-600 font-semibold">Total</p>
+              <p className="text-3xl font-black text-yellow-600">R$ {selectedOrder?.total.toFixed(2)}</p>
+            </div>
+            <Button
+              onClick={() => setIsOrderDialogOpen(false)}
+              className="w-full bg-gradient-to-r from-yellow-400 to-yellow-500 hover:from-yellow-500 hover:to-yellow-600 text-white font-bold h-12 rounded-xl shadow-lg"
+            >
+              Fechar
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <Footer />
     </div>
   )

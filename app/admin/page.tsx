@@ -231,12 +231,12 @@ export default function AdminPage() {
               </Card>
             </Link>
 
-            {/* Resumo de Vendas */}
+            {/* Resumo de Vendas - ALTERADO PARA VERDE */}
             <Link href="/admin/caixa" className="group">
-              <Card className="border-none shadow-md bg-gradient-to-br from-yellow-50 to-white rounded-3xl overflow-hidden hover:shadow-xl transition-all hover:-translate-y-1 cursor-pointer h-full">
+              <Card className="border-none shadow-md bg-gradient-to-br from-green-50 to-white rounded-3xl overflow-hidden hover:shadow-xl transition-all hover:-translate-y-1 cursor-pointer h-full">
                 <CardContent className="p-8">
                   <div className="flex items-start gap-4 mb-6">
-                    <div className="h-16 w-16 bg-gradient-to-br from-yellow-400 to-yellow-500 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                    <div className="h-16 w-16 bg-gradient-to-br from-green-400 to-green-500 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
                       <BarChart3 className="h-8 w-8 text-white" />
                     </div>
                     <div className="flex-1">
@@ -244,7 +244,7 @@ export default function AdminPage() {
                       <p className="text-gray-600 text-sm">Faturamento, histórico e análise de receitas</p>
                     </div>
                   </div>
-                  <Button className="w-full bg-gradient-to-r from-yellow-400 to-yellow-500 hover:from-yellow-500 hover:to-yellow-600 text-white font-bold h-12 rounded-xl shadow-lg hover:shadow-xl transition-all">
+                  <Button className="w-full bg-gradient-to-r from-green-400 to-green-500 hover:from-green-500 hover:to-green-600 text-white font-bold h-12 rounded-xl shadow-lg hover:shadow-xl transition-all">
                     Ver Vendas
                   </Button>
                 </CardContent>
