@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback, useMemo } from "react"
 import { HeaderWrapper } from "@/components/header-wrapper"
 import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -115,7 +115,6 @@ export default function AdminCaixaPage() {
     setIsOrderDialogOpen(true)
   }
 
-  // Extrair troco das notas de forma segura
   const trocoInfo = useMemo(() => {
     if (!selectedOrder?.notes) return null
     const match = selectedOrder.notes.match(/Troco para:\s*R?\$\s*([\d,.]+)/i)
@@ -140,7 +139,6 @@ export default function AdminCaixaPage() {
       <main className="flex-1 py-8 px-4 md:px-8">
         <div className="max-w-6xl mx-auto space-y-8">
           
-          {/* Header Section */}
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div className="space-y-1">
               <div className="flex items-center gap-2 text-slate-500 hover:text-yellow-600 transition-colors cursor-pointer mb-2" onClick={() => router.push('/admin')}>
@@ -161,7 +159,6 @@ export default function AdminCaixaPage() {
             </Button>
           </div>
 
-          {/* Stats Grid */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             {[
               { label: "Pedidos Hoje", value: stats.totalOrders, icon: Package, color: "text-blue-600", bg: "bg-blue-50" },
@@ -195,7 +192,6 @@ export default function AdminCaixaPage() {
             ))}
           </div>
 
-          {/* History Section */}
           <div className="space-y-4">
             <div className="flex items-center gap-2 px-1">
               <Calendar className="h-5 w-5 text-slate-400" />
@@ -222,7 +218,7 @@ export default function AdminCaixaPage() {
                       onClick={() => toggleDate(day.date)}
                     >
                       <div className="flex items-center gap-4">
-                        <div className={`h-12 w-12 rounded-2xl flex items-center justify-center transition-colors ${expandedDate === day.date ? 'bg-yellow-500 text-white' : 'bg-white border border-slate-100 text-slate-400'}`}>
+                        <div className={`h-12 w-12 rounded-2xl flex items-center justify-center transition-colors ${expandedDate === day.date ? 'bg-yellow-500 text-white' : 'bg-yellow-50 text-yellow-600'}`}>
                           <Calendar className="h-6 w-6" />
                         </div>
                         <div>
@@ -234,7 +230,7 @@ export default function AdminCaixaPage() {
                       </div>
                       <div className="flex items-center gap-6">
                         <div className="text-right hidden sm:block">
-                          <p className="text-lg font-black text-emerald-600">R$ {day.total.toFixed(2)}</p>
+                          <p className="text-lg font-black text-yellow-600">R$ {day.total.toFixed(2)}</p>
                           <p className="text-[10px] font-bold text-slate-400 uppercase">Total do dia</p>
                         </div>
                         {expandedDate === day.date ? <ChevronUp className="h-5 w-5 text-slate-300" /> : <ChevronDown className="h-5 w-5 text-slate-300" />}
@@ -251,20 +247,26 @@ export default function AdminCaixaPage() {
                               <div 
                                 key={order.id}
                                 onClick={() => handleOrderClick(order)}
-                                className="group flex items-center justify-between p-4 bg-slate-50/50 hover:bg-white hover:shadow-md border border-transparent hover:border-slate-100 rounded-2xl transition-all cursor-pointer"
+                                className="group flex items-center justify-between p-4 bg-yellow-50/30 hover:bg-white hover:shadow-md border border-transparent hover:border-yellow-100 rounded-2xl transition-all cursor-pointer"
                               >
-                                <div className="flex items-center gap-4">
-                                  <div className="h-10 w-10 bg-white rounded-xl flex items-center justify-center text-slate-400 group-hover:text-yellow-500 transition-colors shadow-sm">
+                                <div className="flex items-center gap-4 flex-1">
+                                  <div className="h-10 w-10 bg-white rounded-xl flex items-center justify-center text-yellow-500 transition-colors shadow-sm">
                                     <Receipt className="h-5 w-5" />
                                   </div>
-                                  <div>
-                                    <p className="font-bold text-slate-900">#{order.orderNumber}</p>
-                                    <p className="text-xs text-slate-500 font-medium">{order.customerName}</p>
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2">
+                                      <p className="font-bold text-slate-900">#{order.orderNumber}</p>
+                                      <span className="text-slate-300">|</span>
+                                      <p className="text-sm font-bold text-slate-700 truncate">{order.customerName}</p>
+                                    </div>
+                                    <p className="text-[11px] text-slate-500 font-medium truncate mt-0.5">
+                                      {order.items.map(i => `${i.quantity}x ${i.name}`).join(', ')}
+                                    </p>
                                   </div>
                                 </div>
-                                <div className="flex items-center gap-4">
+                                <div className="flex items-center gap-4 ml-4">
                                   <div className="text-right">
-                                    <p className="font-bold text-slate-900">R$ {order.total.toFixed(2)}</p>
+                                    <p className="font-black text-yellow-600">R$ {order.total.toFixed(2)}</p>
                                     <p className="text-[10px] text-slate-400 font-bold uppercase">{new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
                                   </div>
                                   <div className="h-8 w-8 rounded-full bg-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm">
@@ -285,25 +287,24 @@ export default function AdminCaixaPage() {
         </div>
       </main>
 
-      {/* Order Details Modal */}
       <Dialog open={isOrderDialogOpen} onOpenChange={setIsOrderDialogOpen}>
         <DialogContent className="max-w-lg p-0 border-none bg-white rounded-[2.5rem] overflow-hidden shadow-2xl">
-          <DialogHeader className="bg-slate-900 p-8 text-white relative">
+          <DialogHeader className="bg-yellow-500 p-8 text-slate-900 relative">
             <div className="flex justify-between items-start">
               <div className="space-y-1">
-                <Badge className="bg-yellow-500 hover:bg-yellow-500 text-slate-900 font-black border-none px-3 py-1 rounded-full mb-2">
+                <Badge className="bg-slate-900 hover:bg-slate-900 text-white font-black border-none px-3 py-1 rounded-full mb-2">
                   PEDIDO FINALIZADO
                 </Badge>
                 <DialogTitle className="text-4xl font-black tracking-tighter">#{selectedOrder?.orderNumber}</DialogTitle>
-                <p className="text-slate-400 text-sm font-medium">
+                <p className="text-slate-800 text-sm font-bold opacity-70">
                   {selectedOrder?.createdAt && new Date(selectedOrder.createdAt).toLocaleString('pt-BR')}
                 </p>
               </div>
               <button 
                 onClick={() => setIsOrderDialogOpen(false)}
-                className="h-10 w-10 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center transition-colors outline-none"
+                className="h-10 w-10 bg-slate-900/10 hover:bg-slate-900/20 rounded-full flex items-center justify-center transition-colors outline-none"
               >
-                <X className="h-5 w-5" />
+                <X className="h-5 w-5 text-slate-900" />
               </button>
             </div>
           </DialogHeader>
@@ -311,7 +312,6 @@ export default function AdminCaixaPage() {
           <ScrollArea className="max-h-[60vh]">
             <div className="p-8 space-y-8">
               
-              {/* Customer Info */}
               <section className="space-y-4">
                 <div className="flex items-center gap-2 text-slate-400">
                   <ShoppingBag className="h-4 w-4" />
@@ -335,7 +335,6 @@ export default function AdminCaixaPage() {
                 </div>
               </section>
 
-              {/* Items List */}
               <section className="space-y-4">
                 <div className="flex items-center gap-2 text-slate-400">
                   <Package className="h-4 w-4" />
@@ -365,7 +364,6 @@ export default function AdminCaixaPage() {
                 </div>
               </section>
 
-              {/* Payment & Summary */}
               <section className="space-y-4">
                 <div className="flex items-center gap-2 text-slate-400">
                   <Wallet className="h-4 w-4" />
@@ -398,7 +396,6 @@ export default function AdminCaixaPage() {
                 </div>
               </section>
 
-              {/* Notes */}
               {selectedOrder?.notes && (
                 <section className="space-y-3">
                   <div className="flex items-center gap-2 text-slate-400">
@@ -416,7 +413,7 @@ export default function AdminCaixaPage() {
           <div className="p-8 pt-0">
             <Button 
               onClick={() => setIsOrderDialogOpen(false)}
-              className="w-full h-14 bg-slate-900 hover:bg-slate-800 text-white font-black rounded-2xl text-lg shadow-xl transition-all active:scale-[0.98]"
+              className="w-full h-14 bg-yellow-500 hover:bg-yellow-600 text-slate-900 font-black rounded-2xl text-lg shadow-xl transition-all active:scale-[0.98]"
             >
               Fechar Detalhes
             </Button>
