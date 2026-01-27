@@ -1,6 +1,6 @@
 "use client"
 
-import { Clock, Power } from "lucide-react"
+import { Clock, Power, Truck } from "lucide-react"
 import { useEffect, useState } from "react"
 import { storeStatusManager } from "@/lib/store-status-manager"
 
@@ -11,11 +11,13 @@ interface BusinessHoursProps {
 export function BusinessHours({ showToggle = false }: BusinessHoursProps) {
   const [currentTime, setCurrentTime] = useState<string>("")
   const [isOpen, setIsOpen] = useState(true)
+  const [isDeliveryEnabled, setIsDeliveryEnabled] = useState(true)
   const [waitTime, setWaitTime] = useState({ min: 15, max: 22 })
 
   const updateStatus = async () => {
     const status = await storeStatusManager.getStatus()
     setIsOpen(status.isOpen)
+    setIsDeliveryEnabled(status.isDeliveryEnabled ?? true)
     setWaitTime({ min: status.waitTimeMin, max: status.waitTimeMax })
   }
 
@@ -47,6 +49,11 @@ export function BusinessHours({ showToggle = false }: BusinessHoursProps) {
     updateStatus()
   }
 
+  const handleToggleDelivery = () => {
+    storeStatusManager.toggleDeliveryStatus()
+    updateStatus()
+  }
+
   return (
     <div className="flex items-center gap-4 text-sm flex-wrap">
       <div className="flex items-center gap-2">
@@ -72,15 +79,27 @@ export function BusinessHours({ showToggle = false }: BusinessHoursProps) {
       )}
 
       {showToggle && (
-        <button
-          onClick={handleToggle}
-          className={`flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium transition-colors ${
-            isOpen ? "bg-red-100 text-red-700 hover:bg-red-200" : "bg-green-100 text-green-700 hover:bg-green-200"
-          }`}
-        >
-          <Power className="h-3 w-3" />
-          {isOpen ? "Fechar Loja" : "Abrir Loja"}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleToggle}
+            className={`flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+              isOpen ? "bg-red-100 text-red-700 hover:bg-red-200" : "bg-green-100 text-green-700 hover:bg-green-200"
+            }`}
+          >
+            <Power className="h-3 w-3" />
+            {isOpen ? "Fechar Loja" : "Abrir Loja"}
+          </button>
+
+          <button
+            onClick={handleToggleDelivery}
+            className={`flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+              isDeliveryEnabled ? "bg-orange-100 text-orange-700 hover:bg-orange-200" : "bg-blue-100 text-blue-700 hover:bg-blue-200"
+            }`}
+          >
+            <Truck className="h-3 w-3" />
+            {isDeliveryEnabled ? "Pausar Entregas" : "Ativar Entregas"}
+          </button>
+        </div>
       )}
     </div>
   )

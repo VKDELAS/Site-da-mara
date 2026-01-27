@@ -3,6 +3,7 @@ import { getSupabaseBrowserClient } from "./supabase/client"
 
 export interface StoreStatus {
   isOpen: boolean
+  isDeliveryEnabled: boolean // Novo campo para controle de entregas
   waitTimeMin: number
   waitTimeMax: number
   activeOrders?: number[] // Lista de timestamps (ms) de cada pedido realizado
@@ -115,6 +116,7 @@ class StoreStatusManager {
   private getDefaultStatus(): StoreStatus {
     return {
       isOpen: this.shouldBeOpenBySchedule(),
+      isDeliveryEnabled: true, // Padrão: entregas ativas
       waitTimeMin: this.defaultWaitTime.min,
       waitTimeMax: this.defaultWaitTime.max,
       activeOrders: [],
@@ -133,6 +135,16 @@ class StoreStatusManager {
     }
     await this.saveStatus(newStatus)
     return newStatus.isOpen
+  }
+
+  async toggleDeliveryStatus(): Promise<boolean> {
+    const status = await this.getStatus()
+    const newStatus = {
+      ...status,
+      isDeliveryEnabled: !status.isDeliveryEnabled
+    }
+    await this.saveStatus(newStatus)
+    return newStatus.isDeliveryEnabled
   }
 
   /**

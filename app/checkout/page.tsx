@@ -53,10 +53,21 @@ export default function CheckoutPage() {
   const [isLoadingAddresses, setIsLoadingAddresses] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [precisaTalheres, setPrecisaTalheres] = useState<string>("")
+  const [isDeliveryEnabled, setIsDeliveryEnabled] = useState(true)
 
   // Sincronizar dados do usuário e carregar endereços
   useEffect(() => {
     const loadData = async () => {
+      // Carregar status da entrega
+      const status = await storeStatusManager.getStatus()
+      const deliveryActive = status.isDeliveryEnabled ?? true
+      setIsDeliveryEnabled(deliveryActive)
+      
+      // Se entrega estiver desativada, força retirada
+      if (!deliveryActive) {
+        setDeliveryType("pickup")
+      }
+
       if (user) {
         setNome(user.user_metadata?.full_name || "")
         setTelefone(user.user_metadata?.phone || "")
@@ -499,20 +510,37 @@ export default function CheckoutPage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-6">
+                  {!isDeliveryEnabled && (
+                    <div className="mb-6 p-4 bg-orange-50 border border-orange-100 rounded-2xl flex items-start gap-3 text-orange-800 animate-in fade-in slide-in-from-top-2 duration-300">
+                      <AlertCircle className="h-5 w-5 shrink-0 mt-0.5 text-orange-600" />
+                      <div>
+                        <p className="text-sm font-bold">Entregas Temporariamente Indisponíveis</p>
+                        <p className="text-xs opacity-90">No momento estamos trabalhando apenas com **retirada no local**. Desculpe o transtorno!</p>
+                      </div>
+                    </div>
+                  )}
+
                   <RadioGroup
                     value={deliveryType}
-                    onValueChange={(v: "delivery" | "pickup") => setDeliveryType(v)}
+                    onValueChange={(v: "delivery" | "pickup") => {
+                      if (!isDeliveryEnabled && v === "delivery") return
+                      setDeliveryType(v)
+                    }}
                     className="grid md:grid-cols-2 gap-4"
                   >
-                    <div>
-                      <RadioGroupItem value="delivery" id="delivery" className="peer sr-only" />
+                    <div className={!isDeliveryEnabled ? "opacity-50 cursor-not-allowed" : ""}>
+                      <RadioGroupItem value="delivery" id="delivery" className="peer sr-only" disabled={!isDeliveryEnabled} />
                       <Label
                         htmlFor="delivery"
-                        className="flex flex-col items-center justify-between rounded-2xl border-2 border-gray-100 bg-white p-4 hover:bg-gray-50 peer-data-[state=checked]:border-yellow-500 [&:has([data-state=checked])]:border-yellow-500 cursor-pointer transition-all"
+                        className={`flex flex-col items-center justify-between rounded-2xl border-2 border-gray-100 bg-white p-4 transition-all ${
+                          isDeliveryEnabled 
+                            ? "hover:bg-gray-50 peer-data-[state=checked]:border-yellow-500 [&:has([data-state=checked])]:border-yellow-500 cursor-pointer" 
+                            : "cursor-not-allowed"
+                        }`}
                       >
-                        <MapPin className="h-6 w-6 mb-2 text-gray-400 peer-data-[state=checked]:text-yellow-500" />
+                        <MapPin className={`h-6 w-6 mb-2 ${isDeliveryEnabled ? "text-gray-400 peer-data-[state=checked]:text-yellow-500" : "text-gray-300"}`} />
                         <span className="font-bold text-gray-600">Entrega</span>
-                        <span className="text-xs text-gray-400">Receba em casa</span>
+                        <span className="text-xs text-gray-400">{isDeliveryEnabled ? "Receba em casa" : "Indisponível"}</span>
                       </Label>
                     </div>
                     <div>
