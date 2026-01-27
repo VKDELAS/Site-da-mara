@@ -5,10 +5,10 @@ import { HeaderWrapper } from "@/components/header-wrapper"
 import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogContent } from "@/components/ui/dialog"
 import { useAuth } from "@/lib/auth-context"
 import { useRouter } from "next/navigation"
-import { DollarSign, Calendar, TrendingUp, ArrowLeft, Package, CheckCircle, Clock, ChevronDown, ChevronUp, BarChart3, Eye, EyeOff, MapPin, Phone, Utensils, X } from "lucide-react"
+import { Calendar, TrendingUp, ArrowLeft, Package, CheckCircle, Clock, ChevronDown, ChevronUp, BarChart3, Eye, EyeOff, MapPin, Phone, X } from "lucide-react"
 import { ordersManager, type DailySales, type Order } from "@/lib/orders-manager"
 import Link from "next/link"
 
@@ -41,7 +41,6 @@ export default function AdminCaixaPage() {
       } else if (user.email && ADMIN_EMAILS.includes(user.email)) {
         setIsAdmin(true)
         loadData()
-        // Atualizar dados a cada 30 segundos
         const interval = setInterval(() => {
           loadData()
         }, 30000)
@@ -86,13 +85,9 @@ export default function AdminCaixaPage() {
     }
   }
 
-  const handleOrderClick = (order: Order, date: string) => {
+  const handleOrderClick = (order: Order) => {
     setSelectedOrder(order)
     setIsOrderDialogOpen(true)
-    // Garantir que a data permaneça expandida
-    if (expandedDate !== date) {
-      setExpandedDate(date)
-    }
   }
 
   if (loading || !isAdmin) {
@@ -111,7 +106,6 @@ export default function AdminCaixaPage() {
       <HeaderWrapper />
       <main className="flex-1 py-8 px-4 md:px-6">
         <div className="container mx-auto max-w-7xl">
-          {/* Cabeçalho */}
           <div className="mb-8">
             <Link href="/admin">
               <Button variant="ghost" className="mb-6 text-gray-600 hover:text-yellow-600 hover:bg-yellow-50 font-semibold gap-2">
@@ -141,7 +135,6 @@ export default function AdminCaixaPage() {
             </div>
           </div>
 
-          {/* Resumo de Hoje */}
           <div className="mb-12">
             <h2 className="text-2xl font-black text-gray-900 mb-4">Resumo de Hoje</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
@@ -203,9 +196,9 @@ export default function AdminCaixaPage() {
                     <div className="h-12 w-12 bg-green-100 rounded-xl flex items-center justify-center">
                       <TrendingUp className="h-6 w-6 text-green-600" />
                     </div>
-                    <button className="text-xs font-bold text-green-600 bg-green-50 px-3 py-1 rounded-full hover:bg-green-100 transition-colors">
+                    <div className="text-xs font-bold text-green-600 bg-green-50 px-3 py-1 rounded-full hover:bg-green-100 transition-colors">
                       {showRevenue ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </button>
+                    </div>
                   </div>
                   <p className="text-gray-600 text-sm font-semibold mb-1">Faturamento</p>
                   <p className="text-3xl font-black text-green-600">
@@ -216,7 +209,6 @@ export default function AdminCaixaPage() {
             </div>
           </div>
 
-          {/* Histórico de Vendas */}
           <div>
             <h2 className="text-2xl font-black text-gray-900 mb-4">Histórico de Vendas Passadas</h2>
             {salesHistory.length === 0 ? (
@@ -229,7 +221,7 @@ export default function AdminCaixaPage() {
             ) : (
               <div className="space-y-4">
                 {salesHistory.map((day, index) => (
-                  <div key={index} className="group">
+                  <div key={day.date} className="group">
                     <Card 
                       onClick={() => toggleDate(day.date)}
                       className={`border-2 transition-all cursor-pointer overflow-hidden rounded-2xl ${
@@ -267,9 +259,8 @@ export default function AdminCaixaPage() {
                           </div>
                         </div>
 
-                        {/* Detalhes dos Pedidos (Expandido) */}
                         {expandedDate === day.date && (
-                          <div className="mt-6 pt-6 border-t border-gray-100 space-y-4">
+                          <div className="mt-6 pt-6 border-t border-gray-100 space-y-4" onClick={(e) => e.stopPropagation()}>
                             {loadingOrders === day.date ? (
                               <div className="flex justify-center py-4">
                                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-500"></div>
@@ -279,7 +270,7 @@ export default function AdminCaixaPage() {
                                 {dateOrders[day.date].map((order) => (
                                   <div
                                     key={order.id}
-                                    onClick={() => handleOrderClick(order, day.date)}
+                                    onClick={() => handleOrderClick(order)}
                                     className="p-4 bg-gradient-to-r from-yellow-50 to-white rounded-xl border border-yellow-200 hover:border-yellow-400 hover:shadow-md transition-all cursor-pointer group"
                                   >
                                     <div className="flex items-start justify-between gap-4">
@@ -311,10 +302,12 @@ export default function AdminCaixaPage() {
         </div>
       </main>
 
-      {/* Pop-up Modal do Pedido - Estilo iFood */}
       <Dialog open={isOrderDialogOpen} onOpenChange={setIsOrderDialogOpen}>
-        <DialogContent showCloseButton={false} className="bg-white rounded-3xl border-0 shadow-2xl max-w-md p-0 overflow-hidden">
-          {/* Header Amarelo */}
+        <DialogContent 
+          onPointerDownOutside={(e) => e.preventDefault()}
+          onInteractOutside={(e) => e.preventDefault()}
+          className="bg-white rounded-3xl border-0 shadow-2xl max-w-md p-0 overflow-hidden outline-none"
+        >
           <div className="bg-gradient-to-r from-yellow-400 to-yellow-500 px-6 py-6 text-white">
             <div className="flex items-center justify-between mb-4">
               <div>
@@ -330,9 +323,7 @@ export default function AdminCaixaPage() {
             </div>
           </div>
 
-          {/* Conteúdo */}
           <div className="px-6 py-6 space-y-6 max-h-[calc(90vh-200px)] overflow-y-auto">
-            {/* Informações do Cliente */}
             <div className="space-y-4">
               <h3 className="font-bold text-gray-900 text-lg">Informações do Cliente</h3>
               <div className="space-y-3">
@@ -368,7 +359,6 @@ export default function AdminCaixaPage() {
               </div>
             </div>
 
-            {/* Itens do Pedido */}
             <div className="space-y-4">
               <h3 className="font-bold text-gray-900 text-lg">Itens do Pedido</h3>
               <div className="space-y-3">
@@ -395,7 +385,6 @@ export default function AdminCaixaPage() {
               </div>
             </div>
 
-            {/* Detalhes do Pedido */}
             <div className="space-y-4">
               <h3 className="font-bold text-gray-900 text-lg">Detalhes</h3>
               <div className="space-y-3">
@@ -430,7 +419,6 @@ export default function AdminCaixaPage() {
               </div>
             </div>
 
-            {/* Notas */}
             {selectedOrder?.notes && (
               <div className="space-y-4">
                 <h3 className="font-bold text-gray-900 text-lg">Observações</h3>
@@ -439,7 +427,6 @@ export default function AdminCaixaPage() {
             )}
           </div>
 
-          {/* Footer com Total */}
           <div className="bg-gradient-to-r from-yellow-50 to-white border-t border-yellow-200 px-6 py-6">
             <div className="flex items-center justify-between mb-4 gap-4">
               <p className="text-gray-600 font-semibold whitespace-nowrap">Total do Pedido</p>
