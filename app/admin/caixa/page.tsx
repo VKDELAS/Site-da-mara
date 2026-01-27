@@ -300,12 +300,7 @@ export default function AdminCaixaPage() {
                   {selectedOrder?.createdAt && new Date(selectedOrder.createdAt).toLocaleString('pt-BR')}
                 </p>
               </div>
-              <button 
-                onClick={() => setIsOrderDialogOpen(false)}
-                className="h-10 w-10 bg-slate-900/10 hover:bg-slate-900/20 rounded-full flex items-center justify-center transition-colors outline-none"
-              >
-                <X className="h-5 w-5 text-slate-900" />
-              </button>
+
             </div>
           </DialogHeader>
 
