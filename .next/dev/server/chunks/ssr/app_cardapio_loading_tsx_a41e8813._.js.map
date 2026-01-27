@@ -1,6 +1,0 @@
-{
-  "version": 3,
-  "sources": [],
-  "sections": [
-    {"offset": {"line": 4, "column": 0}, "map": {"version":3,"sources":["file:///home/vkdelas/P%C3%BAblico/batatop_final1.5/app/cardapio/loading.tsx"],"sourcesContent":["export default function Loading(): null {\n  return null\n}\n"],"names":[],"mappings":";;;;AAAe,SAAS;IACtB,OAAO;AACT"}}]
-}
