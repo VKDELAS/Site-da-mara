@@ -309,7 +309,7 @@ export default function AdminCaixaPage() {
 
       {/* Pop-up Modal do Pedido - Estilo iFood */}
       <Dialog open={isOrderDialogOpen} onOpenChange={setIsOrderDialogOpen}>
-        <DialogContent className="bg-white rounded-3xl border-0 shadow-2xl max-w-md p-0 overflow-hidden">
+        <DialogContent showCloseButton={false} className="bg-white rounded-3xl border-0 shadow-2xl max-w-md p-0 overflow-hidden">
           {/* Header Amarelo */}
           <div className="bg-gradient-to-r from-yellow-400 to-yellow-500 px-6 py-6 text-white">
             <div className="flex items-center justify-between mb-4">
@@ -429,9 +429,9 @@ export default function AdminCaixaPage() {
 
           {/* Footer com Total */}
           <div className="bg-gradient-to-r from-yellow-50 to-white border-t border-yellow-200 px-6 py-6">
-            <div className="flex items-center justify-between mb-4">
-              <p className="text-gray-600 font-semibold">Total</p>
-              <p className="text-3xl font-black text-yellow-600">R$ {selectedOrder?.total.toFixed(2)}</p>
+            <div className="flex items-center justify-between mb-4 gap-4">
+              <p className="text-gray-600 font-semibold whitespace-nowrap">Total do Pedido</p>
+              <p className="text-2xl sm:text-3xl font-black text-yellow-600 break-all text-right">R$ {selectedOrder?.total.toFixed(2)}</p>
             </div>
             <Button
               onClick={() => setIsOrderDialogOpen(false)}
