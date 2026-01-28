@@ -320,11 +320,33 @@ class ProductsManager {
 
   // Métodos de ordenação por popularidade para o Cardápio
   async getBatatasSortedByPopularity() {
-    return this.getBatatas()
+    const products = await this.getBatatas()
+    const ranking = await this.getRealRankingByCategory("batata")
+    
+    return [...products].sort((a, b) => {
+      const indexA = ranking.indexOf(a.name)
+      const indexB = ranking.indexOf(b.name)
+      
+      if (indexA === -1 && indexB === -1) return 0
+      if (indexA === -1) return 1
+      if (indexB === -1) return -1
+      return indexA - indexB
+    })
   }
 
   async getMacarraoSortedByPopularity() {
-    return this.getMacarrao()
+    const products = await this.getMacarrao()
+    const ranking = await this.getRealRankingByCategory("macarrao")
+    
+    return [...products].sort((a, b) => {
+      const indexA = ranking.indexOf(a.name)
+      const indexB = ranking.indexOf(b.name)
+      
+      if (indexA === -1 && indexB === -1) return 0
+      if (indexA === -1) return 1
+      if (indexB === -1) return -1
+      return indexA - indexB
+    })
   }
 
   async getBebidasSortedByPopularity() {
@@ -427,16 +449,40 @@ class ProductsManager {
 
   async getMostRequestedProduct(): Promise<TopProductStats> {
     try {
+      const supabase = await getSupabase()
+      
+      // Busca o produto mais vendido na tabela order_items
+      const { data, error } = await supabase
+        .from("order_items")
+        .select("product_name, quantity")
+      
+      if (error || !data || data.length === 0) {
+        const products = await this.getProducts()
+        return { product: products[0], totalOrders: 0, customerPhotos: [] }
+      }
+
+      // Agrupa por nome e soma quantidades
+      const counts: Record<string, number> = {}
+      data.forEach(item => {
+        counts[item.product_name] = (counts[item.product_name] || 0) + (item.quantity || 1)
+      })
+
+      const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1])
+      const topProductName = sorted[0][0]
+      const totalOrders = sorted[0][1]
+
       const products = await this.getProducts()
-      const batatas = products.filter(p => p.category === 'batata')
+      const topProduct = products.find(p => p.name === topProductName) || products[0]
+
       return {
-        product: batatas[0] || products[0],
-        totalOrders: 150,
+        product: topProduct,
+        totalOrders: totalOrders,
         customerPhotos: []
       }
     } catch {
+      const products = await this.getProducts()
       return {
-        product: DEFAULT_PRODUCTS[0],
+        product: products[0],
         totalOrders: 0,
         customerPhotos: []
       }
@@ -468,10 +514,37 @@ class ProductsManager {
 
   async getRealRankingByCategory(category: string): Promise<string[]> {
     try {
+      const supabase = await getSupabase()
+      
+      // Busca todos os itens vendidos
+      const { data, error } = await supabase
+        .from("order_items")
+        .select("product_name, quantity")
+      
+      if (error || !data) return []
+
+      // Filtra apenas produtos que pertencem à categoria solicitada
       const products = await this.getProducts()
-      const filtered = products.filter(p => p.category === category)
-      // Retorna apenas os nomes dos 3 primeiros produtos
-      return filtered.slice(0, 3).map(p => p.name)
+      const categoryProductNames = products
+        .filter(p => p.category === category)
+        .map(p => p.name)
+
+      const counts: Record<string, number> = {}
+      data.forEach(item => {
+        if (categoryProductNames.includes(item.product_name)) {
+          counts[item.product_name] = (counts[item.product_name] || 0) + (item.quantity || 1)
+        }
+      })
+
+      // Ordena por quantidade vendida
+      const sorted = Object.entries(counts)
+        .sort((a, b) => b[1] - a[1])
+        .map(entry => entry[0])
+
+      // Se não houver vendas suficientes, preenche com os produtos da categoria
+      const finalRanking = [...new Set([...sorted, ...categoryProductNames])]
+      
+      return finalRanking
     } catch {
       return []
     }

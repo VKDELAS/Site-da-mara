@@ -16,12 +16,26 @@ export default async function Home() {
   ])
 
   // Filtra os produtos para destaque (Batatas e Macarrão)
-  // Pegamos as batatas que estão no ranking e os macarrões iniciais
-  const topBatatas = batatas.filter(p => 
-    topBatatasNames.some(name => name.toLowerCase() === p.name.toLowerCase())
-  ).slice(0, 3)
+  // Pegamos as batatas e macarrões que estão no topo do ranking real
+  const topBatatas = [...batatas].sort((a, b) => {
+    const indexA = topBatatasNames.indexOf(a.name)
+    const indexB = topBatatasNames.indexOf(b.name)
+    if (indexA === -1 && indexB === -1) return 0
+    if (indexA === -1) return 1
+    if (indexB === -1) return -1
+    return indexA - indexB
+  }).slice(0, 3)
   
-  const topMacarrao = macarrao.slice(0, 3)
+  const topMacarraoNames = await productsManager.getRealRankingByCategory("macarrao")
+  const topMacarrao = [...macarrao].sort((a, b) => {
+    const indexA = topMacarraoNames.indexOf(a.name)
+    const indexB = topMacarraoNames.indexOf(b.name)
+    if (indexA === -1 && indexB === -1) return 0
+    if (indexA === -1) return 1
+    if (indexB === -1) return -1
+    return indexA - indexB
+  }).slice(0, 3)
+
   const topProducts = [...topBatatas, ...topMacarrao]
 
   // Passa dados reais para os componentes
