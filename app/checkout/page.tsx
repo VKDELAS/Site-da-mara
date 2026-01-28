@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { useCart } from "@/lib/cart-context"
 import { useAuth } from "@/lib/auth-context"
-import { ShoppingBag, MapPin, CreditCard, AlertCircle, Plus, Store, Ticket, Check, X, User, Loader2, Utensils } from "lucide-react"
+import { ShoppingBag, MapPin, CreditCard, AlertCircle, Plus, Store, Ticket, Check, X, User, Loader2, Utensils, Truck } from "lucide-react"
 import Link from "next/link"
 import { couponsManager, type Coupon } from "@/lib/cupons-manager"
 import { storeStatusManager } from "@/lib/store-status-manager"
@@ -54,6 +54,8 @@ export default function CheckoutPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [precisaTalheres, setPrecisaTalheres] = useState<string>("")
   const [isDeliveryEnabled, setIsDeliveryEnabled] = useState(true)
+  const [deliveryFee, setDeliveryFee] = useState(0)
+  const [isDeliveryFeeEnabled, setIsDeliveryFeeEnabled] = useState(false)
 
   // Sincronizar dados do usuário e carregar endereços
   useEffect(() => {
@@ -62,6 +64,8 @@ export default function CheckoutPage() {
       const status = await storeStatusManager.getStatus()
       const deliveryActive = status.isDeliveryEnabled ?? true
       setIsDeliveryEnabled(deliveryActive)
+      setDeliveryFee(status.deliveryFee ?? 3.00)
+      setIsDeliveryFeeEnabled(status.isDeliveryFeeEnabled ?? true)
       
       // Se entrega estiver desativada, força retirada
       if (!deliveryActive) {
@@ -140,8 +144,13 @@ export default function CheckoutPage() {
     return couponsManager.calculateDiscount(getTotalPrice(), appliedCoupon)
   }
 
+  const getCurrentDeliveryFee = () => {
+    if (deliveryType === "pickup") return 0
+    return isDeliveryFeeEnabled ? deliveryFee : 0
+  }
+
   const getFinalTotal = () => {
-    return getTotalPrice() - getDiscountAmount()
+    return getTotalPrice() - getDiscountAmount() + getCurrentDeliveryFee()
   }
 
   const handleCepChange = async (value: string) => {
@@ -319,117 +328,96 @@ export default function CheckoutPage() {
       try {
         const orderData = {
           customerName: nome || "Cliente",
-          customerPhone: telefone || "Não informado",
-          items: items.map(item => {
-            let cleanId = item.id ? item.id.split('-')[0] : "unknown";
-            return {
-              id: cleanId,
-              name: item.name || "Produto",
-              quantity: item.quantity || 1,
-              price: item.price || 0,
-              adicionais: item.adicionais || []
-            };
-          }),
-          total: getFinalTotal() || 0,
-          paymentMethod: formaPagamento || "dinheiro",
-          deliveryType: deliveryType || "delivery",
-          address: deliveryType === "delivery" ? enderecoString : "Retirada no Local",
-          notes: observacoes,
+          customerPhone: telefone || "",
+          customerAddress: deliveryType === "pickup" ? "Retirada no Local" : enderecoString,
+          customerNeighborhood: deliveryType === "pickup" ? "" : (useNewAddress ? bairro : (addresses.find(a => a.id === selectedAddressId)?.neighborhood || "")),
+          customerComplement: deliveryType === "pickup" ? "" : (useNewAddress ? complemento : (addresses.find(a => a.id === selectedAddressId)?.complement || "")),
+          paymentMethod: formaPagamento,
+          totalAmount: getFinalTotal(),
           discountAmount: getDiscountAmount(),
           couponCode: appliedCoupon?.code || null,
-          user_id: user?.id || null
-        };
-        
-        const savedOrder = await ordersManager.addOrder(orderData as any)
-        
-        // Salvar ID do pedido no localStorage para usuários anônimos
-        if (!user && savedOrder?.id) {
-          const anonymousOrders = JSON.parse(localStorage.getItem("anonymous-orders") || "[]");
-          anonymousOrders.push(savedOrder.id);
-          localStorage.setItem("anonymous-orders", JSON.stringify(anonymousOrders));
+          notes: `${observacoes}${precisaTalheres ? `\nPrecisa de colher: ${precisaTalheres}` : ""}${formaPagamento === "dinheiro" && troco ? `\nTroco para: R$ ${troco}` : ""}`,
+          deliveryType: deliveryType,
+          items: items.map(item => ({
+            product_id: item.id.split("-")[0],
+            product_name: item.name,
+            product_price: item.price,
+            quantity: item.quantity,
+            notes: item.notes || null,
+            adicionais: item.adicionais || []
+          }))
         }
+
+        await ordersManager.createOrder(orderData)
+        // Incrementa o tempo de espera após pedido bem sucedido
+        await storeStatusManager.incrementWaitTime()
       } catch (dbError) {
-        console.error("Erro ao salvar pedido no banco (continuando para WhatsApp):", dbError)
+        console.error("Erro ao salvar pedido no banco:", dbError)
+        // Continuamos para o WhatsApp mesmo se falhar no banco
       }
 
       // 2. Gerar mensagem do WhatsApp
-      let message = "*NOVO PEDIDO - BATATOP*\n"
-      message += "------------------------------------------\n\n"
-
-      message += "*CLIENTE*\n"
-      message += `* Nome: ${nome || "Não informado"}\n`
-      message += `* WhatsApp: ${telefone || "Não informado"}\n\n`
-
-      message += `*ENTREGA: ${deliveryType === "delivery" ? "DELIVERY" : "RETIRADA NO LOCAL"}*\n`
-      if (deliveryType === "delivery") {
-        message += `* Endereço: ${enderecoString || "Não informado"}\n\n`
-      } else {
-        message += "* Retirada: Rua Carlos Roberto Crepaldi, 120 - Jardim Alvorada\n\n"
-      }
-
-      message += "------------------------------------------\n"
-      message += "*ITENS DO PEDIDO*\n\n"
-
-      if (items && items.length > 0) {
-        items.forEach((item) => {
-          const itemPrice = item.price || 0
-          const itemQty = item.quantity || 1
-          const itemAdicionais = item.adicionais || []
-          
-          const itemAdicionaisTotal = itemAdicionais.reduce((sum, a) => sum + ((a.price || 0) * (a.quantity || 1)), 0)
-          const itemTotal = (itemPrice + itemAdicionaisTotal) * itemQty
-          
-          message += `*${itemQty}x ${(item.name || "Produto").toUpperCase()}*\n`
+      const itemsList = items
+        .map((item) => {
+          let itemText = `*${item.quantity}x ${item.name}* - R$ ${(item.price * item.quantity).toFixed(2)}`
           if (item.pastaType) {
-            const pastaLabel = item.pastaType === "penne" ? "Penne 🍝" : item.pastaType === "parafuso" ? "Parafuso 🌀" : "Espaguete 🍜"
-            message += `  Massa: ${pastaLabel}\n`
+            itemText += `\n  _Massa: ${item.pastaType}_`
           }
-          message += `  Preço un: R$ ${itemPrice.toFixed(2).replace('.', ',')}\n`
-          
-          if (itemAdicionais.length > 0) {
-            message += `  + ${itemAdicionais.length} adicionais\n`
-            itemAdicionais.forEach(a => {
-              message += `    - ${a.quantity || 1}x ${a.name || "Adicional"} (R$ ${((a.price || 0) * (a.quantity || 1)).toFixed(2).replace('.', ',')})\n`
+          if (item.adicionais && item.adicionais.length > 0) {
+            item.adicionais.forEach(a => {
+              itemText += `\n  _+ ${a.name} (R$ ${a.price.toFixed(2)})_`
             })
           }
-          message += `  *Subtotal item: R$ ${itemTotal.toFixed(2).replace('.', ',')}*\n\n`
+          if (item.notes) {
+            itemText += `\n  _Obs: ${item.notes}_`
+          }
+          return itemText
         })
-      }
+        .join("\n\n")
 
-      message += "------------------------------------------\n"
-      message += `Subtotal: R$ ${(getTotalPrice() || 0).toFixed(2).replace('.', ',')}\n`
-      if (appliedCoupon) {
-        message += `Cupom (${appliedCoupon.code}): -R$ ${(getDiscountAmount() || 0).toFixed(2).replace('.', ',')}\n`
-      }
-      message += `*TOTAL A PAGAR: R$ ${(getFinalTotal() || 0).toFixed(2).replace('.', ',')}*\n\n`
+      const subtotal = getTotalPrice()
+      const desconto = getDiscountAmount()
+      const taxaEntrega = getCurrentDeliveryFee()
+      const total = getFinalTotal()
 
-      message += "*PAGAMENTO*\n"
-      message += `* Método: ${(formaPagamento || "dinheiro").toUpperCase()}\n`
-      if (formaPagamento === "dinheiro" && troco) {
-        message += `* Troco para: R$ ${troco}\n`
+      let mensagem = `*NOVO PEDIDO - SITE DA MARA*\n`
+      mensagem += `------------------------------\n`
+      mensagem += `*Cliente:* ${nome}\n`
+      mensagem += `*Telefone:* ${telefone}\n`
+      mensagem += `*Tipo:* ${deliveryType === "delivery" ? "🚀 Entrega" : "🛍️ Retirada"}\n`
+      
+      if (deliveryType === "delivery") {
+        mensagem += `*Endereço:* ${enderecoString}\n`
       }
-      message += `* Precisa de colher: ${precisaTalheres === "sim" ? "SIM" : "NÃO"}\n`
+      
+      mensagem += `------------------------------\n`
+      mensagem += `*ITENS:*\n\n${itemsList}\n`
+      mensagem += `------------------------------\n`
       
       if (observacoes) {
-        message += `\n*OBSERVAÇÕES:*\n${observacoes}\n`
+        mensagem += `*Observações:* ${observacoes}\n`
       }
-
-      message += "\n------------------------------------------\n"
-      message += "Pedido enviado pelo site Batatop"
-
-      // 3. Redirecionar para o WhatsApp
-      const whatsappUrl = `https://wa.me/5514997361015?text=${encodeURIComponent(message)}`
       
-      const win = window.open(whatsappUrl, "_blank")
-      if (!win) {
-        window.location.href = whatsappUrl
+      mensagem += `*Precisa de colher?* ${precisaTalheres}\n`
+      mensagem += `*Pagamento:* ${formaPagamento.toUpperCase()}${formaPagamento === "dinheiro" && troco ? ` (Troco para R$ ${troco})` : ""}\n`
+      
+      if (appliedCoupon) {
+        mensagem += `*Cupom:* ${appliedCoupon.code} (-R$ ${desconto.toFixed(2)})\n`
       }
+      
+      mensagem += `------------------------------\n`
+      mensagem += `*Subtotal:* R$ ${subtotal.toFixed(2)}\n`
+      if (desconto > 0) mensagem += `*Desconto:* -R$ ${desconto.toFixed(2)}\n`
+      if (taxaEntrega > 0) mensagem += `*Taxa de Entrega:* R$ ${taxaEntrega.toFixed(2)}\n`
+      mensagem += `*TOTAL: R$ ${total.toFixed(2)}*\n`
+
+      const whatsappUrl = `https://api.whatsapp.com/send?phone=5514996244404&text=${encodeURIComponent(mensagem)}`
       
       clearCart()
-      router.push("/pedidos")
+      router.push(whatsappUrl)
     } catch (error) {
-      console.error("Erro crítico ao processar pedido:", error)
-      alert("Ocorreu um erro ao gerar seu pedido. Por favor, verifique se todos os campos estão preenchidos.")
+      console.error("Erro ao finalizar pedido:", error)
+      alert("Ocorreu um erro ao processar seu pedido. Por favor, tente novamente.")
     } finally {
       setIsSubmitting(false)
     }
@@ -437,19 +425,21 @@ export default function CheckoutPage() {
 
   if (items.length === 0) {
     return (
-      <div className="min-h-screen flex flex-col">
+      <div className="min-h-screen flex flex-col bg-gray-50">
         <HeaderWrapper />
-        <main className="flex-1 flex items-center justify-center py-12">
-          <div className="text-center space-y-4">
-            <div className="h-20 w-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto">
-              <ShoppingBag className="h-10 w-10 text-gray-300" />
+        <main className="flex-1 flex items-center justify-center p-4">
+          <Card className="max-w-md w-full text-center p-8 rounded-3xl border-none shadow-sm">
+            <div className="h-20 w-20 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <ShoppingBag className="h-10 w-10 text-yellow-600" />
             </div>
-            <h2 className="text-2xl font-black text-gray-800">Seu carrinho está vazio</h2>
-            <p className="text-gray-500">Adicione algumas delícias antes de finalizar seu pedido.</p>
-            <Button asChild className="bg-yellow-500 hover:bg-yellow-600 text-white font-bold rounded-2xl px-8">
-              <Link href="/cardapio">Ver Cardápio</Link>
-            </Button>
-          </div>
+            <h2 className="text-2xl font-black text-gray-900 mb-2">Seu carrinho está vazio</h2>
+            <p className="text-gray-500 mb-8">Adicione alguns itens deliciosos antes de finalizar seu pedido.</p>
+            <Link href="/cardapio">
+              <Button className="w-full h-12 bg-yellow-500 hover:bg-yellow-600 text-white font-bold rounded-xl">
+                Ver Cardápio
+              </Button>
+            </Link>
+          </Card>
         </main>
         <Footer />
       </div>
@@ -459,16 +449,13 @@ export default function CheckoutPage() {
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
       <HeaderWrapper />
-      <main className="flex-1 py-8">
-        <div className="container mx-auto px-4 max-w-6xl">
+      <main className="flex-1 py-8 px-4 md:px-6">
+        <div className="container mx-auto max-w-6xl">
           <div className="flex items-center gap-3 mb-8">
-            <div className="h-12 w-12 bg-yellow-500 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-yellow-100">
-              <ShoppingBag className="h-6 w-6" />
+            <div className="h-10 w-10 bg-yellow-500 rounded-xl flex items-center justify-center shadow-lg shadow-yellow-100">
+              <ShoppingBag className="h-5 w-5 text-white" />
             </div>
-            <div>
-              <h1 className="text-3xl font-black text-gray-800">Finalizar Pedido</h1>
-              <p className="text-gray-500 text-sm">Quase lá! Só precisamos de mais alguns detalhes.</p>
-            </div>
+            <h1 className="text-3xl font-black text-gray-900">Finalizar Pedido</h1>
           </div>
 
           <div className="grid lg:grid-cols-3 gap-8">
@@ -480,24 +467,26 @@ export default function CheckoutPage() {
                     <User className="h-5 w-5 text-yellow-500" /> Seus Dados
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="p-6 grid md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label className="font-bold text-gray-600">Nome Completo</Label>
-                    <Input
-                      value={nome}
-                      onChange={(e) => handleNomeChange(e.target.value)}
-                      placeholder="Como quer ser chamado?"
-                      className="h-12 rounded-xl border-gray-100 focus:border-yellow-200"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="font-bold text-gray-600">WhatsApp</Label>
-                    <Input
-                      value={telefone}
-                      onChange={(e) => handleTelefoneChange(e.target.value)}
-                      placeholder="(00) 00000-0000"
-                      className="h-12 rounded-xl border-gray-100 focus:border-yellow-200"
-                    />
+                <CardContent className="p-6 space-y-4">
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="font-bold text-gray-600">Nome Completo</Label>
+                      <Input
+                        value={nome}
+                        onChange={(e) => handleNomeChange(e.target.value)}
+                        placeholder="Como devemos te chamar?"
+                        className="h-12 rounded-xl border-gray-100"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="font-bold text-gray-600">WhatsApp</Label>
+                      <Input
+                        value={telefone}
+                        onChange={(e) => handleTelefoneChange(e.target.value)}
+                        placeholder="(00) 00000-0000"
+                        className="h-12 rounded-xl border-gray-100"
+                      />
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -692,7 +681,7 @@ export default function CheckoutPage() {
                       <RadioGroupItem value="dinheiro" id="dinheiro" className="peer sr-only" />
                       <Label
                         htmlFor="dinheiro"
-                        className="flex flex-col items-center justify-center rounded-2xl border-2 border-gray-100 bg-white p-4 hover:bg-gray-50 peer-data-[state=checked]:border-yellow-500 [&:has([data-state=checked])]:border-yellow-500 cursor-pointer transition-all h-full"
+                        className="flex flex-col items-center justify-between rounded-2xl border-2 border-gray-100 bg-white p-4 hover:bg-gray-50 peer-data-[state=checked]:border-yellow-500 [&:has([data-state=checked])]:border-yellow-500 cursor-pointer transition-all"
                       >
                         <span className="font-bold text-gray-600">Dinheiro</span>
                       </Label>
@@ -701,7 +690,7 @@ export default function CheckoutPage() {
                       <RadioGroupItem value="pix" id="pix" className="peer sr-only" />
                       <Label
                         htmlFor="pix"
-                        className="flex flex-col items-center justify-center rounded-2xl border-2 border-gray-100 bg-white p-4 hover:bg-gray-50 peer-data-[state=checked]:border-yellow-500 [&:has([data-state=checked])]:border-yellow-500 cursor-pointer transition-all h-full"
+                        className="flex flex-col items-center justify-between rounded-2xl border-2 border-gray-100 bg-white p-4 hover:bg-gray-50 peer-data-[state=checked]:border-yellow-500 [&:has([data-state=checked])]:border-yellow-500 cursor-pointer transition-all"
                       >
                         <span className="font-bold text-gray-600">PIX</span>
                       </Label>
@@ -710,7 +699,7 @@ export default function CheckoutPage() {
                       <RadioGroupItem value="cartao" id="cartao" className="peer sr-only" />
                       <Label
                         htmlFor="cartao"
-                        className="flex flex-col items-center justify-center rounded-2xl border-2 border-gray-100 bg-white p-4 hover:bg-gray-50 peer-data-[state=checked]:border-yellow-500 [&:has([data-state=checked])]:border-yellow-500 cursor-pointer transition-all h-full"
+                        className="flex flex-col items-center justify-between rounded-2xl border-2 border-gray-100 bg-white p-4 hover:bg-gray-50 peer-data-[state=checked]:border-yellow-500 [&:has([data-state=checked])]:border-yellow-500 cursor-pointer transition-all"
                       >
                         <span className="font-bold text-gray-600">Cartão</span>
                       </Label>
@@ -718,8 +707,8 @@ export default function CheckoutPage() {
                   </RadioGroup>
 
                   {formaPagamento === "dinheiro" && (
-                    <div className="mt-4 space-y-2 animate-in fade-in slide-in-from-top-2 duration-200">
-                      <Label className="font-bold text-gray-600">Troco para quanto? (Opcional)</Label>
+                    <div className="mt-4 space-y-2 animate-in fade-in slide-in-from-top-2">
+                      <Label className="font-bold text-gray-600">Precisa de troco para quanto?</Label>
                       <Input
                         value={troco}
                         onChange={(e) => setTroco(e.target.value)}
@@ -731,7 +720,7 @@ export default function CheckoutPage() {
                 </CardContent>
               </Card>
 
-              {/* TALHERES (OBRIGATÓRIO) */}
+              {/* TALHERES */}
               <Card className="rounded-3xl border-none shadow-sm overflow-hidden">
                 <CardHeader className="bg-white border-b border-gray-50">
                   <CardTitle className="text-lg font-black flex items-center gap-2">
@@ -742,29 +731,23 @@ export default function CheckoutPage() {
                   <RadioGroup
                     value={precisaTalheres}
                     onValueChange={setPrecisaTalheres}
-                    className="grid md:grid-cols-2 gap-4"
+                    className="grid grid-cols-2 gap-4"
                   >
                     <div>
-                      <RadioGroupItem value="sim" id="talheres-sim" className="peer sr-only" />
+                      <RadioGroupItem value="sim" id="talher-sim" className="peer sr-only" />
                       <Label
-                        htmlFor="talheres-sim"
-                        className="flex items-center justify-center gap-3 rounded-2xl border-2 border-gray-100 bg-white p-4 hover:bg-gray-50 peer-data-[state=checked]:border-yellow-500 [&:has([data-state=checked])]:border-yellow-500 cursor-pointer transition-all"
+                        htmlFor="talher-sim"
+                        className="flex flex-col items-center justify-between rounded-2xl border-2 border-gray-100 bg-white p-4 hover:bg-gray-50 peer-data-[state=checked]:border-yellow-500 [&:has([data-state=checked])]:border-yellow-500 cursor-pointer transition-all"
                       >
-                        <div className={`h-5 w-5 rounded-full border-2 flex items-center justify-center ${precisaTalheres === "sim" ? "border-yellow-500" : "border-gray-300"}`}>
-                          {precisaTalheres === "sim" && <div className="h-2.5 w-2.5 rounded-full bg-yellow-500" />}
-                        </div>
                         <span className="font-bold text-gray-600">Sim, por favor</span>
                       </Label>
                     </div>
                     <div>
-                      <RadioGroupItem value="nao" id="talheres-nao" className="peer sr-only" />
+                      <RadioGroupItem value="nao" id="talher-nao" className="peer sr-only" />
                       <Label
-                        htmlFor="talheres-nao"
-                        className="flex items-center justify-center gap-3 rounded-2xl border-2 border-gray-100 bg-white p-4 hover:bg-gray-50 peer-data-[state=checked]:border-yellow-500 [&:has([data-state=checked])]:border-yellow-500 cursor-pointer transition-all"
+                        htmlFor="talher-nao"
+                        className="flex flex-col items-center justify-between rounded-2xl border-2 border-gray-100 bg-white p-4 hover:bg-gray-50 peer-data-[state=checked]:border-yellow-500 [&:has([data-state=checked])]:border-yellow-500 cursor-pointer transition-all"
                       >
-                        <div className={`h-5 w-5 rounded-full border-2 flex items-center justify-center ${precisaTalheres === "nao" ? "border-yellow-500" : "border-gray-300"}`}>
-                          {precisaTalheres === "nao" && <div className="h-2.5 w-2.5 rounded-full bg-yellow-500" />}
-                        </div>
                         <span className="font-bold text-gray-600">Não preciso</span>
                       </Label>
                     </div>
@@ -776,27 +759,27 @@ export default function CheckoutPage() {
               <Card className="rounded-3xl border-none shadow-sm overflow-hidden">
                 <CardHeader className="bg-white border-b border-gray-50">
                   <CardTitle className="text-lg font-black flex items-center gap-2">
-                    <AlertCircle className="h-5 w-5 text-yellow-500" /> Observações
+                    <AlertCircle className="h-5 w-5 text-yellow-500" /> Observações do Pedido
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-6">
                   <Textarea
                     value={observacoes}
                     onChange={(e) => setObservacoes(e.target.value)}
-                    placeholder="Alguma observação especial? (Ex: tirar queijo...)"
+                    placeholder="Ex: Tirar cebola, ponto da carne, etc..."
                     className="min-h-[100px] rounded-2xl border-gray-100 resize-none"
                   />
                 </CardContent>
               </Card>
             </div>
 
-            {/* RESUMO DO PEDIDO */}
-            <div className="lg:col-span-1">
-              <div className="sticky top-24 space-y-6">
-                <Card className="rounded-[32px] border-none shadow-2xl overflow-hidden bg-white">
-                  <CardHeader className="bg-yellow-500 p-6">
-                    <CardTitle className="text-xl font-black flex items-center gap-2 text-white">
-                      <ShoppingBag className="h-6 w-6" /> Resumo do Pedido
+            <div className="space-y-6">
+              {/* RESUMO DO PEDIDO */}
+              <div className="sticky top-8 space-y-6">
+                <Card className="rounded-3xl border-none shadow-lg overflow-hidden">
+                  <CardHeader className="bg-gray-900 text-white">
+                    <CardTitle className="text-lg font-black flex items-center gap-2">
+                      Resumo do Pedido
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="p-6">
@@ -880,6 +863,18 @@ export default function CheckoutPage() {
                             <span>- R$ {getDiscountAmount().toFixed(2).replace(".", ",")}</span>
                           </div>
                         )}
+
+                        {/* TAXA DE ENTREGA ESTILO IFOOD */}
+                        <div className="flex justify-between text-sm font-bold text-gray-500">
+                          <span className="flex items-center gap-1">
+                            <Truck className="h-4 w-4 text-yellow-500" /> Taxa de entrega
+                          </span>
+                          {deliveryType === "pickup" ? (
+                            <span className="text-green-600 font-black uppercase text-[10px] bg-green-50 px-2 py-0.5 rounded">Grátis</span>
+                          ) : (
+                            <span>{isDeliveryFeeEnabled ? `R$ ${deliveryFee.toFixed(2).replace(".", ",")}` : "Grátis"}</span>
+                          )}
+                        </div>
 
                         <div className="flex justify-between items-end pt-4">
                           <div className="flex flex-col">

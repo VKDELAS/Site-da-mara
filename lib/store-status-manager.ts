@@ -4,6 +4,8 @@ import { getSupabaseBrowserClient } from "./supabase/client"
 export interface StoreStatus {
   isOpen: boolean
   isDeliveryEnabled: boolean // Novo campo para controle de entregas
+  deliveryFee: number // Taxa de entrega
+  isDeliveryFeeEnabled: boolean // Se a taxa de entrega está ativa
   waitTimeMin: number
   waitTimeMax: number
   activeOrders?: number[] // Lista de timestamps (ms) de cada pedido realizado
@@ -89,6 +91,9 @@ class StoreStatusManager {
         await this.saveStatus(status)
       } else {
         status = data.setting_value as StoreStatus
+        // Garante que novos campos existam
+        if (status.deliveryFee === undefined) status.deliveryFee = 3.00
+        if (status.isDeliveryFeeEnabled === undefined) status.isDeliveryFeeEnabled = true
       }
 
       // Aplica horário automático se não houver override manual
@@ -117,6 +122,8 @@ class StoreStatusManager {
     return {
       isOpen: this.shouldBeOpenBySchedule(),
       isDeliveryEnabled: true, // Padrão: entregas ativas
+      deliveryFee: 3.00,
+      isDeliveryFeeEnabled: true,
       waitTimeMin: this.defaultWaitTime.min,
       waitTimeMax: this.defaultWaitTime.max,
       activeOrders: [],
@@ -145,6 +152,25 @@ class StoreStatusManager {
     }
     await this.saveStatus(newStatus)
     return newStatus.isDeliveryEnabled
+  }
+
+  async toggleDeliveryFeeStatus(): Promise<boolean> {
+    const status = await this.getStatus()
+    const newStatus = {
+      ...status,
+      isDeliveryFeeEnabled: !status.isDeliveryFeeEnabled
+    }
+    await this.saveStatus(newStatus)
+    return newStatus.isDeliveryFeeEnabled
+  }
+
+  async updateDeliveryFee(fee: number): Promise<void> {
+    const status = await this.getStatus()
+    const newStatus = {
+      ...status,
+      deliveryFee: fee
+    }
+    await this.saveStatus(newStatus)
   }
 
   /**

@@ -1,6 +1,6 @@
 "use client"
 
-import { Clock, Power, Truck } from "lucide-react"
+import { Clock, Power, Truck, DollarSign } from "lucide-react"
 import { useEffect, useState } from "react"
 import { storeStatusManager } from "@/lib/store-status-manager"
 
@@ -12,12 +12,16 @@ export function BusinessHours({ showToggle = false }: BusinessHoursProps) {
   const [currentTime, setCurrentTime] = useState<string>("")
   const [isOpen, setIsOpen] = useState(true)
   const [isDeliveryEnabled, setIsDeliveryEnabled] = useState(true)
+  const [isDeliveryFeeEnabled, setIsDeliveryFeeEnabled] = useState(true)
+  const [deliveryFee, setDeliveryFee] = useState(3.00)
   const [waitTime, setWaitTime] = useState({ min: 15, max: 22 })
 
   const updateStatus = async () => {
     const status = await storeStatusManager.getStatus()
     setIsOpen(status.isOpen)
     setIsDeliveryEnabled(status.isDeliveryEnabled ?? true)
+    setIsDeliveryFeeEnabled(status.isDeliveryFeeEnabled ?? true)
+    setDeliveryFee(status.deliveryFee ?? 3.00)
     setWaitTime({ min: status.waitTimeMin, max: status.waitTimeMax })
   }
 
@@ -54,6 +58,11 @@ export function BusinessHours({ showToggle = false }: BusinessHoursProps) {
     updateStatus()
   }
 
+  const handleToggleDeliveryFee = () => {
+    storeStatusManager.toggleDeliveryFeeStatus()
+    updateStatus()
+  }
+
   return (
     <div className="flex items-center gap-4 text-sm flex-wrap">
       <div className="flex items-center gap-2">
@@ -79,9 +88,10 @@ export function BusinessHours({ showToggle = false }: BusinessHoursProps) {
       )}
 
       {showToggle && (
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 mt-2 w-full md:w-auto md:mt-0">
           <button
             onClick={handleToggle}
+            title="Abrir/Fechar Loja"
             className={`flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium transition-colors ${
               isOpen ? "bg-red-100 text-red-700 hover:bg-red-200" : "bg-green-100 text-green-700 hover:bg-green-200"
             }`}
@@ -92,12 +102,24 @@ export function BusinessHours({ showToggle = false }: BusinessHoursProps) {
 
           <button
             onClick={handleToggleDelivery}
+            title="Ativar/Desativar Entregas"
             className={`flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium transition-colors ${
               isDeliveryEnabled ? "bg-orange-100 text-orange-700 hover:bg-orange-200" : "bg-blue-100 text-blue-700 hover:bg-blue-200"
             }`}
           >
             <Truck className="h-3 w-3" />
             {isDeliveryEnabled ? "Pausar Entregas" : "Ativar Entregas"}
+          </button>
+
+          <button
+            onClick={handleToggleDeliveryFee}
+            title="Ativar/Desativar Taxa de Entrega"
+            className={`flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+              isDeliveryFeeEnabled ? "bg-yellow-100 text-yellow-700 hover:bg-yellow-200" : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+            }`}
+          >
+            <DollarSign className="h-3 w-3" />
+            {isDeliveryFeeEnabled ? `Taxa Ativa (R$ ${deliveryFee.toFixed(2)})` : "Taxa Desativada"}
           </button>
         </div>
       )}
