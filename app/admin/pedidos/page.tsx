@@ -39,14 +39,7 @@ export default function AdminPedidosPage() {
       } else if (user.email && ADMIN_EMAILS.includes(user.email)) {
         setIsAdmin(true)
         loadOrders()
-        // Inicializar progressão automática dos pedidos ativos
-        ordersManager.initializeActiveOrdersProgression()
-        // Atualizar a cada 10 segundos
-        const interval = setInterval(() => {
-          loadOrders()
-          // Re-inicializa para garantir que novos pedidos entrem na progressão
-          ordersManager.initializeActiveOrdersProgression()
-        }, 10000)
+        const interval = setInterval(loadOrders, 10000)
         return () => clearInterval(interval)
       } else {
         alert("Você não tem permissão para acessar esta página")
@@ -56,8 +49,17 @@ export default function AdminPedidosPage() {
   }, [user, loading, router])
 
   const loadOrders = async () => {
+    // Busca pedidos de hoje + pedidos ativos (mesmo que de dias anteriores)
     const todayOrders = await ordersManager.getTodayOrders()
-    setOrders(todayOrders)
+    const activeOrders = await ordersManager.getActiveOrders()
+    
+    // Merge e remove duplicados
+    const allOrders = [...activeOrders, ...todayOrders]
+    const uniqueOrders = allOrders.filter((order, index, self) =>
+      index === self.findIndex((t) => t.id === order.id)
+    )
+    
+    setOrders(uniqueOrders)
   }
 
   const handleRefresh = async () => {
@@ -67,8 +69,6 @@ export default function AdminPedidosPage() {
   }
 
   const handleStatusChange = async (orderId: string, status: Order["status"]) => {
-    // Parar progressão automática quando admin mudar manualmente
-    ordersManager.stopOrderProgression(orderId)
     await ordersManager.updateOrderStatus(orderId, status)
     loadOrders()
   }
@@ -113,7 +113,6 @@ export default function AdminPedidosPage() {
       <HeaderWrapper />
       <main className="flex-1 py-8 px-4 md:px-6">
         <div className="container mx-auto max-w-7xl">
-          {/* Cabeçalho com Voltar */}
           <div className="mb-8">
             <Link href="/admin">
               <Button variant="ghost" className="mb-6 text-gray-600 hover:text-yellow-600 hover:bg-yellow-50 font-semibold gap-2">
@@ -129,7 +128,7 @@ export default function AdminPedidosPage() {
                 </div>
                 <div className="flex-1">
                   <h1 className="text-4xl md:text-5xl font-black text-gray-900">Gerenciar Pedidos</h1>
-                  <p className="text-gray-500 text-sm md:text-base">Acompanhe e gerencie todos os pedidos do dia</p>
+                  <p className="text-gray-500 text-sm md:text-base">Acompanhe e gerencie todos os pedidos ativos</p>
                 </div>
               </div>
               <Button
@@ -143,82 +142,33 @@ export default function AdminPedidosPage() {
             </div>
           </div>
 
-          {/* Filtros - Cards de Status */}
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-8">
-            <button
-              onClick={() => setFilter("all")}
-              className={`p-4 rounded-2xl font-bold text-sm transition-all ${
-                filter === "all"
-                  ? "bg-yellow-400 text-white shadow-lg"
-                  : "bg-white text-gray-700 border-2 border-gray-100 hover:border-yellow-200"
-              }`}
-            >
+            <button onClick={() => setFilter("all")} className={`p-4 rounded-2xl font-bold text-sm transition-all ${filter === "all" ? "bg-yellow-400 text-white shadow-lg" : "bg-white text-gray-700 border-2 border-gray-100 hover:border-yellow-200"}`}>
               <div className="text-2xl font-black mb-1">{stats.total}</div>
               <div>Todos</div>
             </button>
-
-            <button
-              onClick={() => setFilter("pending")}
-              className={`p-4 rounded-2xl font-bold text-sm transition-all ${
-                filter === "pending"
-                  ? "bg-orange-400 text-white shadow-lg"
-                  : "bg-white text-gray-700 border-2 border-gray-100 hover:border-orange-200"
-              }`}
-            >
+            <button onClick={() => setFilter("pending")} className={`p-4 rounded-2xl font-bold text-sm transition-all ${filter === "pending" ? "bg-orange-400 text-white shadow-lg" : "bg-white text-gray-700 border-2 border-gray-100 hover:border-orange-200"}`}>
               <div className="text-2xl font-black mb-1">{stats.pending}</div>
               <div>Pendentes</div>
             </button>
-
-            <button
-              onClick={() => setFilter("preparing")}
-              className={`p-4 rounded-2xl font-bold text-sm transition-all ${
-                filter === "preparing"
-                  ? "bg-blue-400 text-white shadow-lg"
-                  : "bg-white text-gray-700 border-2 border-gray-100 hover:border-blue-200"
-              }`}
-            >
+            <button onClick={() => setFilter("preparing")} className={`p-4 rounded-2xl font-bold text-sm transition-all ${filter === "preparing" ? "bg-blue-400 text-white shadow-lg" : "bg-white text-gray-700 border-2 border-gray-100 hover:border-blue-200"}`}>
               <div className="text-2xl font-black mb-1">{stats.preparing}</div>
               <div>Preparando</div>
             </button>
-
-            <button
-              onClick={() => setFilter("ready")}
-              className={`p-4 rounded-2xl font-bold text-sm transition-all ${
-                filter === "ready"
-                  ? "bg-purple-400 text-white shadow-lg"
-                  : "bg-white text-gray-700 border-2 border-gray-100 hover:border-purple-200"
-              }`}
-            >
+            <button onClick={() => setFilter("ready")} className={`p-4 rounded-2xl font-bold text-sm transition-all ${filter === "ready" ? "bg-purple-400 text-white shadow-lg" : "bg-white text-gray-700 border-2 border-gray-100 hover:border-purple-200"}`}>
               <div className="text-2xl font-black mb-1">{stats.ready}</div>
               <div>Pronto</div>
             </button>
-
-            <button
-              onClick={() => setFilter("delivered")}
-              className={`p-4 rounded-2xl font-bold text-sm transition-all ${
-                filter === "delivered"
-                  ? "bg-green-400 text-white shadow-lg"
-                  : "bg-white text-gray-700 border-2 border-gray-100 hover:border-green-200"
-              }`}
-            >
+            <button onClick={() => setFilter("delivered")} className={`p-4 rounded-2xl font-bold text-sm transition-all ${filter === "delivered" ? "bg-green-400 text-white shadow-lg" : "bg-white text-gray-700 border-2 border-gray-100 hover:border-green-200"}`}>
               <div className="text-2xl font-black mb-1">{stats.delivered}</div>
               <div>Entregues</div>
             </button>
-
-            <button
-              onClick={() => setFilter("cancelled")}
-              className={`p-4 rounded-2xl font-bold text-sm transition-all ${
-                filter === "cancelled"
-                  ? "bg-red-400 text-white shadow-lg"
-                  : "bg-white text-gray-700 border-2 border-gray-100 hover:border-red-200"
-              }`}
-            >
+            <button onClick={() => setFilter("cancelled")} className={`p-4 rounded-2xl font-bold text-sm transition-all ${filter === "cancelled" ? "bg-red-400 text-white shadow-lg" : "bg-white text-gray-700 border-2 border-gray-100 hover:border-red-200"}`}>
               <div className="text-2xl font-black mb-1">{orders.filter((o) => o.status === "cancelled").length}</div>
               <div>Cancelados</div>
             </button>
           </div>
 
-          {/* Lista de Pedidos */}
           {filteredOrders.length === 0 ? (
             <Card className="border-none shadow-md bg-white rounded-3xl">
               <CardContent className="p-12 text-center">
@@ -226,235 +176,87 @@ export default function AdminPedidosPage() {
                   <ShoppingBag className="h-10 w-10 text-gray-300" />
                 </div>
                 <p className="text-gray-600 font-semibold text-lg">Nenhum pedido encontrado</p>
-                <p className="text-gray-500 text-sm mt-2">Não há pedidos para este filtro no momento</p>
               </CardContent>
             </Card>
           ) : (
             <div className="space-y-4">
               {filteredOrders.map((order) => {
-                const StatusIcon = statusConfig[order.status].icon
                 const config = statusConfig[order.status]
-                const isConfirmingDelete = confirmDelete === order.id
-
                 return (
-                  <Card
-                    key={order.id}
-                    className={`border-2 ${config.borderColor} shadow-md bg-white rounded-2xl overflow-hidden hover:shadow-lg transition-all ${
-                      isConfirmingDelete ? "ring-2 ring-red-400" : ""
-                    }`}
-                  >
-                    <CardHeader className={`${config.bgColor} border-b ${config.borderColor} pb-4`}>
-                      <div className="flex justify-between items-start gap-4">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-3 mb-2">
-                            <h3 className="text-xl md:text-2xl font-black text-gray-900">
-                              Pedido #{order.orderNumber || order.id.slice(-4).toUpperCase()}
-                            </h3>
-                            <Badge className={`${config.color} border-none font-bold gap-1`}>
-                              <StatusIcon className="h-3 w-3" />
-                              {config.label}
-                            </Badge>
-                          </div>
-                          <div className="flex items-center gap-2 text-sm text-gray-600">
-                            <Clock className="h-4 w-4" />
-                            {order.createdAt.toLocaleTimeString("pt-BR", {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
-                          </div>
-                        </div>
-                      </div>
-                    </CardHeader>
-
+                  <Card key={order.id} className={`border-2 ${config.borderColor} shadow-md bg-white rounded-2xl overflow-hidden`}>
                     <CardContent className="p-6">
-                      <div className="space-y-5">
-                        {/* Cliente */}
-                        <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-xl">
-                          <Phone className="h-5 w-5 text-yellow-500 flex-shrink-0" />
-                          <div className="flex-1 min-w-0">
-                            <p className="font-bold text-gray-900">{order.customerName}</p>
-                            <p className="text-sm text-gray-600">{order.customerPhone}</p>
-                          </div>
-                        </div>
-
-                        {/* Entrega */}
-                        {order.deliveryType === "delivery" && order.address && (
-                          <div className="flex items-start gap-3 p-4 bg-gray-50 rounded-xl">
-                            <MapPin className="h-5 w-5 text-yellow-500 flex-shrink-0 mt-1" />
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-semibold text-gray-900 mb-1">Endereço de Entrega</p>
-                              <p className="text-sm text-gray-600 break-words">{order.address}</p>
+                      <div className="flex flex-col md:flex-row justify-between gap-6">
+                        <div className="flex-1 space-y-4">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <Badge className={`${config.color} border-none font-bold px-3 py-1 rounded-lg`}>
+                                Pedido #{order.orderNumber || order.id.slice(0, 4)}
+                              </Badge>
+                              <span className="text-gray-400 text-sm font-medium">
+                                {new Date(order.createdAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                            </div>
+                            <div className="flex gap-2">
+                              <select 
+                                value={order.status} 
+                                onChange={(e) => handleStatusChange(order.id, e.target.value as any)}
+                                className="text-sm font-bold border-2 border-gray-100 rounded-xl px-3 py-1 focus:outline-none focus:border-yellow-400"
+                              >
+                                <option value="pending">Pendente</option>
+                                <option value="preparing">Preparando</option>
+                                <option value="ready">Pronto</option>
+                                <option value="delivered">Entregue</option>
+                                <option value="cancelled">Cancelado</option>
+                              </select>
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                onClick={() => confirmDelete === order.id ? handleDeleteOrder(order.id) : setConfirmDelete(order.id)}
+                                className={confirmDelete === order.id ? "text-red-600 bg-red-50" : "text-gray-400 hover:text-red-600"}
+                              >
+                                <Trash2 className="h-5 w-5" />
+                              </Button>
                             </div>
                           </div>
-                        )}
 
-                        {order.deliveryType === "pickup" && (
-                          <div className="flex items-start gap-3 p-4 bg-gray-50 rounded-xl">
-                            <MapPin className="h-5 w-5 text-yellow-500 flex-shrink-0 mt-1" />
-                            <div className="flex-1">
-                              <p className="text-sm font-semibold text-gray-900">Retirada no Local</p>
-                              <p className="text-sm text-gray-600">Cliente buscará na loja</p>
+                          <div className="grid md:grid-cols-2 gap-4">
+                            <div className="space-y-1">
+                              <p className="text-sm font-bold text-gray-400 uppercase tracking-wider">Cliente</p>
+                              <p className="text-lg font-black text-gray-900">{order.customerName}</p>
+                              <div className="flex items-center gap-2 text-gray-600">
+                                <Phone className="h-4 w-4" />
+                                <span className="text-sm font-bold">{order.customerPhone}</span>
+                              </div>
+                            </div>
+                            <div className="space-y-1">
+                              <p className="text-sm font-bold text-gray-400 uppercase tracking-wider">Entrega</p>
+                              <div className="flex items-start gap-2 text-gray-600">
+                                <MapPin className="h-4 w-4 mt-1 shrink-0" />
+                                <span className="text-sm font-bold">{order.address}</span>
+                              </div>
                             </div>
                           </div>
-                        )}
 
-                        {/* Itens */}
-                        <div className="border-t-2 border-gray-100 pt-4">
-                          <h4 className="font-bold text-gray-900 mb-3">Itens do Pedido</h4>
-                          <div className="space-y-2 bg-gray-50 p-4 rounded-xl">
-                            {order.items.map((item, idx) => (
-                              <div key={idx} className="flex justify-between items-start gap-3 border-b border-gray-100 last:border-0 pb-2 mb-2 last:pb-0 last:mb-0">
-                                <div className="flex-1">
-                                  <div className="flex items-center gap-2">
-                                    <span className="flex items-center justify-center w-6 h-6 bg-yellow-100 text-yellow-700 text-xs font-bold rounded-full">
-                                      {idx + 1}
-                                    </span>
-                                    <p className="font-bold text-gray-900">
-                                      {item.quantity}x {item.name}
-                                    </p>
-                                  </div>
-                                  {item.adicionais && item.adicionais.length > 0 && (
-                                    <div className="mt-1 ml-8">
-                                      <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Adicionais:</p>
-                                      <div className="flex flex-wrap gap-1">
-                                        {item.adicionais.map((a: any, aIdx: number) => (
-                                          <span key={aIdx} className="bg-white border border-gray-200 text-gray-600 text-[10px] px-2 py-0.5 rounded-md shadow-sm">
-                                            + {a.name}
-                                          </span>
-                                        ))}
-                                      </div>
-                                    </div>
-                                  )}
+                          <div className="bg-gray-50 rounded-xl p-4">
+                            <p className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">Itens do Pedido</p>
+                            <div className="space-y-2">
+                              {order.items.map((item, idx) => (
+                                <div key={idx} className="flex justify-between items-center text-sm">
+                                  <span className="font-bold text-gray-700">{item.quantity}x {item.name}</span>
+                                  <span className="font-black text-gray-900">R$ {(item.price * item.quantity).toFixed(2)}</span>
                                 </div>
-                                <p className="font-bold text-gray-900 flex-shrink-0 pt-1">
-                                  R$ {(item.price * item.quantity).toFixed(2)}
-                                </p>
-                              </div>
-                            ))}
-                          </div>
-
-                          {/* Total */}
-                          <div className="mt-4 pt-4 border-t-2 border-gray-100 flex justify-between items-center">
-                            <p className="font-bold text-gray-900">Total do Pedido</p>
-                            <p className="text-2xl font-black text-yellow-600">R$ {order.total.toFixed(2)}</p>
-                          </div>
-                        </div>
-
-                        {/* Ações */}
-                        <div className="border-t-2 border-gray-100 pt-4">
-                          {isConfirmingDelete ? (
-                            <div className="bg-red-50 border-2 border-red-200 rounded-xl p-4 space-y-3">
-                              <div className="flex items-start gap-3">
-                                <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
-                                <div>
-                                  <p className="font-bold text-red-900">Deletar pedido?</p>
-                                  <p className="text-sm text-red-700">Esta ação não pode ser desfeita. O pedido será removido permanentemente.</p>
-                                </div>
-                              </div>
-                              <div className="grid grid-cols-2 gap-3">
-                                <Button
-                                  onClick={() => setConfirmDelete(null)}
-                                  variant="outline"
-                                  className="border-2 border-red-200 text-red-600 hover:bg-red-50 font-bold rounded-xl"
-                                >
-                                  Cancelar
-                                </Button>
-                                <Button
-                                  onClick={() => handleDeleteOrder(order.id)}
-                                  disabled={deletingId === order.id}
-                                  className="bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl"
-                                >
-                                  {deletingId === order.id ? "Deletando..." : "Confirmar Delete"}
-                                </Button>
-                              </div>
+                              ))}
                             </div>
-                          ) : (
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                              {order.status !== "delivered" && order.status !== "cancelled" && (
-                                <>
-                                  {order.status === "pending" && (
-                                    <>
-                                      <Button
-                                        onClick={(e) => {
-                                          e.preventDefault();
-                                          handleStatusChange(order.id, "preparing");
-                                        }}
-                                        className="bg-blue-500 hover:bg-blue-600 text-white font-bold rounded-xl h-11 transition-all"
-                                      >
-                                        Iniciar Preparo
-                                      </Button>
-                                      <Button
-                                        onClick={(e) => {
-                                          e.preventDefault();
-                                          handleStatusChange(order.id, "cancelled");
-                                        }}
-                                        variant="outline"
-                                        className="border-2 border-red-200 text-red-600 hover:bg-red-50 font-bold rounded-xl h-11"
-                                      >
-                                        Cancelar
-                                      </Button>
-                                      <Button
-                                        onClick={() => setConfirmDelete(order.id)}
-                                        variant="outline"
-                                        className="border-2 border-gray-200 text-gray-600 hover:bg-gray-50 font-bold rounded-xl h-11 gap-2"
-                                      >
-                                        <Trash2 className="h-4 w-4" />
-                                        Deletar
-                                      </Button>
-                                    </>
-                                  )}
-                                  {order.status === "preparing" && (
-                                    <>
-                                      <Button
-                                        onClick={(e) => {
-                                          e.preventDefault();
-                                          handleStatusChange(order.id, "ready");
-                                        }}
-                                        className="col-span-2 bg-purple-500 hover:bg-purple-600 text-white font-bold rounded-xl h-11 transition-all"
-                                      >
-                                        Marcar como Pronto
-                                      </Button>
-                                      <Button
-                                        onClick={() => setConfirmDelete(order.id)}
-                                        variant="outline"
-                                        className="border-2 border-gray-200 text-gray-600 hover:bg-gray-50 font-bold rounded-xl h-11 gap-2"
-                                      >
-                                        <Trash2 className="h-4 w-4" />
-                                      </Button>
-                                    </>
-                                  )}
-                                  {order.status === "ready" && (
-                                    <>
-                                      <Button
-                                        onClick={(e) => {
-                                          e.preventDefault();
-                                          handleStatusChange(order.id, "delivered");
-                                        }}
-                                        className="col-span-2 bg-green-500 hover:bg-green-600 text-white font-bold rounded-xl h-11 transition-all"
-                                      >
-                                        Marcar como Entregue
-                                      </Button>
-                                      <Button
-                                        onClick={() => setConfirmDelete(order.id)}
-                                        variant="outline"
-                                        className="border-2 border-gray-200 text-gray-600 hover:bg-gray-50 font-bold rounded-xl h-11 gap-2"
-                                      >
-                                        <Trash2 className="h-4 w-4" />
-                                      </Button>
-                                    </>
-                                  )}
-                                </>
-                              )}
-                              {(order.status === "delivered" || order.status === "cancelled") && (
-                                <Button
-                                  onClick={() => setConfirmDelete(order.id)}
-                                  variant="outline"
-                                  className="border-2 border-gray-200 text-gray-600 hover:bg-gray-50 font-bold rounded-xl h-11 gap-2"
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                  Deletar Pedido
-                                </Button>
-                              )}
+                            <div className="mt-4 pt-4 border-t border-gray-200 flex justify-between items-center">
+                              <span className="font-bold text-gray-500">Total</span>
+                              <span className="text-xl font-black text-yellow-600">R$ {order.total.toFixed(2)}</span>
+                            </div>
+                          </div>
+                          
+                          {order.notes && (
+                            <div className="bg-yellow-50 border border-yellow-100 rounded-xl p-3 flex gap-2">
+                              <AlertCircle className="h-5 w-5 text-yellow-600 shrink-0" />
+                              <p className="text-sm text-yellow-700 font-medium">{order.notes}</p>
                             </div>
                           )}
                         </div>

@@ -53,7 +53,7 @@ class OrdersManager {
     
     try {
       const sb = await this.supabase;
-      // Corrigido: buscar o maior order_number do dia
+      // Buscar o maior order_number do dia para sequência correta
       const { data: lastOrders, error: numError } = await sb
         .from("orders")
         .select("order_number")
@@ -102,6 +102,7 @@ class OrdersManager {
     if (orderError) {
       console.error("ERRO CRÍTICO AO INSERIR PEDIDO:", orderError);
       
+      // Fallback: Se falhar com user_id (problema de RLS), tenta sem user_id
       if (insertData.user_id) {
         console.log("Tentando fallback sem user_id...");
         const { data: retryData, error: retryError } = await sb
@@ -232,6 +233,28 @@ class OrdersManager {
     }
   }
 
+  // Nova função para buscar todos os pedidos ativos (não entregues/cancelados) independente da data
+  async getActiveOrders(): Promise<Order[]> {
+    try {
+      const sb = await this.supabase;
+      const { data, error } = await sb
+        .from("orders")
+        .select(`*, order_items (*)`)
+        .in("status", ["pending", "preparing", "ready"])
+        .order("created_at", { ascending: false })
+
+      if (error) {
+        console.error("Erro ao buscar pedidos ativos:", error)
+        return []
+      }
+
+      return data?.map((o: any) => this.mapOrderData(o)) || []
+    } catch (e) {
+      console.error("Erro inesperado ao buscar pedidos ativos:", e);
+      return [];
+    }
+  }
+
   async getUserOrders(userId: string): Promise<Order[]> {
     try {
       const sb = await this.supabase;
@@ -294,6 +317,86 @@ class OrdersManager {
     } catch (e) {
       console.error("Unexpected error in updateOrderStatus:", e)
     }
+  }
+
+  async getTodayStats() {
+    const orders = await this.getTodayOrders()
+    const completedOrders = orders.filter((o) => o.status === "delivered")
+    return {
+      totalOrders: orders.length,
+      pendingOrders: orders.filter((o) => o.status === "pending").length,
+      preparingOrders: orders.filter((o) => o.status === "preparing").length,
+      completedOrders: completedOrders.length,
+      totalSales: completedOrders.reduce((sum, o) => sum + o.total, 0),
+    }
+  }
+
+  async getOrdersByDate(dateStr: string): Promise<Order[]> {
+    const start = new Date(dateStr + 'T00:00:00')
+    const end = new Date(dateStr + 'T23:59:59')
+
+    try {
+      const sb = await this.supabase;
+      const { data, error } = await sb
+        .from("orders")
+        .select(`*, order_items (*)`)
+        .gte("created_at", start.toISOString())
+        .lte("created_at", end.toISOString())
+        .order("created_at", { ascending: false })
+
+      if (error) return []
+      return data?.map((o: any) => this.mapOrderData(o)) || []
+    } catch (e) {
+      return []
+    }
+  }
+
+  async getSalesHistory(): Promise<DailySales[]> {
+    try {
+      const sb = await this.supabase;
+      const { data, error } = await sb
+        .from("orders")
+        .select("created_at, total_amount, status")
+        .eq("status", "delivered")
+        .order("created_at", { ascending: false })
+
+      if (error) return []
+
+      const history: Record<string, DailySales> = {}
+      data.forEach((o: any) => {
+        const date = new Date(o.created_at).toISOString().split('T')[0]
+        if (!history[date]) {
+          history[date] = { date, total: 0, count: 0 }
+        }
+        history[date].total += Number(o.total_amount)
+        history[date].count += 1
+      })
+
+      return Object.values(history)
+    } catch (e) {
+      return []
+    }
+  }
+
+  // Adicionando métodos que faltavam para evitar erros na UI
+  async deleteOrder(orderId: string): Promise<void> {
+    try {
+      const sb = await this.supabase;
+      const { error } = await sb.from("orders").delete().eq("id", orderId);
+      if (error) throw error;
+    } catch (e) {
+      console.error("Erro ao deletar pedido:", e);
+      throw e;
+    }
+  }
+
+  async initializeActiveOrdersProgression() {
+    // Implementação vazia ou conforme necessário para manter compatibilidade
+    console.log("Inicializando progressão de pedidos...");
+  }
+
+  stopOrderProgression(orderId: string) {
+    // Implementação vazia para manter compatibilidade
   }
 }
 

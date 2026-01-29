@@ -33,48 +33,15 @@ export default function PedidosPage() {
     }
   }, [user])
 
-  // Verificar se deve mostrar o modal de feedback ao carregar a página
-  useEffect(() => {
-    if (orders.length > 0) {
-      checkForPendingFeedback()
-    }
-  }, [orders, evaluatedOrders])
-
   const loadEvaluatedOrders = () => {
     const evaluated = JSON.parse(localStorage.getItem("evaluated-orders") || "[]")
     setEvaluatedOrders(evaluated)
-  }
-
-  const checkForPendingFeedback = () => {
-    // Pegar o pedido mais recente que ainda não foi avaliado
-    // Removida a trava de "delivered" para abrir assim que o usuário volta ao site
-    const unEvaluatedOrders = orders.filter(
-      (order) => !evaluatedOrders.includes(order.id) && order.status !== "cancelled"
-    )
-
-    if (unEvaluatedOrders.length > 0) {
-      const mostRecentOrder = unEvaluatedOrders.sort(
-        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-      )[0]
-      
-      // Verificar se já mostrou o modal nesta sessão para este pedido específico
-      const shownInSession = sessionStorage.getItem(`feedback-shown-${mostRecentOrder.id}`)
-      
-      if (!shownInSession) {
-        // Pequeno delay para garantir que a página carregou visualmente
-        setTimeout(() => {
-          setFeedbackModalOrder(mostRecentOrder)
-          sessionStorage.setItem(`feedback-shown-${mostRecentOrder.id}`, "true")
-        }, 1000)
-      }
-    }
   }
 
   const loadOrders = async () => {
     if (!user) return
     setIsLoadingOrders(true)
     try {
-      // Busca todo o histórico vinculado ao ID do usuário diretamente no banco
       const userOrders = await ordersManager.getUserOrders(user.id)
       setOrders(userOrders)
     } catch (error) {
@@ -90,11 +57,8 @@ export default function PedidosPage() {
     setCancellingOrderId(order.id)
     try {
       await ordersManager.cancelOrder(order.id)
-      
-      // Mensagem para o WhatsApp
       const message = `Olá, gostaria de cancelar meu pedido #${order.orderNumber || order.id.slice(0, 4)}.\n\n*Detalhes do Pedido:*\nCliente: ${order.customerName}\nTotal: R$ ${order.total.toFixed(2).replace('.', ',')}`
       const whatsappUrl = `https://wa.me/5514997361015?text=${encodeURIComponent(message)}`
-      
       window.open(whatsappUrl, "_blank")
       await loadOrders()
     } catch (error) {
@@ -127,13 +91,6 @@ export default function PedidosPage() {
     return colors[status] || "text-gray-600 bg-gray-50"
   }
 
-  const canCancel = (createdAt: Date) => {
-    const now = new Date()
-    const orderDate = new Date(createdAt)
-    const diffInMinutes = (now.getTime() - orderDate.getTime()) / (1000 * 60)
-    return diffInMinutes <= 5
-  }
-
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col">
@@ -145,7 +102,6 @@ export default function PedidosPage() {
           </div>
         </main>
         <Footer />
-        <OrderSummary />
       </div>
     )
   }
@@ -155,9 +111,7 @@ export default function PedidosPage() {
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
       <HeaderWrapper />
-      
       <main className="flex-1 pb-24 lg:pb-8">
-        {/* Mobile Header */}
         <div className="lg:hidden sticky top-0 z-30 bg-white border-b">
           <div className="flex items-center gap-4 px-4 py-4">
             <button onClick={() => router.back()} className="p-2 -ml-2 hover:bg-gray-100 rounded-full transition-colors">
@@ -167,7 +121,6 @@ export default function PedidosPage() {
           </div>
         </div>
 
-        {/* Desktop Header */}
         <div className="hidden lg:block container mx-auto px-4 py-8">
           <h1 className="text-3xl font-black text-gray-800 mb-2">Meus Pedidos</h1>
           <p className="text-gray-500">Acompanhe o histórico de suas compras</p>
@@ -184,7 +137,6 @@ export default function PedidosPage() {
                 <ShoppingBag className="h-24 w-24 text-yellow-200" />
               </div>
               <h2 className="text-xl font-black text-gray-800 text-center mb-2">Você ainda não pediu</h2>
-              <p className="text-gray-500 text-center mb-8 max-w-sm">Que tal conhecer as melhores opções do Batatop?</p>
               <Button onClick={() => router.push("/cardapio")} className="bg-yellow-500 hover:bg-yellow-600 text-white font-black px-8 py-3 rounded-xl shadow-lg shadow-yellow-100 transition-all active:scale-95">
                 Ir para o Cardápio
               </Button>
@@ -224,33 +176,6 @@ export default function PedidosPage() {
                         <p className="text-lg font-black text-gray-800">R$ {order.total.toFixed(2).replace('.', ',')}</p>
                       </div>
                       <div className="flex gap-2">
-                        {["pending", "preparing"].includes(order.status) && canCancel(order.createdAt) && (
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            className="text-red-500 font-bold hover:bg-red-50 hover:text-red-600" 
-                            onClick={() => handleCancelOrder(order)}
-                            disabled={cancellingOrderId === order.id}
-                          >
-                            {cancellingOrderId === order.id ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <>
-                                <XCircle className="h-4 w-4 mr-1" /> Cancelar
-                              </>
-                            )}
-                          </Button>
-                        )}
-                        {!evaluatedOrders.includes(order.id) && order.status !== "cancelled" && (
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            className="text-yellow-600 font-bold hover:bg-yellow-50" 
-                            onClick={() => setFeedbackModalOrder(order)}
-                          >
-                            ⭐ Avaliar
-                          </Button>
-                        )}
                         <Button variant="ghost" size="sm" className="text-yellow-600 font-bold hover:bg-yellow-50" onClick={() => router.push(`/pedidos/${order.id}`)}>
                           Detalhes <ChevronRight className="h-4 w-4 ml-1" />
                         </Button>
@@ -263,21 +188,8 @@ export default function PedidosPage() {
           )}
         </div>
       </main>
-
       <Footer />
       <OrderSummary />
-
-      {/* Feedback Modal */}
-      {feedbackModalOrder && (
-        <FeedbackModal
-          orderId={feedbackModalOrder.id}
-          orderNumber={String(feedbackModalOrder.orderNumber || feedbackModalOrder.id.slice(0, 4))}
-          onClose={() => setFeedbackModalOrder(null)}
-          onSuccess={() => {
-            loadEvaluatedOrders()
-          }}
-        />
-      )}
     </div>
   )
 }
