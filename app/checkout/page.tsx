@@ -411,7 +411,7 @@ export default function CheckoutPage() {
       if (taxaEntrega > 0) mensagem += `*Taxa de Entrega:* R$ ${taxaEntrega.toFixed(2)}\n`
       mensagem += `*TOTAL: R$ ${total.toFixed(2)}*\n`
 
-      const whatsappUrl = `https://api.whatsapp.com/send?phone=5514996244404&text=${encodeURIComponent(mensagem)}`
+      const whatsappUrl = `https://api.whatsapp.com/send?phone=5514997361015&text=${encodeURIComponent(mensagem)}`
       
       clearCart()
       router.push(whatsappUrl)
