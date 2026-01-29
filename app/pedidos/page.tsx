@@ -74,32 +74,9 @@ export default function PedidosPage() {
     if (!user) return
     setIsLoadingOrders(true)
     try {
-      // Busca todos os pedidos vinculados ao ID do usuário
-      const userOrdersFromDb = await ordersManager.getUserOrders(user.id)
-      
-      // Busca também os pedidos de hoje para garantir que pedidos anônimos recentes apareçam
-      const todayOrders = await ordersManager.getTodayOrders()
-      
-      // IDs dos pedidos anônimos salvos no navegador
-      const anonymousOrderIds = JSON.parse(localStorage.getItem("anonymous-orders") || "[]");
-      
-      // Combina os pedidos do banco com os anônimos locais
-      const combinedOrders = [...userOrdersFromDb];
-      
-      todayOrders.forEach(order => {
-        const isAlreadyInList = combinedOrders.some(o => o.id === order.id);
-        const isAnonymousMatch = anonymousOrderIds.includes(order.id);
-        
-        // Se não está na lista mas o ID bate com um pedido anônimo local
-        if (!isAlreadyInList && isAnonymousMatch) {
-          combinedOrders.push(order);
-        }
-      });
-
-      // Ordena por data decrescente
-      combinedOrders.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-      
-      setOrders(combinedOrders)
+      // Busca todo o histórico vinculado ao ID do usuário diretamente no banco
+      const userOrders = await ordersManager.getUserOrders(user.id)
+      setOrders(userOrders)
     } catch (error) {
       console.error("Erro ao carregar pedidos:", error)
     } finally {

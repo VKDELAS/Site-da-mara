@@ -337,6 +337,7 @@ export default function CheckoutPage() {
           discountAmount: getDiscountAmount(),
           couponCode: appliedCoupon?.code || null,
           notes: `${observacoes}${precisaTalheres ? `\nPrecisa de colher: ${precisaTalheres}` : ""}${formaPagamento === "dinheiro" && troco ? `\nTroco para: R$ ${troco}` : ""}`,
+          user_id: user?.id || null,
           deliveryType: deliveryType,
           items: items.map(item => ({
             product_id: item.id.split("-")[0],
@@ -411,7 +412,7 @@ export default function CheckoutPage() {
       if (taxaEntrega > 0) mensagem += `*Taxa de Entrega:* R$ ${taxaEntrega.toFixed(2)}\n`
       mensagem += `*TOTAL: R$ ${total.toFixed(2)}*\n`
 
-      const whatsappUrl = `https://api.whatsapp.com/send?phone=5514997361015&text=${encodeURIComponent(mensagem)}`
+      const whatsappUrl = `https://api.whatsapp.com/send?phone=5514996244404&text=${encodeURIComponent(mensagem)}`
       
       clearCart()
       router.push(whatsappUrl)

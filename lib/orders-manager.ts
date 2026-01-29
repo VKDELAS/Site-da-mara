@@ -30,6 +30,10 @@ export interface DailySales {
 class OrdersManager {
   private supabase = getSupabase()
 
+  async createOrder(order: any): Promise<Order> {
+    return this.addOrder(order);
+  }
+
   async addOrder(order: any): Promise<Order> {
     console.log("Iniciando processo de salvamento de pedido...", order);
     
