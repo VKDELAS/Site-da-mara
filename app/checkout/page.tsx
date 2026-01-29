@@ -227,10 +227,12 @@ export default function CheckoutPage() {
       // 3. LIMPAR CARRINHO E REDIRECIONAR
       clearCart()
       
-      // Pequeno delay para garantir que o estado limpou antes de sair
-      setTimeout(() => {
-        window.location.href = whatsappUrl
-      }, 100)
+      // 3. LIMPAR CARRINHO E REDIRECIONAR
+      clearCart()
+      
+      // Abre o WhatsApp em uma nova aba e redireciona o site para a página de pedidos
+      window.open(whatsappUrl, '_blank')
+      router.push('/pedidos')
 
     } catch (error) {
       console.error(error)
