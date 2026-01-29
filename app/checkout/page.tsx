@@ -100,9 +100,6 @@ export default function CheckoutPage() {
     loadData()
   }, [user])
 
-  const batatas = items.filter((item) => item.category === "batata")
-  const bebidas = items.filter((item) => item.category === "bebida")
-
   const handleApplyCoupon = async () => {
     if (!couponCode.trim()) {
       setCouponError("Digite um código de cupom")
@@ -872,5 +869,13 @@ export default function CheckoutPage() {
       </main>
       <Footer />
     </div>
+  )
+}
+
+function Badge({ children, className }: { children: React.ReactNode, className?: string }) {
+  return (
+    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${className}`}>
+      {children}
+    </span>
   )
 }
