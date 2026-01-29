@@ -79,7 +79,6 @@ class OrdersManager {
       customer_address: order.customerAddress || order.address || "",
       customer_neighborhood: order.customerNeighborhood || "",
       customer_complement: order.customerComplement || "",
-      order_number: nextNumber,
       payment_method: order.paymentMethod || "dinheiro",
       total_amount: order.totalAmount || order.total || 0,
       discount_amount: order.discountAmount || 0,
