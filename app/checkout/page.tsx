@@ -304,6 +304,9 @@ export default function CheckoutPage() {
     registrarPedido()
 
     let enderecoString = ""
+    let bairroFinal = ""
+    let complementoFinal = ""
+
     if (deliveryType === "delivery") {
       const addr = useNewAddress
         ? {
@@ -315,10 +318,12 @@ export default function CheckoutPage() {
             state: "SP",
             cep,
           }
-        : addresses.find((a) => a.id === selectedAddressId)
+        : addresses.find(a => a.id === selectedAddressId)
 
       if (addr) {
         enderecoString = `${addr.street}, ${addr.number}${addr.complement ? " - " + addr.complement : ""} - ${addr.neighborhood}, ${addr.city}/${addr.state}`
+        bairroFinal = addr.neighborhood
+        complementoFinal = addr.complement || ""
       }
     }
 
@@ -330,8 +335,8 @@ export default function CheckoutPage() {
           customerName: nome || "Cliente",
           customerPhone: telefone || "",
           customerAddress: deliveryType === "pickup" ? "Retirada no Local" : enderecoString,
-          customerNeighborhood: deliveryType === "pickup" ? "" : (useNewAddress ? bairro : (addresses.find(a => a.id === selectedAddressId)?.neighborhood || "")),
-          customerComplement: deliveryType === "pickup" ? "" : (useNewAddress ? complemento : (addresses.find(a => a.id === selectedAddressId)?.complement || "")),
+          customerNeighborhood: deliveryType === "pickup" ? "" : bairroFinal,
+          customerComplement: deliveryType === "pickup" ? "" : complementoFinal,
           paymentMethod: formaPagamento,
           totalAmount: getFinalTotal(),
           discountAmount: getDiscountAmount(),
@@ -565,39 +570,43 @@ export default function CheckoutPage() {
                                     : "border-gray-100 hover:border-yellow-200"
                                 }`}
                               >
-                                <div className={`mt-1 h-5 w-5 rounded-full border-2 flex items-center justify-center ${
-                                  selectedAddressId === addr.id && !useNewAddress ? "border-yellow-500" : "border-gray-300"
-                                }`}>
-                                  {selectedAddressId === addr.id && !useNewAddress && <div className="h-2.5 w-2.5 rounded-full bg-yellow-500" />}
+                                <div className={`h-5 w-5 rounded-full border-2 mt-0.5 flex items-center justify-center ${selectedAddressId === addr.id && !useNewAddress ? "border-yellow-500 bg-yellow-500" : "border-gray-300"}`}>
+                                  {selectedAddressId === addr.id && !useNewAddress && <Check className="h-3 w-3 text-white" />}
                                 </div>
                                 <div className="flex-1">
                                   <p className="font-bold text-gray-800">{addr.street}, {addr.number}</p>
                                   <p className="text-sm text-gray-500">{addr.neighborhood} - {addr.city}/{addr.state}</p>
-                                  {addr.complement && <p className="text-xs text-gray-400 mt-1">{addr.complement}</p>}
+                                  {addr.complement && <p className="text-xs text-gray-400 mt-1">Obs: {addr.complement}</p>}
                                 </div>
                               </div>
                             ))}
                           </div>
-                          <Button
-                            variant="ghost"
-                            onClick={() => setUseNewAddress(true)}
-                            className="w-full rounded-xl border-2 border-dashed border-gray-200 text-gray-500 hover:border-yellow-500 hover:text-yellow-600 hover:bg-yellow-50 h-12"
-                          >
-                            <Plus className="h-4 w-4 mr-2" /> Usar outro endereço
-                          </Button>
                         </div>
                       )}
 
-                      {(useNewAddress || addresses.length === 0) && (
-                        <div className="space-y-4 animate-in fade-in slide-in-from-top-4 duration-300">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        onClick={() => {
+                          setUseNewAddress(!useNewAddress)
+                          if (!useNewAddress) setSelectedAddressId("")
+                        }}
+                        className="w-full h-12 rounded-xl border-2 border-dashed border-gray-200 text-gray-500 hover:border-yellow-500 hover:text-yellow-600 hover:bg-yellow-50 gap-2"
+                      >
+                        {useNewAddress ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+                        {useNewAddress ? "Cancelar novo endereço" : "Usar outro endereço"}
+                      </Button>
+
+                      {useNewAddress && (
+                        <div className="space-y-4 p-6 bg-gray-50 rounded-2xl border border-gray-100 animate-in fade-in slide-in-from-top-4 duration-300">
                           <div className="grid md:grid-cols-3 gap-4">
-                            <div className="space-y-2">
+                            <div className="md:col-span-1 space-y-2">
                               <Label className="font-bold text-gray-600">CEP</Label>
                               <Input
                                 value={cep}
                                 onChange={(e) => handleCepChange(e.target.value)}
                                 placeholder="00000-000"
-                                className="h-12 rounded-xl border-gray-100"
+                                className="h-12 rounded-xl border-gray-200 bg-white"
                               />
                             </div>
                             <div className="md:col-span-2 space-y-2">
@@ -606,19 +615,19 @@ export default function CheckoutPage() {
                                 value={rua}
                                 onChange={(e) => setRua(e.target.value)}
                                 placeholder="Nome da rua"
-                                className="h-12 rounded-xl border-gray-100"
+                                className="h-12 rounded-xl border-gray-200 bg-white"
                               />
                             </div>
                           </div>
 
-                          <div className="grid md:grid-cols-2 gap-4">
+                          <div className="grid md:grid-cols-3 gap-4">
                             <div className="space-y-2">
                               <Label className="font-bold text-gray-600">Número</Label>
                               <Input
                                 value={numero}
                                 onChange={(e) => setNumero(e.target.value)}
-                                placeholder="Nº"
-                                className="h-12 rounded-xl border-gray-100"
+                                placeholder="Ex: 123"
+                                className="h-12 rounded-xl border-gray-200 bg-white"
                               />
                             </div>
                             <div className="space-y-2">
@@ -627,39 +636,28 @@ export default function CheckoutPage() {
                                 value={bairro}
                                 onChange={(e) => setBairro(e.target.value)}
                                 placeholder="Seu bairro"
-                                className="h-12 rounded-xl border-gray-100"
+                                className="h-12 rounded-xl border-gray-200 bg-white"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label className="font-bold text-gray-600">Complemento</Label>
+                              <Input
+                                value={complemento}
+                                onChange={(e) => setComplemento(e.target.value)}
+                                placeholder="Apto, bloco, etc"
+                                className="h-12 rounded-xl border-gray-200 bg-white"
                               />
                             </div>
                           </div>
 
-                          <div className="space-y-2">
-                            <Label className="font-bold text-gray-600">Complemento (Opcional)</Label>
-                            <Input
-                              value={complemento}
-                              onChange={(e) => setComplemento(e.target.value)}
-                              placeholder="Apto, bloco, ponto de referência..."
-                              className="h-12 rounded-xl border-gray-100"
-                            />
-                          </div>
-
                           {enderecoError && (
-                            <div className="p-4 bg-red-50 border border-red-100 rounded-2xl flex items-start gap-3 text-red-600">
-                              <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
-                              <p className="text-sm font-medium">{enderecoError}</p>
+                            <div className="p-3 bg-red-50 border border-red-100 rounded-xl flex items-center gap-2 text-red-600 text-sm font-bold">
+                              <AlertCircle className="h-4 w-4" />
+                              {enderecoError}
                             </div>
                           )}
                         </div>
                       )}
-                    </div>
-                  )}
-
-                  {deliveryType === "pickup" && (
-                    <div className="mt-6 p-4 bg-yellow-50 border border-yellow-100 rounded-2xl flex items-start gap-3">
-                      <Store className="h-5 w-5 text-yellow-600 shrink-0 mt-0.5" />
-                      <div>
-                        <p className="text-sm font-bold text-yellow-800">Endereço para retirada:</p>
-                        <p className="text-sm text-yellow-700">Rua Carlos Roberto Crepaldi, 120 - Jardim Alvorada, Iacanga/SP</p>
-                      </div>
                     </div>
                   )}
                 </CardContent>
@@ -672,12 +670,8 @@ export default function CheckoutPage() {
                     <CreditCard className="h-5 w-5 text-yellow-500" /> Forma de Pagamento
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="p-6">
-                  <RadioGroup
-                    value={formaPagamento}
-                    onValueChange={setFormaPagamento}
-                    className="grid md:grid-cols-3 gap-4"
-                  >
+                <CardContent className="p-6 space-y-6">
+                  <RadioGroup value={formaPagamento} onValueChange={setFormaPagamento} className="grid md:grid-cols-3 gap-4">
                     <div>
                       <RadioGroupItem value="dinheiro" id="dinheiro" className="peer sr-only" />
                       <Label
@@ -708,216 +702,170 @@ export default function CheckoutPage() {
                   </RadioGroup>
 
                   {formaPagamento === "dinheiro" && (
-                    <div className="mt-4 space-y-2 animate-in fade-in slide-in-from-top-2">
-                      <Label className="font-bold text-gray-600">Precisa de troco para quanto?</Label>
+                    <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
+                      <Label className="font-bold text-gray-600">Troco para quanto?</Label>
                       <Input
                         value={troco}
                         onChange={(e) => setTroco(e.target.value)}
-                        placeholder="Ex: 50,00"
+                        placeholder="Ex: 50,00 (Deixe em branco se não precisar)"
                         className="h-12 rounded-xl border-gray-100"
                       />
                     </div>
                   )}
-                </CardContent>
-              </Card>
 
-              {/* TALHERES */}
-              <Card className="rounded-3xl border-none shadow-sm overflow-hidden">
-                <CardHeader className="bg-white border-b border-gray-50">
-                  <CardTitle className="text-lg font-black flex items-center gap-2">
-                    <Utensils className="h-5 w-5 text-yellow-500" /> Precisa de colher?
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-6">
-                  <RadioGroup
-                    value={precisaTalheres}
-                    onValueChange={setPrecisaTalheres}
-                    className="grid grid-cols-2 gap-4"
-                  >
-                    <div>
-                      <RadioGroupItem value="sim" id="talher-sim" className="peer sr-only" />
-                      <Label
-                        htmlFor="talher-sim"
-                        className="flex flex-col items-center justify-between rounded-2xl border-2 border-gray-100 bg-white p-4 hover:bg-gray-50 peer-data-[state=checked]:border-yellow-500 [&:has([data-state=checked])]:border-yellow-500 cursor-pointer transition-all"
-                      >
-                        <span className="font-bold text-gray-600">Sim, por favor</span>
-                      </Label>
-                    </div>
-                    <div>
-                      <RadioGroupItem value="nao" id="talher-nao" className="peer sr-only" />
-                      <Label
-                        htmlFor="talher-nao"
-                        className="flex flex-col items-center justify-between rounded-2xl border-2 border-gray-100 bg-white p-4 hover:bg-gray-50 peer-data-[state=checked]:border-yellow-500 [&:has([data-state=checked])]:border-yellow-500 cursor-pointer transition-all"
-                      >
-                        <span className="font-bold text-gray-600">Não preciso</span>
-                      </Label>
-                    </div>
-                  </RadioGroup>
-                </CardContent>
-              </Card>
+                  <div className="space-y-4 pt-4 border-t border-gray-50">
+                    <Label className="font-bold text-gray-600 flex items-center gap-2">
+                      <Utensils className="h-4 w-4 text-yellow-500" /> Precisa de colher?
+                    </Label>
+                    <RadioGroup value={precisaTalheres} onValueChange={setPrecisaTalheres} className="grid grid-cols-2 gap-4">
+                      <div>
+                        <RadioGroupItem value="Sim" id="talheres-sim" className="peer sr-only" />
+                        <Label
+                          htmlFor="talheres-sim"
+                          className="flex items-center justify-center rounded-xl border-2 border-gray-100 bg-white p-3 hover:bg-gray-50 peer-data-[state=checked]:border-yellow-500 [&:has([data-state=checked])]:border-yellow-500 cursor-pointer transition-all font-bold text-gray-600"
+                        >
+                          Sim
+                        </Label>
+                      </div>
+                      <div>
+                        <RadioGroupItem value="Não" id="talheres-nao" className="peer sr-only" />
+                        <Label
+                          htmlFor="talheres-nao"
+                          className="flex items-center justify-center rounded-xl border-2 border-gray-100 bg-white p-3 hover:bg-gray-50 peer-data-[state=checked]:border-yellow-500 [&:has([data-state=checked])]:border-yellow-500 cursor-pointer transition-all font-bold text-gray-600"
+                        >
+                          Não
+                        </Label>
+                      </div>
+                    </RadioGroup>
+                  </div>
 
-              {/* OBSERVAÇÕES */}
-              <Card className="rounded-3xl border-none shadow-sm overflow-hidden">
-                <CardHeader className="bg-white border-b border-gray-50">
-                  <CardTitle className="text-lg font-black flex items-center gap-2">
-                    <AlertCircle className="h-5 w-5 text-yellow-500" /> Observações do Pedido
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-6">
-                  <Textarea
-                    value={observacoes}
-                    onChange={(e) => setObservacoes(e.target.value)}
-                    placeholder="Ex: Tirar cebola, ponto da carne, etc..."
-                    className="min-h-[100px] rounded-2xl border-gray-100 resize-none"
-                  />
+                  <div className="space-y-2 pt-4 border-t border-gray-50">
+                    <Label className="font-bold text-gray-600">Observações do Pedido</Label>
+                    <Textarea
+                      value={observacoes}
+                      onChange={(e) => setObservacoes(e.target.value)}
+                      placeholder="Ex: Tirar cebola, ponto da carne, etc..."
+                      className="min-h-[100px] rounded-2xl border-gray-100 resize-none"
+                    />
+                  </div>
                 </CardContent>
               </Card>
             </div>
 
+            {/* RESUMO DO PEDIDO */}
             <div className="space-y-6">
-              {/* RESUMO DO PEDIDO */}
-              <div className="sticky top-8 space-y-6">
-                <Card className="rounded-3xl border-none shadow-lg overflow-hidden">
-                  <CardHeader className="bg-gray-900 text-white">
-                    <CardTitle className="text-lg font-black flex items-center gap-2">
-                      Resumo do Pedido
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="p-6">
-                    <div className="space-y-4 mb-8">
-                      {items.map((item) => (
-                        <div key={item.id} className="group">
-                          <div className="flex justify-between gap-4 items-start">
-                            <div className="flex-1">
-                              <p className="text-base font-black text-gray-900 leading-tight">
-                                <span className="text-yellow-600 mr-1">{item.quantity}x</span> {item.name}
-                              </p>
-                              {item.pastaType && (
-                                <p className="text-xs text-yellow-600 font-bold mt-0.5">
-                                  Massa: {item.pastaType === "penne" ? "Penne 🍝" : item.pastaType === "parafuso" ? "Parafuso 🌀" : "Espaguete 🍜"}
-                                </p>
-                              )}
-                              {item.adicionais && item.adicionais.length > 0 && (
-                                <div className="mt-1.5 flex flex-wrap gap-1">
-                                  {item.adicionais.map((a, idx) => (
-                                    <span key={idx} className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-yellow-50 text-yellow-700 border border-yellow-100">
-                                      + {a.name}
-                                    </span>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                            <p className="text-sm font-black text-gray-900 whitespace-nowrap">
-                              R$ {((item.price + (item.adicionais?.reduce((sum, a) => sum + (a.price * a.quantity), 0) || 0)) * item.quantity).toFixed(2).replace(".", ",")}
+              <Card className="rounded-3xl border-none shadow-sm overflow-hidden sticky top-8">
+                <CardHeader className="bg-white border-b border-gray-50">
+                  <CardTitle className="text-lg font-black">Resumo do Pedido</CardTitle>
+                </CardHeader>
+                <CardContent className="p-6">
+                  <div className="space-y-4 mb-6">
+                    {items.map((item) => (
+                      <div key={item.id} className="flex justify-between gap-4">
+                        <div className="flex-1">
+                          <p className="text-sm font-bold text-gray-800">
+                            {item.quantity}x {item.name}
+                          </p>
+                          {item.adicionais && item.adicionais.length > 0 && (
+                            <p className="text-xs text-gray-400">
+                              + {item.adicionais.map((a) => a.name).join(", ")}
                             </p>
-                          </div>
-                          <div className="h-px w-full bg-gray-50 mt-4 group-last:hidden" />
+                          )}
                         </div>
-                      ))}
-                    </div>
+                        <p className="text-sm font-bold text-gray-800">
+                          R$ {(item.price * item.quantity).toFixed(2)}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
 
-                    <div className="space-y-4 pt-6 border-t-2 border-dashed border-gray-100">
-                      {/* CUPOM - DESTAQUE ESTILO IFOOD */}
-                      <div className="bg-gray-50 p-4 rounded-2xl border-2 border-transparent focus-within:border-yellow-500 focus-within:bg-white transition-all">
-                        <Label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1 mb-2 block">Cupom de Desconto</Label>
+                  {/* CUPOM */}
+                  <div className="pt-4 border-t border-gray-50 mb-6">
+                    {!appliedCoupon ? (
+                      <div className="space-y-2">
+                        <Label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Possui um cupom?</Label>
                         <div className="flex gap-2">
-                          <div className="relative flex-1">
-                            <Ticket className={`absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 ${appliedCoupon ? "text-yellow-500" : "text-gray-400"}`} />
-                            <Input
-                              value={couponCode}
-                              onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
-                              placeholder="CÓDIGO"
-                              disabled={!!appliedCoupon}
-                              className="h-12 pl-10 rounded-xl border-none bg-transparent focus-visible:ring-0 font-black text-gray-900 placeholder:text-gray-300"
-                            />
-                          </div>
-                          {appliedCoupon ? (
-                            <Button
-                              variant="ghost"
-                              onClick={handleRemoveCoupon}
-                              className="h-12 px-4 rounded-xl text-red-500 hover:bg-red-50 font-black text-xs"
-                            >
-                              REMOVER
-                            </Button>
-                          ) : (
-                            <Button
-                              onClick={handleApplyCoupon}
-                              className="h-12 px-6 rounded-xl bg-yellow-500 hover:bg-yellow-600 text-white font-black shadow-md shadow-yellow-100"
-                            >
-                              APLICAR
-                            </Button>
-                          )}
+                          <Input
+                            value={couponCode}
+                            onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                            placeholder="CÓDIGO"
+                            className="h-10 rounded-xl border-gray-100 uppercase font-bold"
+                          />
+                          <Button
+                            onClick={handleApplyCoupon}
+                            variant="outline"
+                            className="h-10 rounded-xl border-yellow-500 text-yellow-600 hover:bg-yellow-50 font-bold"
+                          >
+                            Aplicar
+                          </Button>
                         </div>
-                        {couponError && <p className="text-[10px] font-bold text-red-500 mt-2 ml-1 animate-shake">{couponError}</p>}
-                        {couponSuccess && <p className="text-[10px] font-bold text-green-600 mt-2 ml-1 flex items-center gap-1"><Check className="h-3 w-3" /> Cupom aplicado com sucesso!</p>}
+                        {couponError && <p className="text-xs text-red-500 font-bold">{couponError}</p>}
+                        {couponSuccess && <p className="text-xs text-green-500 font-bold">Cupom aplicado!</p>}
                       </div>
-
-                      <div className="space-y-2 px-1">
-                        <div className="flex justify-between text-sm font-bold text-gray-500">
-                          <span>Subtotal</span>
-                          <span>R$ {getTotalPrice().toFixed(2).replace(".", ",")}</span>
-                        </div>
-                        
-                        {appliedCoupon && (
-                          <div className="flex justify-between text-sm font-black text-green-600 bg-green-50 p-2 rounded-lg border border-green-100">
-                            <span className="flex items-center gap-1"><Ticket className="h-4 w-4" /> Desconto aplicado</span>
-                            <span>- R$ {getDiscountAmount().toFixed(2).replace(".", ",")}</span>
-                          </div>
-                        )}
-
-                        {/* TAXA DE ENTREGA ESTILO IFOOD */}
-                        <div className="flex justify-between text-sm font-bold text-gray-500">
-                          <span className="flex items-center gap-1">
-                            <Truck className="h-4 w-4 text-yellow-500" /> Taxa de entrega
-                          </span>
-                          {deliveryType === "pickup" ? (
-                            <span className="text-green-600 font-black uppercase text-[10px] bg-green-50 px-2 py-0.5 rounded">Grátis</span>
-                          ) : (
-                            <span>{isDeliveryFeeEnabled ? `R$ ${deliveryFee.toFixed(2).replace(".", ",")}` : "Grátis"}</span>
-                          )}
-                        </div>
-
-                        <div className="flex justify-between items-end pt-4">
-                          <div className="flex flex-col">
-                            <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Total a pagar</span>
-                            <span className="text-3xl font-black text-gray-900 leading-none">
-                              R$ {getFinalTotal().toFixed(2).replace(".", ",")}
-                            </span>
-                          </div>
-                          <div className="bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider mb-1">
-                            {items.length} {items.length === 1 ? 'item' : 'itens'}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <Button
-                      onClick={handleFinalizarPedido}
-                      disabled={isSubmitting}
-                      className="w-full h-14 mt-8 bg-yellow-500 hover:bg-yellow-600 text-white font-black text-lg rounded-2xl shadow-lg shadow-yellow-100 transition-all active:scale-95 disabled:opacity-70"
-                    >
-                      {isSubmitting ? (
+                    ) : (
+                      <div className="bg-green-50 border border-green-100 p-3 rounded-xl flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <Loader2 className="h-5 w-5 animate-spin" />
-                          Processando...
+                          <Ticket className="h-4 w-4 text-green-600" />
+                          <div>
+                            <p className="text-xs font-bold text-green-800">{appliedCoupon.code}</p>
+                            <p className="text-[10px] text-green-600">Cupom aplicado com sucesso</p>
+                          </div>
                         </div>
-                      ) : (
-                        "Finalizar Pedido"
-                      )}
-                    </Button>
-                    <p className="text-[10px] text-center text-gray-400 mt-4 font-bold uppercase tracking-widest">
-                      Você será redirecionado para o WhatsApp
-                    </p>
-                  </CardContent>
-                </Card>
+                        <button onClick={handleRemoveCoupon} className="p-1 hover:bg-green-100 rounded-full text-green-600">
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
 
-                <div className="p-4 bg-blue-50 rounded-2xl border border-blue-100 flex gap-3">
-                  <AlertCircle className="h-5 w-5 text-blue-500 shrink-0" />
-                  <p className="text-xs text-blue-700 leading-relaxed">
-                    Ao finalizar, seu pedido será enviado para nossa cozinha e você poderá acompanhar o status em tempo real.
+                  <div className="space-y-3 pt-4 border-t border-gray-50">
+                    <div className="flex justify-between text-sm text-gray-500">
+                      <span>Subtotal</span>
+                      <span>R$ {getTotalPrice().toFixed(2)}</span>
+                    </div>
+                    {appliedCoupon && (
+                      <div className="flex justify-between text-sm text-green-600 font-bold">
+                        <span>Desconto</span>
+                        <span>- R$ {getDiscountAmount().toFixed(2)}</span>
+                      </div>
+                    )}
+                    {deliveryType === "delivery" && (
+                      <div className="flex justify-between text-sm text-gray-500">
+                        <span className="flex items-center gap-1">
+                          Taxa de Entrega
+                          {!isDeliveryFeeEnabled && <Badge className="bg-green-100 text-green-700 hover:bg-green-100 border-none text-[10px]">Grátis</Badge>}
+                        </span>
+                        <span>R$ {getCurrentDeliveryFee().toFixed(2)}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between text-xl font-black text-gray-900 pt-2">
+                      <span>Total</span>
+                      <span>R$ {getFinalTotal().toFixed(2)}</span>
+                    </div>
+                  </div>
+
+                  <Button
+                    onClick={handleFinalizarPedido}
+                    disabled={isSubmitting}
+                    className="w-full h-14 bg-yellow-500 hover:bg-yellow-600 text-white font-black text-lg rounded-2xl mt-8 shadow-lg shadow-yellow-100 transition-all active:scale-95 gap-2"
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                        Processando...
+                      </>
+                    ) : (
+                      <>
+                        Finalizar Pedido
+                        <Check className="h-5 w-5" />
+                      </>
+                    )}
+                  </Button>
+                  <p className="text-[10px] text-gray-400 text-center mt-4 px-4">
+                    Ao finalizar, você será redirecionado para o WhatsApp para confirmar seu pedido.
                   </p>
-                </div>
-              </div>
+                </CardContent>
+              </Card>
             </div>
           </div>
         </div>
