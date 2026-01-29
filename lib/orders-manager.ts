@@ -229,6 +229,27 @@ class OrdersManager {
     }
   }
 
+  async getUserOrders(userId: string): Promise<Order[]> {
+    try {
+      const sb = await this.supabase;
+      const { data, error } = await sb
+        .from("orders")
+        .select(`*, order_items (*)`)
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false })
+
+      if (error) {
+        console.error("Erro ao buscar pedidos do usuário:", error)
+        return []
+      }
+
+      return data?.map((o: any) => this.mapOrderData(o)) || []
+    } catch (e) {
+      console.error("Erro inesperado ao buscar pedidos do usuário:", e);
+      return [];
+    }
+  }
+
   async getOrdersByDate(dateStr: string): Promise<Order[]> {
     const start = new Date(dateStr + 'T00:00:00')
     const end = new Date(dateStr + 'T23:59:59')

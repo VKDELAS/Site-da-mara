@@ -74,28 +74,32 @@ export default function PedidosPage() {
     if (!user) return
     setIsLoadingOrders(true)
     try {
-      const allOrders = await ordersManager.getTodayOrders()
+      // Busca todos os pedidos vinculados ao ID do usuário
+      const userOrdersFromDb = await ordersManager.getUserOrders(user.id)
       
-      // Filtro melhorado: tenta por user_id primeiro, depois por telefone ou nome
-      const userOrders = allOrders.filter(o => {
-        // Se o pedido tem o user_id do usuário logado
-        const isMyId = (o as any).user_id === user.id;
-        
-        // Se o telefone ou nome batem (fallback para pedidos feitos antes do login ou com dados manuais)
-        const userPhone = user.user_metadata?.phone?.replace(/\D/g, "");
-        const orderPhone = o.customerPhone?.replace(/\D/g, "");
-        const isMyPhone = userPhone && orderPhone && (userPhone === orderPhone || orderPhone.includes(userPhone) || userPhone.includes(orderPhone));
-        
-        const isMyName = user.user_metadata?.full_name && o.customerName === user.user_metadata?.full_name;
-        
-        // Também verifica se o ID do pedido está no localStorage (para pedidos feitos como anônimo)
-        const anonymousOrders = JSON.parse(localStorage.getItem("anonymous-orders") || "[]");
-        const isAnonymousOrder = anonymousOrders.includes(o.id);
-        
-        return isMyId || isMyPhone || isMyName || isAnonymousOrder;
-      })
+      // Busca também os pedidos de hoje para garantir que pedidos anônimos recentes apareçam
+      const todayOrders = await ordersManager.getTodayOrders()
       
-      setOrders(userOrders)
+      // IDs dos pedidos anônimos salvos no navegador
+      const anonymousOrderIds = JSON.parse(localStorage.getItem("anonymous-orders") || "[]");
+      
+      // Combina os pedidos do banco com os anônimos locais
+      const combinedOrders = [...userOrdersFromDb];
+      
+      todayOrders.forEach(order => {
+        const isAlreadyInList = combinedOrders.some(o => o.id === order.id);
+        const isAnonymousMatch = anonymousOrderIds.includes(order.id);
+        
+        // Se não está na lista mas o ID bate com um pedido anônimo local
+        if (!isAlreadyInList && isAnonymousMatch) {
+          combinedOrders.push(order);
+        }
+      });
+
+      // Ordena por data decrescente
+      combinedOrders.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      
+      setOrders(combinedOrders)
     } catch (error) {
       console.error("Erro ao carregar pedidos:", error)
     } finally {
@@ -290,7 +294,7 @@ export default function PedidosPage() {
       {feedbackModalOrder && (
         <FeedbackModal
           orderId={feedbackModalOrder.id}
-          orderNumber={feedbackModalOrder.orderNumber || feedbackModalOrder.id.slice(0, 4)}
+          orderNumber={String(feedbackModalOrder.orderNumber || feedbackModalOrder.id.slice(0, 4))}
           onClose={() => setFeedbackModalOrder(null)}
           onSuccess={() => {
             loadEvaluatedOrders()
