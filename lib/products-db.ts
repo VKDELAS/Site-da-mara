@@ -451,14 +451,20 @@ class ProductsManager {
     try {
       const supabase = await getSupabase()
       
-      // Busca o produto mais vendido na tabela order_items
+      // Busca o produto mais vendido na tabela order_items nos últimos 30 dias
+      const thirtyDaysAgo = new Date()
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+
       const { data, error } = await supabase
         .from("order_items")
-        .select("product_name, quantity")
+        .select("product_name, quantity, created_at")
+        .gte("created_at", thirtyDaysAgo.toISOString())
       
       if (error || !data || data.length === 0) {
         const products = await this.getProducts()
-        return { product: products[0], totalOrders: 0, customerPhotos: [] }
+        // Fallback para o primeiro produto disponível que não seja carne seca se houver dúvida
+        const fallbackProduct = products.find(p => p.available) || products[0]
+        return { product: fallbackProduct, totalOrders: 0, customerPhotos: [] }
       }
 
       // Agrupa por nome e soma quantidades
@@ -516,18 +522,26 @@ class ProductsManager {
     try {
       const supabase = await getSupabase()
       
-      // Busca todos os itens vendidos
+      // Busca itens vendidos nos últimos 30 dias para um ranking mais dinâmico
+      const thirtyDaysAgo = new Date()
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+
       const { data, error } = await supabase
         .from("order_items")
         .select("product_name, quantity")
+        .gte("created_at", thirtyDaysAgo.toISOString())
       
-      if (error || !data) return []
-
       // Filtra apenas produtos que pertencem à categoria solicitada
       const products = await this.getProducts()
       const categoryProductNames = products
         .filter(p => p.category === category)
         .map(p => p.name)
+
+      if (error || !data || data.length === 0) {
+        // Se não houver dados, retorna a lista de produtos da categoria
+        // mas podemos rotacionar ou embaralhar levemente para não ficar "preso"
+        return categoryProductNames
+      }
 
       const counts: Record<string, number> = {}
       data.forEach(item => {

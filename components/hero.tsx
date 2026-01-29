@@ -6,6 +6,7 @@ import { ArrowRight, Star, Clock, Truck, MapPin, Search, Loader2, Trophy } from 
 import { useState, useEffect } from "react"
 import { useAuth } from "@/lib/auth-context"
 import { addressesManager } from "@/lib/addresses-manager"
+import { storeStatusManager } from "@/lib/store-status-manager"
 
 interface Product {
   id: string
@@ -36,6 +37,9 @@ export function Hero({
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false)
   const [hasAddress, setHasAddress] = useState(false)
   const [isCheckingAddress, setIsCheckingAddress] = useState(true)
+  const [waitTime, setWaitTime] = useState({ min: 15, max: 22 })
+  const [isDeliveryFeeEnabled, setIsDeliveryFeeEnabled] = useState(true)
+  const [deliveryFee, setDeliveryFee] = useState(3.00)
 
   useEffect(() => {
     const checkUserAddress = async () => {
@@ -50,15 +54,23 @@ export function Hero({
     checkUserAddress()
   }, [user])
 
+  useEffect(() => {
+    const updateStatus = async () => {
+      const status = await storeStatusManager.getStatus()
+      setWaitTime({ min: status.waitTimeMin, max: status.waitTimeMax })
+      setIsDeliveryFeeEnabled(status.isDeliveryFeeEnabled ?? true)
+      setDeliveryFee(status.deliveryFee ?? 3.00)
+    }
+    updateStatus()
+    const interval = setInterval(updateStatus, 10000)
+    return () => clearInterval(interval)
+  }, [])
+
   const handleAddressSearch = async (value: string) => {
     setAddressInput(value)
     if (value.length > 3) {
       setIsLoadingSuggestions(true)
       try {
-        // Usando a API do Google Places via proxy ou direta se configurada
-        // Como não há chave configurada no .env, usaremos uma simulação baseada em Iacanga
-        // ou uma busca genérica se a API estivesse disponível.
-        // Para este ambiente, vamos simular a busca para demonstrar a funcionalidade.
         const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(value + " Iacanga SP")}&addressdetails=1&limit=5`)
         const data = await response.json()
         setSuggestions(data)
@@ -154,13 +166,13 @@ export function Hero({
                 <div className="bg-green-100 p-2 rounded-lg text-green-600">
                   <Clock className="h-4 w-4" />
                 </div>
-                20-28 min
+                {waitTime.min}-{waitTime.max} min
               </div>
               <div className="flex items-center gap-2 text-gray-600 font-medium text-sm">
                 <div className="bg-blue-100 p-2 rounded-lg text-blue-600">
                   <Truck className="h-4 w-4" />
                 </div>
-                Frete Grátis*
+                {isDeliveryFeeEnabled ? `Frete R$ ${deliveryFee.toFixed(2).replace('.', ',')}` : "Frete Grátis*"}
               </div>
             </div>
           </div>
@@ -179,30 +191,30 @@ export function Hero({
                     }}
                   />
                   
-	                  {/* FLOATING BADGE COM DADOS REAIS DO PRODUTO MAIS PEDIDO - ESTILO IFOOD PROFISSIONAL */}
-	                  <div className="absolute -top-4 -right-2 sm:-right-4 bg-white p-3 sm:p-4 rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.1)] z-20 border border-gray-100 animate-in fade-in slide-in-from-top-4 duration-700">
-	                    <div className="flex items-center gap-3">
-	                      <div className="flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 bg-yellow-400 rounded-xl shadow-inner">
-	                        <Trophy className="h-5 w-5 sm:h-6 sm:w-6 text-white fill-current" />
-	                      </div>
-	                      <div>
-	                        <div className="flex items-center gap-1">
-	                          <span className="text-[10px] font-black text-yellow-600 uppercase tracking-widest">Mais Pedida</span>
-	                          <div className="h-1 w-1 rounded-full bg-yellow-400" />
-	                        </div>
-	                        <p className="text-sm sm:text-base font-black text-gray-900 line-clamp-1 tracking-tight">{mostRequestedProduct.name}</p>
-	                      </div>
-	                    </div>
-	                  </div>
+		                  {/* FLOATING BADGE COM DADOS REAIS DO PRODUTO MAIS PEDIDO - ESTILO IFOOD PROFISSIONAL */}
+		                  <div className="absolute -top-4 -right-2 sm:-right-4 bg-white p-3 sm:p-4 rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.1)] z-20 border border-gray-100 animate-in fade-in slide-in-from-top-4 duration-700">
+		                    <div className="flex items-center gap-3">
+		                      <div className="flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 bg-yellow-400 rounded-xl shadow-inner">
+		                        <Trophy className="h-5 w-5 sm:h-6 sm:w-6 text-white fill-current" />
+		                      </div>
+		                      <div>
+		                        <div className="flex items-center gap-1">
+		                          <span className="text-[10px] font-black text-yellow-600 uppercase tracking-widest">Mais Pedida</span>
+		                          <div className="h-1 w-1 rounded-full bg-yellow-400" />
+		                        </div>
+		                        <p className="text-sm sm:text-base font-black text-gray-900 line-clamp-1 tracking-tight">{mostRequestedProduct.name}</p>
+		                      </div>
+		                    </div>
+		                  </div>
 
-	                  {/* NOME DO PRODUTO EMBAIXO DA FOTO (MOBILE) - DESIGN CLEAN */}
-	                  <div className="mt-6 text-center lg:hidden">
-	                    <div className="inline-flex items-center gap-2 bg-yellow-50 px-4 py-1.5 rounded-full border border-yellow-100 mb-2">
-	                      <Star className="h-3 w-3 text-yellow-500 fill-current" />
-	                      <span className="text-[10px] font-black text-yellow-700 uppercase tracking-widest">Destaque da Casa</span>
-	                    </div>
-	                    <h2 className="text-3xl font-black text-gray-900 uppercase tracking-tighter leading-none">{mostRequestedProduct.name}</h2>
-	                  </div>
+		                  {/* NOME DO PRODUTO EMBAIXO DA FOTO (MOBILE) - DESIGN CLEAN */}
+		                  <div className="mt-6 text-center lg:hidden">
+		                    <div className="inline-flex items-center gap-2 bg-yellow-50 px-4 py-1.5 rounded-full border border-yellow-100 mb-2">
+		                      <Star className="h-3 w-3 text-yellow-500 fill-current" />
+		                      <span className="text-[10px] font-black text-yellow-700 uppercase tracking-widest">Destaque da Casa</span>
+		                    </div>
+		                    <h2 className="text-3xl font-black text-gray-900 uppercase tracking-tighter leading-none">{mostRequestedProduct.name}</h2>
+		                  </div>
                 </>
               ) : (
                 <img 
