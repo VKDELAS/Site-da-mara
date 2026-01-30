@@ -5,6 +5,9 @@ import { Clock, Truck, Heart, Star, MapPin, Utensils, Trophy } from "lucide-reac
 import { productsManager } from "@/lib/products-db"
 import Image from "next/image"
 
+// Força a revalidação da página a cada 24 horas (86400 segundos)
+export const revalidate = 86400
+
 export default async function SobrePage() {
   // Busca o produto Nº1 dinamicamente do ranking do Supabase
   const mostRequestedData = await productsManager.getMostRequestedProduct()

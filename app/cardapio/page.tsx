@@ -4,6 +4,9 @@ import { OrderSummary } from "@/components/order-summary"
 import { CardapioContentWrapper } from "@/components/cardapio-content-wrapper"
 import { productsManager } from "@/lib/products-db"
 
+// Força a revalidação da página a cada 24 horas (86400 segundos)
+export const revalidate = 86400
+
 export default async function CardapioPage() {
   const batatas = await productsManager.getBatatasSortedByPopularity()
   const macarrao = await productsManager.getMacarraoSortedByPopularity()

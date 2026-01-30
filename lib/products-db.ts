@@ -278,9 +278,9 @@ class ProductsManager {
       const { data, error } = await supabase
         .from("products")
         .select(`*, product_adicionais ( adicional_id, adicionais (*) )`)
-        .order("created_at", { ascending: false })
+        .order("name", { ascending: true })
 
-      if (error || !data || data.length === 0) return DEFAULT_PRODUCTS
+      if (error || !data || data.length === 0) return [...DEFAULT_PRODUCTS, ...DEFAULT_BEBIDAS]
 
       return data.map((p: any) => ({
         id: p.id,
@@ -302,7 +302,7 @@ class ProductsManager {
         updatedAt: new Date(p.updated_at),
       }))
     } catch {
-      return DEFAULT_PRODUCTS
+      return [...DEFAULT_PRODUCTS, ...DEFAULT_BEBIDAS]
     }
   }
 
@@ -451,18 +451,13 @@ class ProductsManager {
     try {
       const supabase = await getSupabase()
       
-      // Busca o produto mais vendido na tabela order_items nos últimos 30 dias
-      const thirtyDaysAgo = new Date()
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
-
+      // Busca todos os itens vendidos para calcular o ranking real de todos os tempos
       const { data, error } = await supabase
         .from("order_items")
-        .select("product_name, quantity, created_at")
-        .gte("created_at", thirtyDaysAgo.toISOString())
+        .select("product_name, quantity")
       
       if (error || !data || data.length === 0) {
         const products = await this.getProducts()
-        // Fallback para o primeiro produto disponível que não seja carne seca se houver dúvida
         const fallbackProduct = products.find(p => p.available) || products[0]
         return { product: fallbackProduct, totalOrders: 0, customerPhotos: [] }
       }
@@ -496,12 +491,20 @@ class ProductsManager {
   }
 
   async getTopProducts(): Promise<TopProductStats[]> {
+    const batatas = await this.getRealRankingByCategory("batata")
+    const macarrao = await this.getRealRankingByCategory("macarrao")
     const products = await this.getProducts()
-    return products.slice(0, 3).map(p => ({
-      product: p,
-      totalOrders: Math.floor(Math.random() * 100),
-      customerPhotos: []
-    }))
+    
+    const top3Names = [...batatas.slice(0, 3), ...macarrao.slice(0, 3)]
+    
+    return top3Names.map(name => {
+      const p = products.find(prod => prod.name === name) || products[0]
+      return {
+        product: p,
+        totalOrders: 0,
+        customerPhotos: []
+      }
+    })
   }
 
   async getTotalCustomers(): Promise<number> {
@@ -511,10 +514,10 @@ class ProductsManager {
         .from("orders")
         .select("*", { count: "exact", head: true })
       
-      if (error) return 150 // Fallback
-      return count || 150
+      if (error) return 0
+      return count || 0
     } catch {
-      return 150
+      return 0
     }
   }
 
@@ -522,28 +525,26 @@ class ProductsManager {
     try {
       const supabase = await getSupabase()
       
-      // Busca itens vendidos nos últimos 30 dias para um ranking mais dinâmico
-      const thirtyDaysAgo = new Date()
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
-
+      // Busca TODOS os itens vendidos para um ranking acumulado real
       const { data, error } = await supabase
         .from("order_items")
         .select("product_name, quantity")
-        .gte("created_at", thirtyDaysAgo.toISOString())
       
       // Filtra apenas produtos que pertencem à categoria solicitada
       const products = await this.getProducts()
-      const categoryProductNames = products
-        .filter(p => p.category === category)
-        .map(p => p.name)
+      const categoryProducts = products.filter(p => p.category === category)
+      const categoryProductNames = categoryProducts.map(p => p.name)
 
       if (error || !data || data.length === 0) {
-        // Se não houver dados, retorna a lista de produtos da categoria
-        // mas podemos rotacionar ou embaralhar levemente para não ficar "preso"
         return categoryProductNames
       }
 
       const counts: Record<string, number> = {}
+      // Inicializa com 0 para todos os produtos da categoria
+      categoryProductNames.forEach(name => {
+        counts[name] = 0
+      })
+
       data.forEach(item => {
         if (categoryProductNames.includes(item.product_name)) {
           counts[item.product_name] = (counts[item.product_name] || 0) + (item.quantity || 1)
@@ -554,11 +555,8 @@ class ProductsManager {
       const sorted = Object.entries(counts)
         .sort((a, b) => b[1] - a[1])
         .map(entry => entry[0])
-
-      // Se não houver vendas suficientes, preenche com os produtos da categoria
-      const finalRanking = [...new Set([...sorted, ...categoryProductNames])]
       
-      return finalRanking
+      return sorted
     } catch {
       return []
     }

@@ -5,14 +5,18 @@ import { Footer } from "@/components/footer"
 import { OrderSummary } from "@/components/order-summary"
 import { productsManager } from "@/lib/products-db"
 
+// Força a revalidação da página a cada 24 horas (86400 segundos)
+export const revalidate = 86400
+
 export default async function Home() {
   // Busca dados reais do Supabase
-  const [batatas, macarrao, mostRequestedData, totalCustomers, topBatatasNames] = await Promise.all([
+  const [batatas, macarrao, mostRequestedData, totalCustomers, topBatatasNames, topMacarraoNames] = await Promise.all([
     productsManager.getBatatas(),
     productsManager.getMacarrao(),
     productsManager.getMostRequestedProduct(),
     productsManager.getTotalCustomers(),
     productsManager.getRealRankingByCategory("batata"),
+    productsManager.getRealRankingByCategory("macarrao"),
   ])
 
   // Filtra os produtos para destaque (Batatas e Macarrão)
@@ -26,7 +30,6 @@ export default async function Home() {
     return indexA - indexB
   }).slice(0, 3)
   
-  const topMacarraoNames = await productsManager.getRealRankingByCategory("macarrao")
   const topMacarrao = [...macarrao].sort((a, b) => {
     const indexA = topMacarraoNames.indexOf(a.name)
     const indexB = topMacarraoNames.indexOf(b.name)
@@ -36,6 +39,8 @@ export default async function Home() {
     return indexA - indexB
   }).slice(0, 3)
 
+  // Combinamos os nomes de ranking para o componente FeaturedProducts
+  const allTopNames = [...topBatatasNames, ...topMacarraoNames]
   const topProducts = [...topBatatas, ...topMacarrao]
 
   // Passa dados reais para os componentes
@@ -55,7 +60,7 @@ export default async function Home() {
         <FeaturedProducts 
           products={topProducts}
           mostRequestedProductId={mostRequestedData.product.id}
-          topBatatasNames={topBatatasNames}
+          topBatatasNames={allTopNames}
         />
       </main>
       <Footer />
