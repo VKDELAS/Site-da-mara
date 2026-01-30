@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { useCart } from "@/lib/cart-context"
 import { useAuth } from "@/lib/auth-context"
-import { ShoppingBag, MapPin, CreditCard, AlertCircle, Plus, Store, Ticket, Check, X, User, Loader2, Utensils, Truck } from "lucide-react"
+import { ShoppingBag, MapPin, CreditCard, AlertCircle, Plus, Store, Ticket, Check, X, User, Loader2, Utensils } from "lucide-react"
 import Link from "next/link"
 import { couponsManager, type Coupon } from "@/lib/cupons-manager"
 import { storeStatusManager } from "@/lib/store-status-manager"
@@ -54,8 +54,6 @@ export default function CheckoutPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [precisaTalheres, setPrecisaTalheres] = useState<string>("")
   const [isDeliveryEnabled, setIsDeliveryEnabled] = useState(true)
-  const [deliveryFee, setDeliveryFee] = useState(0)
-  const [isDeliveryFeeEnabled, setIsDeliveryFeeEnabled] = useState(false)
 
   // Sincronizar dados do usuário e carregar endereços
   useEffect(() => {
@@ -63,8 +61,6 @@ export default function CheckoutPage() {
       const status = await storeStatusManager.getStatus()
       const deliveryActive = status.isDeliveryEnabled ?? true
       setIsDeliveryEnabled(deliveryActive)
-      setDeliveryFee(status.deliveryFee ?? 3.00)
-      setIsDeliveryFeeEnabled(status.isDeliveryFeeEnabled ?? true)
       
       if (!deliveryActive) {
         setDeliveryType("pickup")
@@ -119,18 +115,19 @@ export default function CheckoutPage() {
     }
   }
 
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null)
+    setCouponCode("")
+    setCouponError("")
+  }
+
   const getDiscountAmount = () => {
     if (!appliedCoupon) return 0
     return couponsManager.calculateDiscount(getTotalPrice(), appliedCoupon)
   }
 
-  const getCurrentDeliveryFee = () => {
-    if (deliveryType === "pickup") return 0
-    return isDeliveryFeeEnabled ? deliveryFee : 0
-  }
-
   const getFinalTotal = () => {
-    return getTotalPrice() - getDiscountAmount() + getCurrentDeliveryFee()
+    return getTotalPrice() - getDiscountAmount()
   }
 
   const handleCepChange = async (value: string) => {
@@ -150,6 +147,28 @@ export default function CheckoutPage() {
           }
         }
       } catch (error) {}
+    }
+  }
+
+  const handleNomeChange = (value: string) => {
+    if (!value) { setNome(""); return; }
+    const preposicoes = ["de", "do", "da", "dos", "das", "e"]
+    const capitalized = value.toLowerCase().split(" ").map((word, index) => {
+      if (word.length === 0) return word
+      if (preposicoes.includes(word) && index !== 0) return word
+      return word.charAt(0).toUpperCase() + word.slice(1)
+    }).join(" ")
+    setNome(capitalized)
+  }
+
+  const handleTelefoneChange = (value: string) => {
+    const numbers = value.replace(/\D/g, "")
+    if (numbers.length <= 11) {
+      let formatted = numbers
+      if (numbers.length > 0) formatted = `(${numbers.substring(0, 2)}`
+      if (numbers.length >= 3) formatted += `) ${numbers.substring(2, 7)}`
+      if (numbers.length >= 8) formatted += `-${numbers.substring(7, 11)}`
+      setTelefone(formatted)
     }
   }
 
@@ -188,7 +207,7 @@ export default function CheckoutPage() {
         totalAmount: getFinalTotal(),
         discountAmount: getDiscountAmount(),
         couponCode: appliedCoupon?.code || null,
-        notes: `${observacoes}${precisaTalheres ? `\nPrecisa de colher: ${precisaTalheres}` : ""}${formaPagamento === "dinheiro" && troco ? `\nTroco para: R$ ${troco}` : ""}`,
+        notes: `${observacoes}${precisaTalheres ? `\nPrecisa de colher: ${precisaTalheres === "sim" ? "SIM" : "NÃO"}` : ""}${formaPagamento === "dinheiro" && troco ? `\nTroco para: R$ ${troco}` : ""}`,
         deliveryType: deliveryType,
         items: items.map(item => ({
           product_id: item.id.split("-")[0],
@@ -201,10 +220,51 @@ export default function CheckoutPage() {
 
       await ordersManager.createOrder(orderData)
       
-      const itemsList = items.map(i => `*${i.quantity}x ${i.name}* - R$ ${(i.price * i.quantity).toFixed(2)}`).join("\n")
-      let mensagem = `*NOVO PEDIDO - SITE DA MARA*\nCliente: ${nome}\nTipo: ${deliveryType === "delivery" ? "Entrega" : "Retirada"}\nEndereço: ${deliveryType === "pickup" ? "Retirada no Local" : enderecoString}\n\n*ITENS:*\n${itemsList}\n\n*TOTAL: R$ ${getFinalTotal().toFixed(2)}*`
-      
-      const whatsappUrl = `https://api.whatsapp.com/send?phone=5514997361015&text=${encodeURIComponent(mensagem)}`
+      // Gerar mensagem do WhatsApp
+      let message = "*NOVO PEDIDO - BATATOP*\n"
+      message += "------------------------------------------\n\n"
+      message += "*CLIENTE*\n"
+      message += `* Nome: ${nome}\n`
+      message += `* WhatsApp: ${telefone}\n\n`
+      message += `*ENTREGA: ${deliveryType === "delivery" ? "DELIVERY" : "RETIRADA NO LOCAL"}*\n`
+      if (deliveryType === "delivery") {
+        message += `* Endereço: ${enderecoString}\n\n`
+      } else {
+        message += "* Retirada: Rua Carlos Roberto Crepaldi, 120 - Jardim Alvorada\n\n"
+      }
+      message += "------------------------------------------\n"
+      message += "*ITENS DO PEDIDO*\n\n"
+      items.forEach((item) => {
+        const itemPrice = item.price || 0
+        const itemQty = item.quantity || 1
+        const itemAdicionais = item.adicionais || []
+        const itemAdicionaisTotal = itemAdicionais.reduce((sum, a) => sum + ((a.price || 0) * (a.quantity || 1)), 0)
+        const itemTotal = (itemPrice + itemAdicionaisTotal) * itemQty
+        message += `*${itemQty}x ${(item.name || "Produto").toUpperCase()}*\n`
+        message += `  Preço un: R$ ${itemPrice.toFixed(2).replace('.', ',')}\n`
+        if (itemAdicionais.length > 0) {
+          message += `  + ${itemAdicionais.length} adicionais\n`
+          itemAdicionais.forEach(a => {
+            message += `    - ${a.quantity || 1}x ${a.name || "Adicional"} (R$ ${((a.price || 0) * (a.quantity || 1)).toFixed(2).replace('.', ',')})\n`
+          })
+        }
+        message += `  *Subtotal item: R$ ${itemTotal.toFixed(2).replace('.', ',')}*\n\n`
+      })
+      message += "------------------------------------------\n"
+      message += `Subtotal: R$ ${getTotalPrice().toFixed(2).replace('.', ',')}\n`
+      if (appliedCoupon) {
+        message += `Cupom (${appliedCoupon.code}): -R$ ${getDiscountAmount().toFixed(2).replace('.', ',')}\n`
+      }
+      message += `*TOTAL A PAGAR: R$ ${getFinalTotal().toFixed(2).replace('.', ',')}*\n\n`
+      message += "*PAGAMENTO*\n"
+      message += `* Método: ${formaPagamento.toUpperCase()}\n`
+      if (formaPagamento === "dinheiro" && troco) message += `* Troco para: R$ ${troco}\n`
+      message += `* Precisa de colher: ${precisaTalheres === "sim" ? "SIM" : "NÃO"}\n`
+      if (observacoes) message += `\n*OBSERVAÇÕES:*\n${observacoes}\n`
+      message += "\n------------------------------------------\n"
+      message += "Pedido enviado pelo site Batatop"
+
+      const whatsappUrl = `https://wa.me/5514997361015?text=${encodeURIComponent(message)}`
       
       clearCart()
       window.open(whatsappUrl, "_blank")
@@ -220,13 +280,18 @@ export default function CheckoutPage() {
 
   if (items.length === 0) {
     return (
-      <div className="min-h-screen flex flex-col bg-gray-50">
+      <div className="min-h-screen flex flex-col">
         <HeaderWrapper />
-        <main className="flex-1 flex items-center justify-center p-4">
-          <Card className="max-w-md w-full text-center p-8 rounded-3xl border-none shadow-sm">
-            <h2 className="text-2xl font-black mb-2">Carrinho vazio</h2>
-            <Link href="/cardapio"><Button className="w-full bg-yellow-500 text-white font-bold rounded-xl">Ver Cardápio</Button></Link>
-          </Card>
+        <main className="flex-1 flex items-center justify-center py-12">
+          <div className="text-center space-y-4">
+            <div className="h-20 w-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto">
+              <ShoppingBag className="h-10 w-10 text-gray-300" />
+            </div>
+            <h2 className="text-2xl font-black text-gray-800">Seu carrinho está vazio</h2>
+            <Button asChild className="bg-yellow-500 hover:bg-yellow-600 text-white font-bold rounded-2xl px-8">
+              <Link href="/cardapio">Ver Cardápio</Link>
+            </Button>
+          </div>
         </main>
         <Footer />
       </div>
@@ -236,126 +301,228 @@ export default function CheckoutPage() {
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
       <HeaderWrapper />
-      <main className="flex-1 py-8 px-4 md:px-6">
-        <div className="container mx-auto max-w-6xl">
-          <h1 className="text-3xl font-black mb-8">Finalizar Pedido</h1>
+      <main className="flex-1 py-8">
+        <div className="container mx-auto px-4 max-w-6xl">
+          <div className="flex items-center gap-3 mb-8">
+            <div className="h-12 w-12 bg-yellow-500 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-yellow-100">
+              <ShoppingBag className="h-6 w-6" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-black text-gray-800">Finalizar Pedido</h1>
+              <p className="text-gray-500 text-sm">Quase lá! Só precisamos de mais alguns detalhes.</p>
+            </div>
+          </div>
+
           <div className="grid lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2 space-y-6">
-              {/* DADOS PESSOAIS */}
-              <Card className="rounded-3xl p-6 space-y-4">
-                <h3 className="font-black text-lg flex items-center gap-2"><User className="h-5 w-5 text-yellow-500" /> Seus Dados</h3>
-                <div className="grid md:grid-cols-2 gap-4">
+              <Card className="rounded-3xl border-none shadow-sm overflow-hidden">
+                <CardHeader className="bg-white border-b border-gray-50">
+                  <CardTitle className="text-lg font-black flex items-center gap-2">
+                    <User className="h-5 w-5 text-yellow-500" /> Seus Dados
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-6 grid md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label>Nome Completo</Label>
-                    <Input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Seu nome" className="h-12 rounded-xl" />
+                    <Label className="font-bold text-gray-600">Nome Completo</Label>
+                    <Input value={nome} onChange={(e) => handleNomeChange(e.target.value)} placeholder="Como quer ser chamado?" className="h-12 rounded-xl border-gray-100" />
                   </div>
                   <div className="space-y-2">
-                    <Label>WhatsApp</Label>
-                    <Input value={telefone} onChange={(e) => setTelefone(e.target.value)} placeholder="(00) 00000-0000" className="h-12 rounded-xl" />
+                    <Label className="font-bold text-gray-600">WhatsApp</Label>
+                    <Input value={telefone} onChange={(e) => handleTelefoneChange(e.target.value)} placeholder="(00) 00000-0000" className="h-12 rounded-xl border-gray-100" />
                   </div>
-                </div>
+                </CardContent>
               </Card>
 
-              {/* ENTREGA */}
-              <Card className="rounded-3xl p-6 space-y-4">
-                <h3 className="font-black text-lg flex items-center gap-2"><MapPin className="h-5 w-5 text-yellow-500" /> Como quer receber?</h3>
-                <RadioGroup value={deliveryType} onValueChange={(v: any) => setDeliveryType(v)} className="grid md:grid-cols-2 gap-4">
-                  <div className="flex items-center space-x-2 border p-4 rounded-2xl cursor-pointer">
-                    <RadioGroupItem value="delivery" id="delivery" />
-                    <Label htmlFor="delivery" className="cursor-pointer">Entrega</Label>
-                  </div>
-                  <div className="flex items-center space-x-2 border p-4 rounded-2xl cursor-pointer">
-                    <RadioGroupItem value="pickup" id="pickup" />
-                    <Label htmlFor="pickup" className="cursor-pointer">Retirada</Label>
-                  </div>
-                </RadioGroup>
-
-                {deliveryType === "delivery" && (
-                  <div className="space-y-4 pt-4">
-                    {addresses.length > 0 && !useNewAddress ? (
-                      <div className="space-y-4">
-                        <select value={selectedAddressId} onChange={(e) => setSelectedAddressId(e.target.value)} className="w-full p-3 border rounded-xl">
-                          {addresses.map(a => <option key={a.id} value={a.id}>{a.street}, {a.number} - {a.neighborhood}</option>)}
-                        </select>
-                        <Button variant="link" onClick={() => setUseNewAddress(true)} className="text-yellow-600 p-0">Usar outro endereço</Button>
+              <Card className="rounded-3xl border-none shadow-sm overflow-hidden">
+                <CardHeader className="bg-white border-b border-gray-50">
+                  <CardTitle className="text-lg font-black flex items-center gap-2">
+                    <MapPin className="h-5 w-5 text-yellow-500" /> Como quer receber?
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-6">
+                  {!isDeliveryEnabled && (
+                    <div className="mb-6 p-4 bg-orange-50 border border-orange-100 rounded-2xl flex items-start gap-3 text-orange-800">
+                      <AlertCircle className="h-5 w-5 shrink-0 mt-0.5 text-orange-600" />
+                      <div>
+                        <p className="text-sm font-bold">Entregas Temporariamente Indisponíveis</p>
+                        <p className="text-xs opacity-90">No momento estamos trabalhando apenas com **retirada no local**.</p>
                       </div>
-                    ) : (
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="col-span-2"><Input placeholder="CEP" value={cep} onChange={(e) => handleCepChange(e.target.value)} className="h-12 rounded-xl" /></div>
-                        <div className="col-span-2"><Input placeholder="Rua" value={rua} onChange={(e) => setRua(e.target.value)} className="h-12 rounded-xl" /></div>
-                        <Input placeholder="Número" value={numero} onChange={(e) => setNumero(e.target.value)} className="h-12 rounded-xl" />
-                        <Input placeholder="Bairro" value={bairro} onChange={(e) => setBairro(e.target.value)} className="h-12 rounded-xl" />
-                        {addresses.length > 0 && <Button variant="link" onClick={() => setUseNewAddress(false)} className="col-span-2 text-yellow-600">Voltar aos meus endereços</Button>}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </Card>
-
-              {/* PAGAMENTO E COLHER */}
-              <Card className="rounded-3xl p-6 space-y-6">
-                <h3 className="font-black text-lg flex items-center gap-2"><CreditCard className="h-5 w-5 text-yellow-500" /> Pagamento</h3>
-                <RadioGroup value={formaPagamento} onValueChange={setFormaPagamento} className="grid md:grid-cols-3 gap-4">
-                  <div className="flex items-center space-x-2 border p-4 rounded-2xl cursor-pointer">
-                    <RadioGroupItem value="dinheiro" id="dinheiro" />
-                    <Label htmlFor="dinheiro" className="cursor-pointer">Dinheiro</Label>
-                  </div>
-                  <div className="flex items-center space-x-2 border p-4 rounded-2xl cursor-pointer">
-                    <RadioGroupItem value="pix" id="pix" />
-                    <Label htmlFor="pix" className="cursor-pointer">PIX</Label>
-                  </div>
-                  <div className="flex items-center space-x-2 border p-4 rounded-2xl cursor-pointer">
-                    <RadioGroupItem value="cartao" id="cartao" />
-                    <Label htmlFor="cartao" className="cursor-pointer">Cartão</Label>
-                  </div>
-                </RadioGroup>
-                {formaPagamento === "dinheiro" && <Input placeholder="Troco para quanto?" value={troco} onChange={(e) => setTroco(e.target.value)} className="h-12 rounded-xl" />}
-                
-                {/* VISUAL ORIGINAL DA COLHER */}
-                <div className="pt-4 space-y-4 border-t">
-                  <Label className="font-black text-gray-700 flex items-center gap-2">
-                    <Utensils className="h-4 w-4 text-yellow-500" /> Precisa de colher?
-                  </Label>
-                  <RadioGroup value={precisaTalheres} onValueChange={setPrecisaTalheres} className="flex gap-6">
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="Sim" id="talher-sim" />
-                      <Label htmlFor="talher-sim" className="font-bold text-gray-600 cursor-pointer">Sim, por favor</Label>
                     </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="Não" id="talher-nao" />
-                      <Label htmlFor="talher-nao" className="font-bold text-gray-600 cursor-pointer">Não preciso</Label>
+                  )}
+                  <RadioGroup value={deliveryType} onValueChange={(v: any) => { if (!isDeliveryEnabled && v === "delivery") return; setDeliveryType(v); }} className="grid md:grid-cols-2 gap-4">
+                    <div className={!isDeliveryEnabled ? "opacity-50 cursor-not-allowed" : ""}>
+                      <RadioGroupItem value="delivery" id="delivery" className="peer sr-only" disabled={!isDeliveryEnabled} />
+                      <Label htmlFor="delivery" className={`flex flex-col items-center justify-between rounded-2xl border-2 border-gray-100 bg-white p-4 transition-all ${isDeliveryEnabled ? "hover:bg-gray-50 peer-data-[state=checked]:border-yellow-500 cursor-pointer" : "cursor-not-allowed"}`}>
+                        <MapPin className={`h-6 w-6 mb-2 ${isDeliveryEnabled ? "text-gray-400 peer-data-[state=checked]:text-yellow-500" : "text-gray-300"}`} />
+                        <span className="font-bold text-gray-600">Entrega</span>
+                        <span className="text-xs text-gray-400">{isDeliveryEnabled ? "Receba em casa" : "Indisponível"}</span>
+                      </Label>
+                    </div>
+                    <div>
+                      <RadioGroupItem value="pickup" id="pickup" className="peer sr-only" />
+                      <Label htmlFor="pickup" className="flex flex-col items-center justify-between rounded-2xl border-2 border-gray-100 bg-white p-4 hover:bg-gray-50 peer-data-[state=checked]:border-yellow-500 cursor-pointer transition-all">
+                        <Store className="h-6 w-6 mb-2 text-gray-400 peer-data-[state=checked]:text-yellow-500" />
+                        <span className="font-bold text-gray-600">Retirada</span>
+                        <span className="text-xs text-gray-400">Busque no local</span>
+                      </Label>
                     </div>
                   </RadioGroup>
-                </div>
 
-                <div className="pt-4 space-y-2 border-t">
-                  <Label className="font-black text-gray-700">Observações</Label>
-                  <Textarea value={observacoes} onChange={(e) => setObservacoes(e.target.value)} placeholder="Ex: Tirar cebola..." className="min-h-[100px] rounded-2xl" />
-                </div>
+                  {deliveryType === "delivery" && (
+                    <div className="mt-6 space-y-6">
+                      {addresses.length > 0 && (
+                        <div className="space-y-3">
+                          <Label className="font-bold text-gray-600">Seus Endereços Salvos</Label>
+                          <div className="grid gap-3">
+                            {addresses.map((addr) => (
+                              <div key={addr.id} onClick={() => { setSelectedAddressId(addr.id); setUseNewAddress(false); }} className={`p-4 rounded-2xl border-2 cursor-pointer transition-all flex items-start gap-3 ${selectedAddressId === addr.id && !useNewAddress ? "border-yellow-500 bg-yellow-50" : "border-gray-100 hover:border-yellow-200"}`}>
+                                <div className={`mt-1 h-5 w-5 rounded-full border-2 flex items-center justify-center ${selectedAddressId === addr.id && !useNewAddress ? "border-yellow-500" : "border-gray-300"}`}>
+                                  {selectedAddressId === addr.id && !useNewAddress && <div className="h-2.5 w-2.5 rounded-full bg-yellow-500" />}
+                                </div>
+                                <div className="flex-1">
+                                  <p className="font-bold text-gray-800">{addr.street}, {addr.number}</p>
+                                  <p className="text-sm text-gray-500">{addr.neighborhood} - {addr.city}/{addr.state}</p>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                          <Button variant="ghost" onClick={() => setUseNewAddress(true)} className="w-full rounded-xl border-2 border-dashed border-gray-200 text-gray-500 hover:border-yellow-500 h-12">
+                            <Plus className="h-4 w-4 mr-2" /> Usar outro endereço
+                          </Button>
+                        </div>
+                      )}
+                      {(useNewAddress || addresses.length === 0) && (
+                        <div className="space-y-4">
+                          <div className="grid md:grid-cols-3 gap-4">
+                            <div className="space-y-2"><Label className="font-bold text-gray-600">CEP</Label><Input value={cep} onChange={(e) => handleCepChange(e.target.value)} placeholder="00000-000" className="h-12 rounded-xl border-gray-100" /></div>
+                            <div className="md:col-span-2 space-y-2"><Label className="font-bold text-gray-600">Rua</Label><Input value={rua} onChange={(e) => setRua(e.target.value)} placeholder="Nome da rua" className="h-12 rounded-xl border-gray-100" /></div>
+                          </div>
+                          <div className="grid md:grid-cols-2 gap-4">
+                            <div className="space-y-2"><Label className="font-bold text-gray-600">Número</Label><Input value={numero} onChange={(e) => setNumero(e.target.value)} placeholder="Nº" className="h-12 rounded-xl border-gray-100" /></div>
+                            <div className="space-y-2"><Label className="font-bold text-gray-600">Bairro</Label><Input value={bairro} onChange={(e) => setBairro(e.target.value)} placeholder="Seu bairro" className="h-12 rounded-xl border-gray-100" /></div>
+                          </div>
+                          <div className="space-y-2"><Label className="font-bold text-gray-600">Complemento (Opcional)</Label><Input value={complemento} onChange={(e) => setComplemento(e.target.value)} placeholder="Apto, bloco..." className="h-12 rounded-xl border-gray-100" /></div>
+                          {enderecoError && <div className="p-4 bg-red-50 border border-red-100 rounded-2xl flex items-start gap-3 text-red-600"><AlertCircle className="h-5 w-5 shrink-0 mt-0.5" /><p className="text-sm font-medium">{enderecoError}</p></div>}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  {deliveryType === "pickup" && (
+                    <div className="mt-6 p-4 bg-yellow-50 border border-yellow-100 rounded-2xl flex items-start gap-3">
+                      <Store className="h-5 w-5 text-yellow-600 shrink-0 mt-0.5" />
+                      <div><p className="text-sm font-bold text-yellow-800">Endereço para retirada:</p><p className="text-sm text-yellow-700">Rua Carlos Roberto Crepaldi, 120 - Jardim Alvorada, Iacanga/SP</p></div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              <Card className="rounded-3xl border-none shadow-sm overflow-hidden">
+                <CardHeader className="bg-white border-b border-gray-50">
+                  <CardTitle className="text-lg font-black flex items-center gap-2">
+                    <CreditCard className="h-5 w-5 text-yellow-500" /> Forma de Pagamento
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-6">
+                  <RadioGroup value={formaPagamento} onValueChange={setFormaPagamento} className="grid md:grid-cols-3 gap-4">
+                    <div><RadioGroupItem value="dinheiro" id="dinheiro" className="peer sr-only" /><Label htmlFor="dinheiro" className="flex flex-col items-center justify-center rounded-2xl border-2 border-gray-100 bg-white p-4 hover:bg-gray-50 peer-data-[state=checked]:border-yellow-500 cursor-pointer transition-all h-full"><span className="font-bold text-gray-600">Dinheiro</span></Label></div>
+                    <div><RadioGroupItem value="pix" id="pix" className="peer sr-only" /><Label htmlFor="pix" className="flex flex-col items-center justify-center rounded-2xl border-2 border-gray-100 bg-white p-4 hover:bg-gray-50 peer-data-[state=checked]:border-yellow-500 cursor-pointer transition-all h-full"><span className="font-bold text-gray-600">PIX</span></Label></div>
+                    <div><RadioGroupItem value="cartao" id="cartao" className="peer sr-only" /><Label htmlFor="cartao" className="flex flex-col items-center justify-center rounded-2xl border-2 border-gray-100 bg-white p-4 hover:bg-gray-50 peer-data-[state=checked]:border-yellow-500 cursor-pointer transition-all h-full"><span className="font-bold text-gray-600">Cartão</span></Label></div>
+                  </RadioGroup>
+                  {formaPagamento === "dinheiro" && <div className="mt-4 space-y-2"><Label className="font-bold text-gray-600">Troco para quanto? (Opcional)</Label><Input value={troco} onChange={(e) => setTroco(e.target.value)} placeholder="Ex: 50,00" className="h-12 rounded-xl border-gray-100" /></div>}
+                </CardContent>
+              </Card>
+
+              <Card className="rounded-3xl border-none shadow-sm overflow-hidden">
+                <CardHeader className="bg-white border-b border-gray-50">
+                  <CardTitle className="text-lg font-black flex items-center gap-2">
+                    <Utensils className="h-5 w-5 text-yellow-500" /> Precisa de colher?
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-6">
+                  <RadioGroup value={precisaTalheres} onValueChange={setPrecisaTalheres} className="grid md:grid-cols-2 gap-4">
+                    <div><RadioGroupItem value="sim" id="talheres-sim" className="peer sr-only" /><Label htmlFor="talheres-sim" className="flex items-center justify-center gap-3 rounded-2xl border-2 border-gray-100 bg-white p-4 hover:bg-gray-50 peer-data-[state=checked]:border-yellow-500 cursor-pointer transition-all"><div className={`h-5 w-5 rounded-full border-2 flex items-center justify-center ${precisaTalheres === "sim" ? "border-yellow-500" : "border-gray-300"}`}>{precisaTalheres === "sim" && <div className="h-2.5 w-2.5 rounded-full bg-yellow-500" />}</div><span className="font-bold text-gray-600">Sim, por favor</span></Label></div>
+                    <div><RadioGroupItem value="nao" id="talheres-nao" className="peer sr-only" /><Label htmlFor="talheres-nao" className="flex items-center justify-center gap-3 rounded-2xl border-2 border-gray-100 bg-white p-4 hover:bg-gray-50 peer-data-[state=checked]:border-yellow-500 cursor-pointer transition-all"><div className={`h-5 w-5 rounded-full border-2 flex items-center justify-center ${precisaTalheres === "nao" ? "border-yellow-500" : "border-gray-300"}`}>{precisaTalheres === "nao" && <div className="h-2.5 w-2.5 rounded-full bg-yellow-500" />}</div><span className="font-bold text-gray-600">Não preciso</span></Label></div>
+                  </RadioGroup>
+                </CardContent>
+              </Card>
+
+              <Card className="rounded-3xl border-none shadow-sm overflow-hidden">
+                <CardHeader className="bg-white border-b border-gray-50">
+                  <CardTitle className="text-lg font-black flex items-center gap-2">
+                    <AlertCircle className="h-5 w-5 text-yellow-500" /> Observações
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-6">
+                  <Textarea value={observacoes} onChange={(e) => setObservacoes(e.target.value)} placeholder="Alguma observação especial?" className="min-h-[100px] rounded-2xl border-gray-100 resize-none" />
+                </CardContent>
               </Card>
             </div>
 
-            <div className="space-y-6">
-              <Card className="rounded-3xl p-6 sticky top-8">
-                <h3 className="font-black text-lg mb-4">Resumo</h3>
-                <div className="space-y-4 mb-6">
-                  {items.map((item) => (
-                    <div key={item.id} className="flex justify-between text-sm">
-                      <span>{item.quantity}x {item.name}</span>
-                      <span className="font-black">R$ {(item.price * item.quantity).toFixed(2)}</span>
+            <div className="lg:col-span-1">
+              <div className="sticky top-24 space-y-6">
+                <Card className="rounded-[32px] border-none shadow-2xl overflow-hidden bg-white">
+                  <CardHeader className="bg-yellow-500 p-6">
+                    <CardTitle className="text-xl font-black flex items-center gap-2 text-white">
+                      <ShoppingBag className="h-6 w-6" /> Resumo do Pedido
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-6">
+                    <div className="space-y-4 mb-8">
+                      {items.map((item) => (
+                        <div key={item.id} className="group">
+                          <div className="flex justify-between gap-4 items-start">
+                            <div className="flex-1">
+                              <p className="text-base font-black text-gray-900 leading-tight"><span className="text-yellow-600 mr-1">{item.quantity}x</span> {item.name}</p>
+                              {item.adicionais && item.adicionais.length > 0 && (
+                                <div className="mt-1.5 flex flex-wrap gap-1">
+                                  {item.adicionais.map((a, idx) => (
+                                    <span key={idx} className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-yellow-50 text-yellow-700 border border-yellow-100">+ {a.name}</span>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                            <p className="text-sm font-black text-gray-900 whitespace-nowrap">R$ {((item.price + (item.adicionais?.reduce((sum, a) => sum + (a.price * a.quantity), 0) || 0)) * item.quantity).toFixed(2).replace(".", ",")}</p>
+                          </div>
+                          <div className="h-px w-full bg-gray-50 mt-4 group-last:hidden" />
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
-                <div className="space-y-2 text-sm pt-4 border-t">
-                  <div className="flex justify-between"><span>Subtotal</span><span>R$ {getTotalPrice().toFixed(2)}</span></div>
-                  {getDiscountAmount() > 0 && <div className="flex justify-between text-green-600"><span>Desconto</span><span>-R$ {getDiscountAmount().toFixed(2)}</span></div>}
-                  <div className="flex justify-between"><span>Entrega</span><span>{deliveryType === "pickup" ? "Grátis" : `R$ ${getCurrentDeliveryFee().toFixed(2)}`}</span></div>
-                  <div className="flex justify-between font-black text-xl pt-4 border-t text-yellow-600"><span>Total</span><span>R$ {getFinalTotal().toFixed(2)}</span></div>
-                </div>
-                <Button onClick={handleFinalizarPedido} disabled={isSubmitting} className="w-full mt-8 bg-yellow-500 text-white font-black h-14 rounded-2xl shadow-lg">
-                  {isSubmitting ? <Loader2 className="animate-spin" /> : "FINALIZAR PEDIDO"}
-                </Button>
-              </Card>
+
+                    <div className="space-y-4 pt-6 border-t-2 border-dashed border-gray-100">
+                      <div className="bg-gray-50 p-4 rounded-2xl border-2 border-transparent focus-within:border-yellow-500 focus-within:bg-white transition-all">
+                        <Label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1 mb-2 block">Cupom de Desconto</Label>
+                        <div className="flex gap-2">
+                          <div className="relative flex-1">
+                            <Ticket className={`absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 ${appliedCoupon ? "text-yellow-500" : "text-gray-400"}`} />
+                            <Input value={couponCode} onChange={(e) => setCouponCode(e.target.value.toUpperCase())} placeholder="CÓDIGO" disabled={!!appliedCoupon} className="h-12 pl-10 rounded-xl border-none bg-transparent focus-visible:ring-0 font-black text-gray-900" />
+                          </div>
+                          {appliedCoupon ? (
+                            <Button variant="ghost" onClick={handleRemoveCoupon} className="h-12 px-4 rounded-xl text-red-500 font-black text-xs">REMOVER</Button>
+                          ) : (
+                            <Button onClick={handleApplyCoupon} className="h-12 px-6 rounded-xl bg-yellow-500 hover:bg-yellow-600 text-white font-black shadow-md shadow-yellow-100">APLICAR</Button>
+                          )}
+                        </div>
+                        {couponError && <p className="text-[10px] font-bold text-red-500 mt-2 ml-1">{couponError}</p>}
+                        {couponSuccess && <p className="text-[10px] font-bold text-green-600 mt-2 ml-1 flex items-center gap-1"><Check className="h-3 w-3" /> Cupom aplicado!</p>}
+                      </div>
+
+                      <div className="space-y-2 px-1">
+                        <div className="flex justify-between text-sm font-bold text-gray-500"><span>Subtotal</span><span>R$ {getTotalPrice().toFixed(2).replace(".", ",")}</span></div>
+                        {appliedCoupon && <div className="flex justify-between text-sm font-black text-green-600 bg-green-50 p-2 rounded-lg border border-green-100"><span className="flex items-center gap-1"><Ticket className="h-4 w-4" /> Desconto aplicado</span><span>- R$ {getDiscountAmount().toFixed(2).replace(".", ",")}</span></div>}
+                        <div className="flex justify-between items-end pt-4">
+                          <div className="flex flex-col"><span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Total a pagar</span><span className="text-3xl font-black text-gray-900 leading-none">R$ {getFinalTotal().toFixed(2).replace(".", ",")}</span></div>
+                          <div className="bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider mb-1">{items.length} {items.length === 1 ? 'item' : 'itens'}</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <Button onClick={handleFinalizarPedido} disabled={isSubmitting} className="w-full h-14 mt-8 bg-yellow-500 hover:bg-yellow-600 text-white font-black text-lg rounded-2xl shadow-lg shadow-yellow-100 transition-all active:scale-95">
+                      {isSubmitting ? <div className="flex items-center gap-2"><Loader2 className="h-5 w-5 animate-spin" /> Processando...</div> : "Finalizar Pedido"}
+                    </Button>
+                    <p className="text-[10px] text-center text-gray-400 mt-4 font-bold uppercase tracking-widest">Você será redirecionado para o WhatsApp</p>
+                  </CardContent>
+                </Card>
+              </div>
             </div>
           </div>
         </div>
@@ -364,7 +531,3 @@ export default function CheckoutPage() {
     </div>
   )
 }
-
-const DollarSign = ({ className }: { className?: string }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" /></svg>
-)
