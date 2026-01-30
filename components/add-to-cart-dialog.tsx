@@ -6,8 +6,9 @@ import { Button } from "@/components/ui/button"
 import { useCart } from "@/lib/cart-context"
 import { useAuth } from "@/lib/auth-context"
 import { useToast } from "@/hooks/use-toast"
-import { X, Minus, Plus, ShoppingCart } from "lucide-react"
+import { X, Minus, Plus, ShoppingCart, Tag } from "lucide-react"
 import type { Adicional } from "@/lib/products-db-client"
+import { storeStatusManager } from "@/lib/store-status-manager"
 
 interface Product {
   id: string
@@ -32,9 +33,20 @@ export function AddToCartDialog({ product, open, onOpenChange }: AddToCartDialog
   const [quantity, setQuantity] = useState(1)
   const [observacoes, setObservacoes] = useState("")
   const [pastaType, setPastaType] = useState<"penne" | "parafuso" | "espaguete">("penne")
+  const [isPromoActive, setIsPromoActive] = useState(false)
+  const [promoPrice, setPromoPrice] = useState(24.99)
 
   const { addItem } = useCart()
   const { toast } = useToast()
+
+  useEffect(() => {
+    const checkPromo = async () => {
+      const status = await storeStatusManager.getStatus()
+      setIsPromoActive(status.isPromoActive ?? false)
+      setPromoPrice(status.promoPrice ?? 24.99)
+    }
+    checkPromo()
+  }, [])
 
   useEffect(() => {
     if (open) {
@@ -48,6 +60,10 @@ export function AddToCartDialog({ product, open, onOpenChange }: AddToCartDialog
 
   const isBebida = product.category === "bebida"
   const isMacarrao = product.category === "macarrao"
+  const isBatata = product.category === "batata"
+  
+  // O preço base já vem ajustado do ProductCard, mas garantimos aqui também
+  const basePrice = (isPromoActive && isBatata) ? promoPrice : product.price
 
   const updateAdicionalQuantity = (id: string, delta: number) => {
     setSelectedAdicionais((prev) => {
@@ -68,8 +84,8 @@ export function AddToCartDialog({ product, open, onOpenChange }: AddToCartDialog
       const adicional = adicionaisDisponiveis.find((a) => a.id === id)
       return sum + (adicional?.price || 0) * qty
     }, 0)
-    return (product.price + adicionaisTotal) * quantity
-  }, [selectedAdicionais, adicionaisDisponiveis, product.price, quantity])
+    return (basePrice + adicionaisTotal) * quantity
+  }, [selectedAdicionais, adicionaisDisponiveis, basePrice, quantity])
 
   const handleAddToCart = () => {
     const adicionais = isBebida
@@ -87,7 +103,7 @@ export function AddToCartDialog({ product, open, onOpenChange }: AddToCartDialog
     addItem({
       id: product.id,
       name: product.name,
-      price: product.price,
+      price: basePrice,
       image: product.image,
       quantity: quantity,
       category: product.category === "macarrao" ? "batata" : (product.category || "batata"),
@@ -140,8 +156,16 @@ export function AddToCartDialog({ product, open, onOpenChange }: AddToCartDialog
           {/* DESCRIÇÃO E PREÇO */}
           <div className="space-y-2">
             <p className="text-gray-500 text-sm leading-relaxed">{product.description}</p>
-            <div className="text-xl font-black text-yellow-600">
-              R$ {product.price.toFixed(2).replace('.', ',')}
+            <div className="flex items-center gap-3">
+              <div className={`text-xl font-black ${isPromoActive && isBatata ? 'text-red-600' : 'text-yellow-600'}`}>
+                R$ {basePrice.toFixed(2).replace('.', ',')}
+              </div>
+              {isPromoActive && isBatata && (
+                <div className="bg-red-100 text-red-600 text-[10px] font-black px-2 py-1 rounded-full flex items-center gap-1">
+                  <Tag className="h-3 w-3" />
+                  PREÇO PROMOCIONAL
+                </div>
+              )}
             </div>
           </div>
 

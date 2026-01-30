@@ -4,7 +4,7 @@ import type React from "react"
 import { useEffect, useState } from "react"
 import { useAuth } from "@/lib/auth-context"
 import { useRouter } from "next/navigation"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -12,13 +12,15 @@ import { Textarea } from "@/components/ui/textarea"
 import { HeaderWrapper } from "@/components/header-wrapper"
 import { Footer } from "@/components/footer"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { ArrowLeft, Edit, Plus, Trash2, Package, Coffee, UtensilsCrossed, Zap, Eye, EyeOff } from "lucide-react"
+import { ArrowLeft, Edit, Plus, Trash2, Package, Coffee, UtensilsCrossed, Zap, Eye, EyeOff, Tag, Megaphone, Settings2 } from "lucide-react"
 import Link from "next/link"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { productsManager, type Product, type Adicional } from "@/lib/products-db"
 import { adicionaisManager } from "@/lib/adicionais-manager"
+import { storeStatusManager } from "@/lib/store-status-manager"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
+import { Switch } from "@/components/ui/switch"
 
 const ADMIN_EMAILS = ["enzzobaraldo2008@gmail.com", "maraysis9010@gmail.com"]
 
@@ -40,6 +42,11 @@ export default function AdminProdutosPage() {
   const [isAdicionalDialogOpen, setIsAdicionalDialogOpen] = useState(false)
   const [activeTab, setActiveTab] = useState("batata")
 
+  // Promo states
+  const [isPromoActive, setIsPromoActive] = useState(false)
+  const [promoPrice, setPromoPrice] = useState("24.99")
+  const [isUpdatingPromo, setIsUpdatingPromo] = useState(false)
+
   // Form states for products
   const [formName, setFormName] = useState("")
   const [formDescription, setFormDescription] = useState("")
@@ -60,6 +67,7 @@ export default function AdminProdutosPage() {
         setIsAdmin(true)
         loadProducts()
         loadAdicionais()
+        loadPromoStatus()
       } else {
         router.push("/")
       }
@@ -74,6 +82,37 @@ export default function AdminProdutosPage() {
   const loadAdicionais = async () => {
     const allAdicionais = await adicionaisManager.getAllAdicionais()
     setAdicionais(allAdicionais)
+  }
+
+  const loadPromoStatus = async () => {
+    const status = await storeStatusManager.getStatus()
+    setIsPromoActive(status.isPromoActive ?? false)
+    setPromoPrice((status.promoPrice ?? 24.99).toString())
+  }
+
+  const handleTogglePromo = async () => {
+    setIsUpdatingPromo(true)
+    try {
+      const newState = await storeStatusManager.togglePromoStatus()
+      setIsPromoActive(newState)
+    } finally {
+      setIsUpdatingPromo(false)
+    }
+  }
+
+  const handleUpdatePromoPrice = async () => {
+    const price = parseFloat(promoPrice)
+    if (isNaN(price) || price <= 0) {
+      alert("Preço inválido")
+      return
+    }
+    setIsUpdatingPromo(true)
+    try {
+      await storeStatusManager.updatePromoPrice(price)
+      alert("Preço da promoção atualizado com sucesso!")
+    } finally {
+      setIsUpdatingPromo(false)
+    }
   }
 
   const handleOpenDialog = (product?: Product) => {
@@ -279,7 +318,7 @@ export default function AdminProdutosPage() {
                   <p className="text-xs font-bold text-gray-600 mb-2">Adicionais vinculados:</p>
                   <div className="flex flex-wrap gap-1">
                     {product.adicionais.map((a) => (
-                      <span key={a.id} className="bg-yellow-100 text-yellow-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-yellow-200">
+                      <span key={a.id} className="bg-gray-100 text-gray-600 text-[10px] px-2 py-0.5 rounded-full font-medium">
                         {a.name}
                       </span>
                     ))}
@@ -289,22 +328,19 @@ export default function AdminProdutosPage() {
 
               <div className="flex gap-2">
                 <Button
-                  onClick={() => handleOpenDialog(product)}
                   variant="outline"
-                  size="sm"
-                  className="flex-1 border-2 border-blue-200 text-blue-600 hover:bg-blue-50 rounded-lg gap-1"
+                  className="flex-1 rounded-xl border-2 border-gray-100 hover:bg-gray-50 font-bold text-gray-700"
+                  onClick={() => handleOpenDialog(product)}
                 >
-                  <Edit className="h-4 w-4" />
+                  <Edit className="h-4 w-4 mr-2" />
                   Editar
                 </Button>
                 <Button
-                  onClick={() => handleDeleteProduct(product.id)}
                   variant="outline"
-                  size="sm"
-                  className="flex-1 border-2 border-red-200 text-red-600 hover:bg-red-50 rounded-lg gap-1"
+                  className="rounded-xl border-2 border-red-50 hover:bg-red-50 text-red-500 hover:text-red-600"
+                  onClick={() => handleDeleteProduct(product.id)}
                 >
                   <Trash2 className="h-4 w-4" />
-                  Excluir
                 </Button>
               </div>
             </CardContent>
@@ -315,457 +351,331 @@ export default function AdminProdutosPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-yellow-50 via-white to-yellow-50">
+    <div className="min-h-screen bg-gray-50">
       <HeaderWrapper />
-      <main className="flex-1 py-8 px-4 md:px-6">
-        <div className="container mx-auto max-w-7xl">
-          {/* Cabeçalho */}
-          <div className="mb-8">
-            <Link href="/admin">
-              <Button variant="ghost" className="mb-6 text-gray-600 hover:text-yellow-600 hover:bg-yellow-50 font-semibold gap-2">
-                <ArrowLeft className="h-5 w-5" />
-                Voltar ao Painel
-              </Button>
-            </Link>
 
-            <div className="flex items-center gap-4 mb-8">
-              <div className="h-14 w-14 bg-gradient-to-br from-red-400 to-red-500 rounded-2xl flex items-center justify-center shadow-lg">
-                <Package className="h-7 w-7 text-white" />
+      <main className="container mx-auto px-4 py-8">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+          <div>
+            <Link
+              href="/admin"
+              className="inline-flex items-center text-sm font-bold text-gray-500 hover:text-yellow-600 transition-colors mb-2"
+            >
+              <ArrowLeft className="h-4 w-4 mr-1" />
+              Voltar ao Painel
+            </Link>
+            <h1 className="text-3xl font-black text-gray-900">Gerenciar Cardápio</h1>
+          </div>
+          <div className="flex gap-2">
+            <Button
+              onClick={() => handleOpenAdicionalDialog()}
+              variant="outline"
+              className="bg-white border-2 border-yellow-100 hover:bg-yellow-50 text-yellow-700 font-bold rounded-2xl px-6 h-12"
+            >
+              <Plus className="h-5 w-5 mr-2" />
+              Novo Adicional
+            </Button>
+            <Button
+              onClick={() => handleOpenDialog()}
+              className="bg-yellow-500 hover:bg-yellow-600 text-gray-900 font-black rounded-2xl px-6 h-12 shadow-lg shadow-yellow-100"
+            >
+              <Plus className="h-5 w-5 mr-2" />
+              Novo Produto
+            </Button>
+          </div>
+        </div>
+
+        {/* SEÇÃO DE PROMOÇÃO ESTILO IFOOD */}
+        <Card className="mb-8 border-2 border-yellow-400 bg-yellow-50/50 overflow-hidden rounded-3xl shadow-xl shadow-yellow-100">
+          <div className="bg-yellow-400 p-4 flex items-center gap-3">
+            <Megaphone className="h-6 w-6 text-gray-900 animate-bounce" />
+            <h2 className="text-xl font-black text-gray-900 uppercase tracking-tight">Sistema de Promoção Relâmpago</h2>
+          </div>
+          <CardContent className="p-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between p-4 bg-white rounded-2xl border-2 border-yellow-100 shadow-sm">
+                  <div className="flex items-center gap-3">
+                    <div className={`p-3 rounded-xl ${isPromoActive ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-400'}`}>
+                      <Zap className={`h-6 w-6 ${isPromoActive ? 'fill-current' : ''}`} />
+                    </div>
+                    <div>
+                      <p className="font-black text-gray-900">Status da Promoção</p>
+                      <p className="text-sm text-gray-500">{isPromoActive ? 'Ativa no site agora!' : 'Desativada no momento'}</p>
+                    </div>
+                  </div>
+                  <Switch 
+                    checked={isPromoActive} 
+                    onCheckedChange={handleTogglePromo}
+                    disabled={isUpdatingPromo}
+                    className="data-[state=checked]:bg-green-500"
+                  />
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-4 p-4 bg-white rounded-2xl border-2 border-yellow-100 shadow-sm">
+                  <div className="flex-1 space-y-2">
+                    <Label className="font-black text-gray-900 flex items-center gap-2">
+                      <Tag className="h-4 w-4 text-yellow-600" />
+                      Preço Promocional (Batatas)
+                    </Label>
+                    <div className="relative">
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-gray-400">R$</span>
+                      <Input 
+                        type="number" 
+                        value={promoPrice} 
+                        onChange={(e) => setPromoPrice(e.target.value)}
+                        className="pl-12 h-12 rounded-xl border-2 border-gray-100 focus:border-yellow-400 font-bold text-lg"
+                      />
+                    </div>
+                  </div>
+                  <Button 
+                    onClick={handleUpdatePromoPrice}
+                    disabled={isUpdatingPromo}
+                    className="sm:self-end h-12 bg-gray-900 hover:bg-black text-white font-black rounded-xl px-8"
+                  >
+                    Salvar Preço
+                  </Button>
+                </div>
               </div>
-              <div>
-                <h1 className="text-4xl md:text-5xl font-black text-gray-900">Gerenciar Produtos</h1>
-                <p className="text-gray-500 text-sm md:text-base">Adicione, edite ou remova itens do cardápio</p>
+
+              <div className="bg-white p-6 rounded-2xl border-2 border-yellow-100 shadow-sm flex flex-col items-center text-center space-y-4">
+                <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center">
+                  <Settings2 className="h-8 w-8 text-yellow-600" />
+                </div>
+                <div>
+                  <h3 className="font-black text-gray-900 text-lg">Como funciona?</h3>
+                  <p className="text-sm text-gray-500 leading-relaxed mt-2">
+                    Ao ativar a promoção, <strong>todas as batatas</strong> do cardápio passarão a custar o preço definido acima. 
+                    Além disso, o banner promocional será exibido automaticamente na página inicial para atrair mais clientes!
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
+          </CardContent>
+        </Card>
 
-          {/* Adicionais Globais */}
-          <Card className="mb-8 border-2 border-purple-200 bg-gradient-to-br from-purple-50 to-white rounded-3xl shadow-md">
-            <CardHeader className="pb-4 border-b border-purple-100">
-              <div className="flex justify-between items-center">
-                <div>
-                  <CardTitle className="flex items-center gap-2 text-xl font-black">
-                    <Zap className="h-5 w-5 text-purple-600" />
-                    Adicionais Globais ({adicionais.length})
-                  </CardTitle>
-                  <p className="text-sm text-gray-600 mt-1">Gerenciar adicionais disponíveis para todos os produtos</p>
-                </div>
-                <Dialog open={isAdicionalDialogOpen} onOpenChange={setIsAdicionalDialogOpen}>
-                  <DialogTrigger asChild>
-                    <Button onClick={() => handleOpenAdicionalDialog()} className="bg-gradient-to-r from-purple-400 to-purple-500 hover:from-purple-500 hover:to-purple-600 text-white font-bold rounded-xl gap-2">
-                      <Plus className="h-4 w-4" />
-                      Novo Adicional
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="max-w-md rounded-3xl">
-                    <DialogHeader>
-                      <DialogTitle className="text-xl font-black">{editingAdicional ? "Editar Adicional" : "Novo Adicional"}</DialogTitle>
-                      <DialogDescription>
-                        {editingAdicional ? "Edite as informações do adicional" : "Adicione um novo adicional ao catálogo"}
-                      </DialogDescription>
-                    </DialogHeader>
-                    <div className="space-y-4">
+        <Tabs defaultValue="batata" className="space-y-6" onValueChange={setActiveTab}>
+          <TabsList className="bg-white p-1 rounded-2xl border-2 border-gray-100 h-auto flex flex-wrap gap-1">
+            {Object.entries(categoryIcons).map(([key, { icon: Icon, label, color }]) => (
+              <TabsTrigger
+                key={key}
+                value={key}
+                className={`flex-1 min-w-[140px] rounded-xl py-3 font-bold transition-all data-[state=active]:bg-yellow-500 data-[state=active]:text-gray-900`}
+              >
+                <Icon className="h-5 w-5 mr-2" />
+                {label}
+              </TabsTrigger>
+            ))}
+            <TabsTrigger
+              value="adicionais"
+              className="flex-1 min-w-[140px] rounded-xl py-3 font-bold transition-all data-[state=active]:bg-gray-900 data-[state=active]:text-white"
+            >
+              <Plus className="h-5 w-5 mr-2" />
+              Adicionais
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="batata" className="mt-0">
+            {renderProductGrid(batatas)}
+          </TabsContent>
+
+          <TabsContent value="macarrao" className="mt-0">
+            {renderProductGrid(macarrao)}
+          </TabsContent>
+
+          <TabsContent value="bebida" className="mt-0">
+            {renderProductGrid(bebidas)}
+          </TabsContent>
+
+          <TabsContent value="adicionais" className="mt-0">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {adicionais.map((adicional) => (
+                <Card key={adicional.id} className="border-2 border-gray-100 rounded-2xl shadow-md">
+                  <CardContent className="p-4">
+                    <div className="flex justify-between items-start mb-4">
                       <div>
-                        <Label htmlFor="adicional-name" className="font-bold">Nome</Label>
-                        <Input
-                          id="adicional-name"
-                          value={formAdicionalName}
-                          onChange={(e) => setFormAdicionalName(e.target.value)}
-                          placeholder="Ex: Catupiry"
-                          className="h-11 border-2 rounded-xl"
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="adicional-price" className="font-bold">Preço (R$)</Label>
-                        <Input
-                          id="adicional-price"
-                          type="number"
-                          step="0.01"
-                          value={formAdicionalPrice}
-                          onChange={(e) => setFormAdicionalPrice(e.target.value)}
-                          placeholder="Ex: 3.00"
-                          className="h-11 border-2 rounded-xl"
-                        />
-                      </div>
-                      <div className="flex gap-2 pt-4">
-                        <Button
-                          onClick={handleSaveAdicional}
-                          className="flex-1 bg-gradient-to-r from-purple-400 to-purple-500 hover:from-purple-500 hover:to-purple-600 text-white font-bold rounded-xl h-11"
-                        >
-                          {editingAdicional ? "Atualizar" : "Adicionar"}
-                        </Button>
-                        <Button
-                          variant="outline"
-                          onClick={() => setIsAdicionalDialogOpen(false)}
-                          className="flex-1 border-2 rounded-xl font-bold"
-                        >
-                          Cancelar
-                        </Button>
+                        <h3 className="font-bold text-gray-900">{adicional.name}</h3>
+                        <p className="text-lg font-black text-yellow-600">R$ {adicional.price.toFixed(2)}</p>
                       </div>
                     </div>
-                  </DialogContent>
-                </Dialog>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1 rounded-lg border-2 border-gray-100 font-bold"
+                        onClick={() => handleOpenAdicionalDialog(adicional)}
+                      >
+                        <Edit className="h-4 w-4 mr-2" />
+                        Editar
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="rounded-lg border-2 border-red-50 text-red-500"
+                        onClick={() => handleDeleteAdicional(adicional.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </TabsContent>
+        </Tabs>
+      </main>
+
+      <Footer />
+
+      {/* Dialog para Produtos */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="max-w-2xl rounded-3xl">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-black">{editingProduct ? "Editar Produto" : "Novo Produto"}</DialogTitle>
+            <DialogDescription>Preencha as informações do produto abaixo.</DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleSubmit} className="space-y-6 py-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label className="font-bold">Nome do Produto</Label>
+                  <Input
+                    value={formName}
+                    onChange={(e) => setFormName(e.target.value)}
+                    placeholder="Ex: Strogonoff de Alcatra"
+                    className="rounded-xl"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="font-bold">Categoria</Label>
+                  <Select value={formCategory} onValueChange={(val: any) => setFormCategory(val)}>
+                    <SelectTrigger className="rounded-xl">
+                      <SelectValue placeholder="Selecione a categoria" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="batata">Batata Recheada</SelectItem>
+                      <SelectItem value="macarrao">Macarrão</SelectItem>
+                      <SelectItem value="bebida">Bebida</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="font-bold">Preço Base (R$)</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={formPrice}
+                    onChange={(e) => setFormPrice(e.target.value)}
+                    placeholder="0.00"
+                    className="rounded-xl"
+                    required
+                  />
+                </div>
               </div>
-            </CardHeader>
-            <CardContent className="p-6">
-              {adicionais.length === 0 ? (
-                <p className="text-gray-600 text-center py-8">Nenhum adicional cadastrado</p>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label className="font-bold">URL da Imagem</Label>
+                  <Input
+                    value={formImage}
+                    onChange={(e) => setFormImage(e.target.value)}
+                    placeholder="/products/nome-da-imagem.jpg"
+                    className="rounded-xl"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="font-bold">Descrição</Label>
+                  <Textarea
+                    value={formDescription}
+                    onChange={(e) => setFormDescription(e.target.value)}
+                    placeholder="Descreva os ingredientes..."
+                    className="rounded-xl h-[120px]"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {formCategory !== "bebida" && (
+              <div className="space-y-3">
+                <Label className="font-bold">Adicionais Disponíveis</Label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 p-4 bg-gray-50 rounded-2xl border-2 border-gray-100">
                   {adicionais.map((adicional) => (
-                    <div key={adicional.id} className="flex items-center justify-between p-3 bg-white border-2 border-purple-100 rounded-xl">
-                      <div className="flex-1">
-                        <p className="font-bold text-gray-900">{adicional.name}</p>
-                        <p className="text-sm text-purple-600 font-semibold">R$ {adicional.price.toFixed(2)}</p>
-                      </div>
-                      <div className="flex gap-1">
-                        <Button
-                          onClick={() => handleOpenAdicionalDialog(adicional)}
-                          variant="ghost"
-                          size="sm"
-                          className="text-blue-600 hover:bg-blue-50"
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          onClick={() => handleDeleteAdicional(adicional.id)}
-                          variant="ghost"
-                          size="sm"
-                          className="text-red-600 hover:bg-red-50"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
+                    <div key={adicional.id} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`adicional-${adicional.id}`}
+                        checked={selectedAdicionais.includes(adicional.id)}
+                        onCheckedChange={() => toggleAdicional(adicional.id)}
+                      />
+                      <label
+                        htmlFor={`adicional-${adicional.id}`}
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                      >
+                        {adicional.name}
+                      </label>
                     </div>
                   ))}
                 </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Produtos por Categoria */}
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-3 mb-8 bg-white border-2 border-gray-200 rounded-2xl p-1">
-              <TabsTrigger
-                value="batata"
-                className="rounded-xl font-bold data-[state=active]:bg-gradient-to-r data-[state=active]:from-yellow-400 data-[state=active]:to-yellow-500 data-[state=active]:text-white"
-              >
-                Batatas ({batatas.length})
-              </TabsTrigger>
-              <TabsTrigger
-                value="macarrao"
-                className="rounded-xl font-bold data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-400 data-[state=active]:to-orange-500 data-[state=active]:text-white"
-              >
-                Macarrão ({macarrao.length})
-              </TabsTrigger>
-              <TabsTrigger
-                value="bebida"
-                className="rounded-xl font-bold data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-400 data-[state=active]:to-blue-500 data-[state=active]:text-white"
-              >
-                Bebidas ({bebidas.length})
-              </TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="batata" className="space-y-4">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-2xl font-black text-gray-900">Batatas Recheadas</h2>
-                <Dialog open={isDialogOpen && formCategory === "batata"} onOpenChange={setIsDialogOpen}>
-                  <DialogTrigger asChild>
-                    <Button
-                      onClick={() => {
-                        setFormCategory("batata")
-                        handleOpenDialog()
-                      }}
-                      className="bg-gradient-to-r from-yellow-400 to-yellow-500 hover:from-yellow-500 hover:to-yellow-600 text-white font-bold rounded-xl gap-2"
-                    >
-                      <Plus className="h-4 w-4" />
-                      Novo Produto
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto rounded-3xl">
-                    <DialogHeader>
-                      <DialogTitle className="text-xl font-black">{editingProduct ? "Editar Produto" : "Novo Produto"}</DialogTitle>
-                    </DialogHeader>
-                    <form onSubmit={handleSubmit} className="space-y-4">
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="col-span-2">
-                          <Label className="font-bold">Nome do Produto</Label>
-                          <Input
-                            value={formName}
-                            onChange={(e) => setFormName(e.target.value)}
-                            placeholder="Ex: Batata Recheada Premium"
-                            className="h-11 border-2 rounded-xl"
-                          />
-                        </div>
-                        <div className="col-span-2">
-                          <Label className="font-bold">Descrição</Label>
-                          <Textarea
-                            value={formDescription}
-                            onChange={(e) => setFormDescription(e.target.value)}
-                            placeholder="Descreva o produto..."
-                            className="border-2 rounded-xl"
-                          />
-                        </div>
-                        <div>
-                          <Label className="font-bold">Preço (R$)</Label>
-                          <Input
-                            type="number"
-                            step="0.01"
-                            value={formPrice}
-                            onChange={(e) => setFormPrice(e.target.value)}
-                            placeholder="0.00"
-                            className="h-11 border-2 rounded-xl"
-                          />
-                        </div>
-                        <div>
-                          <Label className="font-bold">URL da Imagem</Label>
-                          <Input
-                            value={formImage}
-                            onChange={(e) => setFormImage(e.target.value)}
-                            placeholder="https://..."
-                            className="h-11 border-2 rounded-xl"
-                          />
-                        </div>
-                      </div>
-
-                      {adicionais.length > 0 && (
-                        <div className="border-t pt-4">
-                          <Label className="font-bold mb-3 block">Adicionais Disponíveis</Label>
-                          <div className="space-y-2">
-                            {adicionais.map((adicional) => (
-                              <div key={adicional.id} className="flex items-center gap-3">
-                                <Checkbox
-                                  checked={selectedAdicionais.includes(adicional.id)}
-                                  onCheckedChange={() => toggleAdicional(adicional.id)}
-                                  className="w-5 h-5 rounded"
-                                />
-                                <label className="flex-1 cursor-pointer">
-                                  <span className="font-semibold text-gray-900">{adicional.name}</span>
-                                  <span className="text-sm text-gray-600 ml-2">R$ {adicional.price.toFixed(2)}</span>
-                                </label>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      <div className="flex gap-2 pt-4 border-t">
-                        <Button
-                          type="submit"
-                          className="flex-1 bg-gradient-to-r from-yellow-400 to-yellow-500 hover:from-yellow-500 hover:to-yellow-600 text-white font-bold rounded-xl h-11"
-                        >
-                          {editingProduct ? "Atualizar" : "Criar"} Produto
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={() => setIsDialogOpen(false)}
-                          className="flex-1 border-2 rounded-xl font-bold"
-                        >
-                          Cancelar
-                        </Button>
-                      </div>
-                    </form>
-                  </DialogContent>
-                </Dialog>
               </div>
-              {renderProductGrid(batatas)}
-            </TabsContent>
+            )}
 
-            <TabsContent value="macarrao" className="space-y-4">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-2xl font-black text-gray-900">Macarrão</h2>
-                <Dialog open={isDialogOpen && formCategory === "macarrao"} onOpenChange={setIsDialogOpen}>
-                  <DialogTrigger asChild>
-                    <Button
-                      onClick={() => {
-                        setFormCategory("macarrao")
-                        handleOpenDialog()
-                      }}
-                      className="bg-gradient-to-r from-orange-400 to-orange-500 hover:from-orange-500 hover:to-orange-600 text-white font-bold rounded-xl gap-2"
-                    >
-                      <Plus className="h-4 w-4" />
-                      Novo Produto
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto rounded-3xl">
-                    <DialogHeader>
-                      <DialogTitle className="text-xl font-black">{editingProduct ? "Editar Produto" : "Novo Produto"}</DialogTitle>
-                    </DialogHeader>
-                    <form onSubmit={handleSubmit} className="space-y-4">
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="col-span-2">
-                          <Label className="font-bold">Nome do Produto</Label>
-                          <Input
-                            value={formName}
-                            onChange={(e) => setFormName(e.target.value)}
-                            placeholder="Ex: Macarrão Premium"
-                            className="h-11 border-2 rounded-xl"
-                          />
-                        </div>
-                        <div className="col-span-2">
-                          <Label className="font-bold">Descrição</Label>
-                          <Textarea
-                            value={formDescription}
-                            onChange={(e) => setFormDescription(e.target.value)}
-                            placeholder="Descreva o produto..."
-                            className="border-2 rounded-xl"
-                          />
-                        </div>
-                        <div>
-                          <Label className="font-bold">Preço (R$)</Label>
-                          <Input
-                            type="number"
-                            step="0.01"
-                            value={formPrice}
-                            onChange={(e) => setFormPrice(e.target.value)}
-                            placeholder="0.00"
-                            className="h-11 border-2 rounded-xl"
-                          />
-                        </div>
-                        <div>
-                          <Label className="font-bold">URL da Imagem</Label>
-                          <Input
-                            value={formImage}
-                            onChange={(e) => setFormImage(e.target.value)}
-                            placeholder="https://..."
-                            className="h-11 border-2 rounded-xl"
-                          />
-                        </div>
-                      </div>
+            <div className="flex justify-end gap-3 pt-4">
+              <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)} className="rounded-xl font-bold">
+                Cancelar
+              </Button>
+              <Button type="submit" className="bg-yellow-500 hover:bg-yellow-600 text-gray-900 font-black rounded-xl px-8">
+                {editingProduct ? "Salvar Alterações" : "Criar Produto"}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
 
-                      {adicionais.length > 0 && (
-                        <div className="border-t pt-4">
-                          <Label className="font-bold mb-3 block">Adicionais Disponíveis</Label>
-                          <div className="space-y-2">
-                            {adicionais.map((adicional) => (
-                              <div key={adicional.id} className="flex items-center gap-3">
-                                <Checkbox
-                                  checked={selectedAdicionais.includes(adicional.id)}
-                                  onCheckedChange={() => toggleAdicional(adicional.id)}
-                                  className="w-5 h-5 rounded"
-                                />
-                                <label className="flex-1 cursor-pointer">
-                                  <span className="font-semibold text-gray-900">{adicional.name}</span>
-                                  <span className="text-sm text-gray-600 ml-2">R$ {adicional.price.toFixed(2)}</span>
-                                </label>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
+      {/* Dialog para Adicionais */}
+      <Dialog open={isAdicionalDialogOpen} onOpenChange={setIsAdicionalDialogOpen}>
+        <DialogContent className="max-w-md rounded-3xl">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-black">{editingAdicional ? "Editar Adicional" : "Novo Adicional"}</DialogTitle>
+          </DialogHeader>
 
-                      <div className="flex gap-2 pt-4 border-t">
-                        <Button
-                          type="submit"
-                          className="flex-1 bg-gradient-to-r from-orange-400 to-orange-500 hover:from-orange-500 hover:to-orange-600 text-white font-bold rounded-xl h-11"
-                        >
-                          {editingProduct ? "Atualizar" : "Criar"} Produto
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={() => setIsDialogOpen(false)}
-                          className="flex-1 border-2 rounded-xl font-bold"
-                        >
-                          Cancelar
-                        </Button>
-                      </div>
-                    </form>
-                  </DialogContent>
-                </Dialog>
-              </div>
-              {renderProductGrid(macarrao)}
-            </TabsContent>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label className="font-bold">Nome do Adicional</Label>
+              <Input
+                value={formAdicionalName}
+                onChange={(e) => setFormAdicionalName(e.target.value)}
+                placeholder="Ex: Bacon Extra"
+                className="rounded-xl"
+              />
+            </div>
 
-            <TabsContent value="bebida" className="space-y-4">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-2xl font-black text-gray-900">Bebidas</h2>
-                <Dialog open={isDialogOpen && formCategory === "bebida"} onOpenChange={setIsDialogOpen}>
-                  <DialogTrigger asChild>
-                    <Button
-                      onClick={() => {
-                        setFormCategory("bebida")
-                        handleOpenDialog()
-                      }}
-                      className="bg-gradient-to-r from-blue-400 to-blue-500 hover:from-blue-500 hover:to-blue-600 text-white font-bold rounded-xl gap-2"
-                    >
-                      <Plus className="h-4 w-4" />
-                      Nova Bebida
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto rounded-3xl">
-                    <DialogHeader>
-                      <DialogTitle className="text-xl font-black">{editingProduct ? "Editar Bebida" : "Nova Bebida"}</DialogTitle>
-                    </DialogHeader>
-                    <form onSubmit={handleSubmit} className="space-y-4">
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="col-span-2">
-                          <Label className="font-bold">Nome da Bebida</Label>
-                          <Input
-                            value={formName}
-                            onChange={(e) => setFormName(e.target.value)}
-                            placeholder="Ex: Refrigerante 2L"
-                            className="h-11 border-2 rounded-xl"
-                          />
-                        </div>
-                        <div className="col-span-2">
-                          <Label className="font-bold">Descrição</Label>
-                          <Textarea
-                            value={formDescription}
-                            onChange={(e) => setFormDescription(e.target.value)}
-                            placeholder="Descreva a bebida..."
-                            className="border-2 rounded-xl"
-                          />
-                        </div>
-                        <div>
-                          <Label className="font-bold">Preço (R$)</Label>
-                          <Input
-                            type="number"
-                            step="0.01"
-                            value={formPrice}
-                            onChange={(e) => setFormPrice(e.target.value)}
-                            placeholder="0.00"
-                            className="h-11 border-2 rounded-xl"
-                          />
-                        </div>
-                        <div>
-                          <Label className="font-bold">URL da Imagem</Label>
-                          <Input
-                            value={formImage}
-                            onChange={(e) => setFormImage(e.target.value)}
-                            placeholder="https://..."
-                            className="h-11 border-2 rounded-xl"
-                          />
-                        </div>
-                      </div>
+            <div className="space-y-2">
+              <Label className="font-bold">Preço (R$)</Label>
+              <Input
+                type="number"
+                step="0.01"
+                value={formAdicionalPrice}
+                onChange={(e) => setFormAdicionalPrice(e.target.value)}
+                placeholder="0.00"
+                className="rounded-xl"
+              />
+            </div>
 
-                      <div className="flex gap-2 pt-4 border-t">
-                        <Button
-                          type="submit"
-                          className="flex-1 bg-gradient-to-r from-blue-400 to-blue-500 hover:from-blue-500 hover:to-blue-600 text-white font-bold rounded-xl h-11"
-                        >
-                          {editingProduct ? "Atualizar" : "Criar"} Bebida
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={() => setIsDialogOpen(false)}
-                          className="flex-1 border-2 rounded-xl font-bold"
-                        >
-                          Cancelar
-                        </Button>
-                      </div>
-                    </form>
-                  </DialogContent>
-                </Dialog>
-              </div>
-              {renderProductGrid(bebidas)}
-            </TabsContent>
-          </Tabs>
-        </div>
-      </main>
-      <Footer />
+            <div className="flex justify-end gap-3 pt-4">
+              <Button type="button" variant="outline" onClick={() => setIsAdicionalDialogOpen(false)} className="rounded-xl font-bold">
+                Cancelar
+              </Button>
+              <Button onClick={handleSaveAdicional} className="bg-gray-900 hover:bg-black text-white font-black rounded-xl px-8">
+                Salvar
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

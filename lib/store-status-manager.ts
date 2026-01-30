@@ -11,6 +11,9 @@ export interface StoreStatus {
   activeOrders?: number[] // Lista de timestamps (ms) de cada pedido realizado
   manualOverride?: boolean // Se true, ignora horário automático
   lastManualChange?: string // Timestamp da última mudança manual
+  // Novos campos para promoção
+  isPromoActive?: boolean
+  promoPrice?: number
 }
 
 class StoreStatusManager {
@@ -94,6 +97,8 @@ class StoreStatusManager {
         // Garante que novos campos existam
         if (status.deliveryFee === undefined) status.deliveryFee = 3.00
         if (status.isDeliveryFeeEnabled === undefined) status.isDeliveryFeeEnabled = true
+        if (status.isPromoActive === undefined) status.isPromoActive = false
+        if (status.promoPrice === undefined) status.promoPrice = 24.99
       }
 
       // Aplica horário automático se não houver override manual
@@ -128,7 +133,9 @@ class StoreStatusManager {
       waitTimeMax: this.defaultWaitTime.max,
       activeOrders: [],
       manualOverride: false,
-      lastManualChange: undefined
+      lastManualChange: undefined,
+      isPromoActive: false,
+      promoPrice: 24.99
     }
   }
 
@@ -173,12 +180,32 @@ class StoreStatusManager {
     await this.saveStatus(newStatus)
   }
 
+  // Novos métodos para promoção
+  async togglePromoStatus(): Promise<boolean> {
+    const status = await this.getStatus()
+    const newStatus = {
+      ...status,
+      isPromoActive: !status.isPromoActive
+    }
+    await this.saveStatus(newStatus)
+    return newStatus.isPromoActive || false
+  }
+
+  async updatePromoPrice(price: number): Promise<void> {
+    const status = await this.getStatus()
+    const newStatus = {
+      ...status,
+      promoPrice: price
+    }
+    await this.saveStatus(newStatus)
+  }
+
   /**
    * Remove o override manual e volta a usar o horário automático
    */
   async resetToAutoSchedule(): Promise<StoreStatus> {
     const status = await this.getStatus()
-    const shouldBeOpen = this.shouldBeOpenBySchedule()
+    const shouldBeOpen = shouldBeOpenBySchedule()
     const newStatus = {
       ...status,
       isOpen: shouldBeOpen,

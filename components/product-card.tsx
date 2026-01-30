@@ -1,10 +1,11 @@
 "use client"
 
-import { useState } from "react"
-import { Plus, Trophy, Medal, Star } from "lucide-react"
+import { useState, useEffect } from "react"
+import { Plus, Trophy, Medal, Star, Tag } from "lucide-react"
 import { AddToCartDialog } from "@/components/add-to-cart-dialog"
 import { useCart } from "@/lib/cart-context"
 import { useToast } from "@/hooks/use-toast"
+import { storeStatusManager } from "@/lib/store-status-manager"
 
 interface Product {
   id: string
@@ -24,15 +25,30 @@ interface ProductCardProps {
 export function ProductCard({ product, rank = null, isMostRequested = false }: ProductCardProps) {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [imageError, setImageError] = useState(false)
+  const [isPromoActive, setIsPromoActive] = useState(false)
+  const [promoPrice, setPromoPrice] = useState(24.99)
   const { addItem } = useCart()
   const { toast } = useToast()
+
+  useEffect(() => {
+    const checkPromo = async () => {
+      const status = await storeStatusManager.getStatus()
+      setIsPromoActive(status.isPromoActive ?? false)
+      setPromoPrice(status.promoPrice ?? 24.99)
+    }
+    checkPromo()
+  }, [])
+
+  const isBatata = product.category === "batata"
+  const currentPrice = (isPromoActive && isBatata) ? promoPrice : product.price
+  const hasDiscount = isPromoActive && isBatata && product.price > promoPrice
 
   const handleAddClick = () => {
     if (product.category === "bebida") {
       addItem({
         id: product.id,
         name: product.name,
-        price: product.price,
+        price: currentPrice,
         image: product.image,
         quantity: 1,
         category: "bebida",
@@ -106,8 +122,18 @@ export function ProductCard({ product, rank = null, isMostRequested = false }: P
           </div>
         )}
 
-        {/* DESTAQUE "MAIS PEDIDA" EM DOURADO */}
-        {rank === 1 && (
+        {/* SELO DE PROMOÇÃO */}
+        {hasDiscount && (
+          <div className="absolute top-3 right-3 z-20">
+            <div className="bg-red-600 text-white text-[10px] font-black px-3 py-1.5 rounded-full shadow-xl border border-red-500 flex items-center gap-1 animate-pulse">
+              <Tag className="h-3 w-3 fill-current" />
+              <span>OFERTA</span>
+            </div>
+          </div>
+        )}
+
+        {/* DESTAQUE "MAIS PEDIDA" EM DOURADO (SE NÃO TIVER DESCONTO OU SE FOR RANK 1) */}
+        {rank === 1 && !hasDiscount && (
           <div className="absolute top-3 right-3 z-20">
             <div className="bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 text-gray-900 text-[10px] font-black px-3 py-1.5 rounded-full shadow-xl border border-yellow-300 flex items-center gap-1 animate-bounce">
               <Star className="h-3 w-3 fill-current" />
@@ -157,8 +183,13 @@ export function ProductCard({ product, rank = null, isMostRequested = false }: P
 
           <div className="flex items-center justify-between gap-3">
             <div className="flex-1">
-              <div className="text-xl font-black text-gray-800">
-                R$ {product.price.toFixed(2).replace('.', ',')}
+              {hasDiscount && (
+                <div className="text-[10px] text-gray-400 line-through font-bold">
+                  R$ {product.price.toFixed(2).replace('.', ',')}
+                </div>
+              )}
+              <div className={`text-xl font-black ${hasDiscount ? 'text-red-600' : 'text-gray-800'}`}>
+                R$ {currentPrice.toFixed(2).replace('.', ',')}
               </div>
             </div>
 
@@ -181,7 +212,11 @@ export function ProductCard({ product, rank = null, isMostRequested = false }: P
       </div>
 
       {(product.category === "batata" || product.category === "macarrao") && (
-        <AddToCartDialog product={product} open={dialogOpen} onOpenChange={setDialogOpen} />
+        <AddToCartDialog 
+          product={{...product, price: currentPrice}} 
+          open={dialogOpen} 
+          onOpenChange={setDialogOpen} 
+        />
       )}
     </>
   )

@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { ArrowRight, Star, Clock, Truck, MapPin, Search, Loader2, Trophy } from "lucide-react"
+import { ArrowRight, Star, Clock, Truck, MapPin, Search, Loader2, Trophy, Megaphone } from "lucide-react"
 import { useState, useEffect } from "react"
 import { useAuth } from "@/lib/auth-context"
 import { addressesManager } from "@/lib/addresses-manager"
@@ -40,6 +40,8 @@ export function Hero({
   const [waitTime, setWaitTime] = useState({ min: 15, max: 22 })
   const [isDeliveryFeeEnabled, setIsDeliveryFeeEnabled] = useState(true)
   const [deliveryFee, setDeliveryFee] = useState(3.00)
+  const [isPromoActive, setIsPromoActive] = useState(false)
+  const [promoPrice, setPromoPrice] = useState(24.99)
 
   useEffect(() => {
     const checkUserAddress = async () => {
@@ -60,6 +62,8 @@ export function Hero({
       setWaitTime({ min: status.waitTimeMin, max: status.waitTimeMax })
       setIsDeliveryFeeEnabled(status.isDeliveryFeeEnabled ?? true)
       setDeliveryFee(status.deliveryFee ?? 3.00)
+      setIsPromoActive(status.isPromoActive ?? false)
+      setPromoPrice(status.promoPrice ?? 24.99)
     }
     updateStatus()
     const interval = setInterval(updateStatus, 10000)
@@ -94,13 +98,42 @@ export function Hero({
   if (isCheckingAddress) return null
 
   return (
-    <section className="relative overflow-hidden bg-white pt-8 pb-20 md:pt-24 md:pb-32">
+    <section className="relative overflow-hidden bg-white pt-8 pb-20 md:pt-12 md:pb-32">
       {/* ELEMENTOS DE FUNDO DECORATIVOS (AMARELO) */}
       <div className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/4 w-[500px] h-[500px] bg-yellow-100/50 rounded-full blur-3xl -z-10" />
       <div className="absolute bottom-0 left-0 translate-y-1/2 -translate-x-1/4 w-[400px] h-[400px] bg-orange-50/50 rounded-full blur-3xl -z-10" />
 
       <div className="container mx-auto px-4">
-
+        
+        {/* BANNER DE PROMOÇÃO ESTILO IFOOD */}
+        {isPromoActive && (
+          <div className="mb-12 animate-in fade-in slide-in-from-top-8 duration-1000">
+            <Link href="/cardapio">
+              <div className="relative group overflow-hidden rounded-[2rem] shadow-2xl shadow-yellow-200 border-4 border-yellow-400 cursor-pointer transition-all hover:scale-[1.01] active:scale-[0.99]">
+                <img 
+                  src="/images/promo-batatop.png" 
+                  alt="Promoção Batatop" 
+                  className="w-full h-auto object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                
+                {/* BADGE FLUTUANTE DE PROMOÇÃO */}
+                <div className="absolute top-4 right-4 bg-red-600 text-white px-6 py-2 rounded-full font-black text-lg shadow-xl animate-pulse flex items-center gap-2">
+                  <Megaphone className="h-5 w-5" />
+                  OFERTA ATIVA!
+                </div>
+                
+                {/* BOTÃO DE AÇÃO NO BANNER */}
+                <div className="absolute bottom-6 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all translate-y-4 group-hover:translate-y-0">
+                  <Button className="bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-black px-8 py-6 rounded-2xl text-xl shadow-2xl">
+                    APROVEITAR AGORA
+                    <ArrowRight className="ml-2 h-6 w-6" />
+                  </Button>
+                </div>
+              </div>
+            </Link>
+          </div>
+        )}
 
         <div className="flex flex-col lg:flex-row items-center gap-12">
           
@@ -191,30 +224,30 @@ export function Hero({
                     }}
                   />
                   
-		                  {/* FLOATING BADGE COM DADOS REAIS DO PRODUTO MAIS PEDIDO - ESTILO IFOOD PROFISSIONAL */}
-		                  <div className="absolute -top-4 -right-2 sm:-right-4 bg-white p-3 sm:p-4 rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.1)] z-20 border border-gray-100 animate-in fade-in slide-in-from-top-4 duration-700">
-		                    <div className="flex items-center gap-3">
-		                      <div className="flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 bg-yellow-400 rounded-xl shadow-inner">
-		                        <Trophy className="h-5 w-5 sm:h-6 sm:w-6 text-white fill-current" />
-		                      </div>
-		                      <div>
-		                        <div className="flex items-center gap-1">
-		                          <span className="text-[10px] font-black text-yellow-600 uppercase tracking-widest">Mais Pedida</span>
-		                          <div className="h-1 w-1 rounded-full bg-yellow-400" />
-		                        </div>
-		                        <p className="text-sm sm:text-base font-black text-gray-900 line-clamp-1 tracking-tight">{mostRequestedProduct.name}</p>
-		                      </div>
-		                    </div>
-		                  </div>
+                  {/* FLOATING BADGE COM DADOS REAIS DO PRODUTO MAIS PEDIDO - ESTILO IFOOD PROFISSIONAL */}
+                  <div className="absolute -top-4 -right-2 sm:-right-4 bg-white p-3 sm:p-4 rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.1)] z-20 border border-gray-100 animate-in fade-in slide-in-from-top-4 duration-700">
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 bg-yellow-400 rounded-xl shadow-inner">
+                        <Trophy className="h-5 w-5 sm:h-6 sm:w-6 text-white fill-current" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-1">
+                          <span className="text-[10px] font-black text-yellow-600 uppercase tracking-widest">Mais Pedida</span>
+                          <div className="h-1 w-1 rounded-full bg-yellow-400" />
+                        </div>
+                        <p className="text-sm sm:text-base font-black text-gray-900 line-clamp-1 tracking-tight">{mostRequestedProduct.name}</p>
+                      </div>
+                    </div>
+                  </div>
 
-		                  {/* NOME DO PRODUTO EMBAIXO DA FOTO (MOBILE) - DESIGN CLEAN */}
-		                  <div className="mt-6 text-center lg:hidden">
-		                    <div className="inline-flex items-center gap-2 bg-yellow-50 px-4 py-1.5 rounded-full border border-yellow-100 mb-2">
-		                      <Star className="h-3 w-3 text-yellow-500 fill-current" />
-		                      <span className="text-[10px] font-black text-yellow-700 uppercase tracking-widest">Destaque da Casa</span>
-		                    </div>
-		                    <h2 className="text-3xl font-black text-gray-900 uppercase tracking-tighter leading-none">{mostRequestedProduct.name}</h2>
-		                  </div>
+                  {/* NOME DO PRODUTO EMBAIXO DA FOTO (MOBILE) - DESIGN CLEAN */}
+                  <div className="mt-6 text-center lg:hidden">
+                    <div className="inline-flex items-center gap-2 bg-yellow-50 px-4 py-1.5 rounded-full border border-yellow-100 mb-2">
+                      <Star className="h-3 w-3 text-yellow-500 fill-current" />
+                      <span className="text-[10px] font-black text-yellow-700 uppercase tracking-widest">Destaque da Casa</span>
+                    </div>
+                    <h2 className="text-3xl font-black text-gray-900 uppercase tracking-tighter leading-none">{mostRequestedProduct.name}</h2>
+                  </div>
                 </>
               ) : (
                 <img 
