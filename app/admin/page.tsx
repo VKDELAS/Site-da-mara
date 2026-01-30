@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useAuth } from "@/lib/auth-context"
 import { useRouter } from "next/navigation"
-import { Package, ShoppingBag, Ticket, DollarSign, TrendingUp, Clock, ChefHat, Star, BarChart3 } from "lucide-react"
+import { Package, ShoppingBag, Ticket, DollarSign, TrendingUp, Clock, ChefHat, Star } from "lucide-react"
 import { ordersManager } from "@/lib/orders-manager"
 import { BusinessHours } from "@/components/business-hours"
 import Link from "next/link"
@@ -231,21 +231,21 @@ export default function AdminPage() {
               </Card>
             </Link>
 
-            {/* Resumo de Vendas - ALTERADO PARA VERDE */}
+            {/* Fechar Caixa */}
             <Link href="/admin/caixa" className="group">
               <Card className="border-none shadow-md bg-gradient-to-br from-green-50 to-white rounded-3xl overflow-hidden hover:shadow-xl transition-all hover:-translate-y-1 cursor-pointer h-full">
                 <CardContent className="p-8">
                   <div className="flex items-start gap-4 mb-6">
                     <div className="h-16 w-16 bg-gradient-to-br from-green-400 to-green-500 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-                      <BarChart3 className="h-8 w-8 text-white" />
+                      <TrendingUp className="h-8 w-8 text-white" />
                     </div>
                     <div className="flex-1">
-                      <h3 className="text-2xl font-black text-gray-900 mb-1">Resumo de Vendas</h3>
-                      <p className="text-gray-600 text-sm">Faturamento, histórico e análise de receitas</p>
+                      <h3 className="text-2xl font-black text-gray-900 mb-1">Fechar Caixa</h3>
+                      <p className="text-gray-600 text-sm">Resumo de vendas e fechamento do dia</p>
                     </div>
                   </div>
                   <Button className="w-full bg-gradient-to-r from-green-400 to-green-500 hover:from-green-500 hover:to-green-600 text-white font-bold h-12 rounded-xl shadow-lg hover:shadow-xl transition-all">
-                    Ver Vendas
+                    Fechar Dia
                   </Button>
                 </CardContent>
               </Card>

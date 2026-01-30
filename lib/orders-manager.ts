@@ -31,8 +31,6 @@ class OrdersManager {
   private supabase = getSupabase()
 
   async createOrder(order: any): Promise<Order> {
-    console.log("Iniciando processo de salvamento de pedido...", order);
-    
     const today = new Date()
     today.setHours(0, 0, 0, 0)
     let nextNumber = 1
@@ -46,14 +44,11 @@ class OrdersManager {
         .order("order_number", { ascending: false })
         .limit(1)
 
-      if (numError) throw numError;
-
       if (lastOrders && lastOrders.length > 0) {
         const lastNum = lastOrders[0].order_number
         if (lastNum && !isNaN(lastNum)) nextNumber = lastNum + 1
       }
     } catch (e) {
-      console.error("Erro ao buscar número do pedido, usando fallback randômico:", e)
       nextNumber = Math.floor(Math.random() * 1000);
     }
 
@@ -82,44 +77,26 @@ class OrdersManager {
       .select()
       .single()
 
-    if (orderError) {
-      console.error("ERRO AO INSERIR PEDIDO:", orderError);
-      throw new Error(`Erro Supabase: ${orderError.message}`);
-    }
+    if (orderError) throw new Error(`Erro Supabase: ${orderError.message}`);
 
-    try {
-      await this.saveOrderItems(orderData.id, order.items)
-    } catch (error) {
-      console.error("Erro ao salvar itens do pedido:", error)
-    }
-
-    // Inicia a progressão automática
-    this.startOrderProgression(orderData.id).catch(err => 
-      console.error("Erro ao iniciar progressão automática:", err)
-    )
+    await this.saveOrderItems(orderData.id, order.items)
+    this.startOrderProgression(orderData.id).catch(() => {})
 
     return this.mapOrderData(orderData, order.items)
   }
 
   private async saveOrderItems(orderId: string, items: any[]) {
     if (!items || items.length === 0) return;
-    
-    try {
-      const sb = await this.supabase;
-      const itemsToInsert = items.map((item) => ({
-        order_id: orderId,
-        product_id: item.product_id || null,
-        product_name: item.product_name || "Produto",
-        product_price: item.product_price || 0,
-        quantity: item.quantity || 1,
-        adicionais: item.adicionais || []
-      }))
-
-      const { error: itemsError } = await sb.from("order_items").insert(itemsToInsert)
-      if (itemsError) console.error("Erro ao inserir itens:", itemsError);
-    } catch (e) {
-      console.error("Erro inesperado ao salvar itens:", e)
-    }
+    const sb = await this.supabase;
+    const itemsToInsert = items.map((item) => ({
+      order_id: orderId,
+      product_id: item.product_id || null,
+      product_name: item.product_name || "Produto",
+      product_price: item.product_price || 0,
+      quantity: item.quantity || 1,
+      adicionais: item.adicionais || []
+    }))
+    await sb.from("order_items").insert(itemsToInsert)
   }
 
   private mapOrderData(o: any, items: any[] = []): Order {
@@ -160,94 +137,92 @@ class OrdersManager {
   async getTodayOrders(): Promise<Order[]> {
     const today = new Date()
     today.setHours(0, 0, 0, 0)
-
-    try {
-      const sb = await this.supabase;
-      const { data, error } = await sb
-        .from("orders")
-        .select(`*, order_items (*)`)
-        .gte("created_at", today.toISOString())
-        .order("created_at", { ascending: false })
-
-      if (error) return []
-      return data?.map((o: any) => this.mapOrderData(o)) || []
-    } catch (e) {
-      return [];
-    }
+    const sb = await this.supabase;
+    const { data } = await sb
+      .from("orders")
+      .select(`*, order_items (*)`)
+      .gte("created_at", today.toISOString())
+      .order("created_at", { ascending: false })
+    return data?.map((o: any) => this.mapOrderData(o)) || []
   }
 
   async getActiveOrders(): Promise<Order[]> {
-    try {
-      const sb = await this.supabase;
-      const { data, error } = await sb
-        .from("orders")
-        .select(`*, order_items (*)`)
-        .in("status", ["pending", "preparing", "ready"])
-        .order("created_at", { ascending: false })
-
-      if (error) return []
-      return data?.map((o: any) => this.mapOrderData(o)) || []
-    } catch (e) {
-      return [];
-    }
+    const sb = await this.supabase;
+    const { data } = await sb
+      .from("orders")
+      .select(`*, order_items (*)`)
+      .in("status", ["pending", "preparing", "ready"])
+      .order("created_at", { ascending: false })
+    return data?.map((o: any) => this.mapOrderData(o)) || []
   }
 
   async getUserOrders(userId: string): Promise<Order[]> {
-    try {
-      const sb = await this.supabase;
-      const { data, error } = await sb
-        .from("orders")
-        .select(`*, order_items (*)`)
-        .eq("user_id", userId)
-        .order("created_at", { ascending: false })
+    const sb = await this.supabase;
+    const { data } = await sb
+      .from("orders")
+      .select(`*, order_items (*)`)
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+    return data?.map((o: any) => this.mapOrderData(o)) || []
+  }
 
-      if (error) return []
-      return data?.map((o: any) => this.mapOrderData(o)) || []
-    } catch (e) {
-      return [];
+  async getOrdersByDate(dateStr: string): Promise<Order[]> {
+    const start = new Date(dateStr + 'T00:00:00')
+    const end = new Date(dateStr + 'T23:59:59')
+    const sb = await this.supabase;
+    const { data } = await sb
+      .from("orders")
+      .select(`*, order_items (*)`)
+      .gte("created_at", start.toISOString())
+      .lte("created_at", end.toISOString())
+      .order("created_at", { ascending: false })
+    return data?.map((o: any) => this.mapOrderData(o)) || []
+  }
+
+  async getSalesHistory(): Promise<DailySales[]> {
+    const sb = await this.supabase;
+    const { data } = await sb
+      .from("orders")
+      .select("created_at, total_amount, status")
+      .eq("status", "delivered")
+      .order("created_at", { ascending: false })
+
+    const history: Record<string, DailySales> = {}
+    data?.forEach((o: any) => {
+      const date = new Date(o.created_at).toISOString().split('T')[0]
+      if (!history[date]) history[date] = { date, total: 0, count: 0 }
+      history[date].total += Number(o.total_amount)
+      history[date].count += 1
+    })
+    return Object.values(history)
+  }
+
+  async getTodayStats() {
+    const orders = await this.getTodayOrders()
+    const completedOrders = orders.filter((o) => o.status === "delivered")
+    return {
+      totalOrders: orders.length,
+      pendingOrders: orders.filter((o) => o.status === "pending").length,
+      preparingOrders: orders.filter((o) => o.status === "preparing").length,
+      completedOrders: completedOrders.length,
+      totalSales: completedOrders.reduce((sum, o) => sum + o.total, 0),
     }
   }
 
   async updateOrderStatus(orderId: string, status: Order["status"]): Promise<void> {
-    try {
-      const sb = await this.supabase;
-      const { data: existingOrder } = await sb
-        .from("orders")
-        .select("metadata")
-        .eq("id", orderId)
-        .maybeSingle()
-      
-      const existingMetadata = existingOrder?.metadata || {}
-      
-      const { error } = await sb
-        .from("orders")
-        .update({ 
-          status,
-          metadata: { 
-            ...existingMetadata, 
-            statusUpdatedAt: new Date().toISOString() 
-          }
-        })
-        .eq("id", orderId)
-        
-      if (error) console.error("Error updating order status:", error)
-    } catch (e) {
-      console.error("Unexpected error in updateOrderStatus:", e)
-    }
+    const sb = await this.supabase;
+    const { data: existingOrder } = await sb.from("orders").select("metadata").eq("id", orderId).maybeSingle()
+    const existingMetadata = existingOrder?.metadata || {}
+    await sb.from("orders").update({ 
+      status,
+      metadata: { ...existingMetadata, statusUpdatedAt: new Date().toISOString() }
+    }).eq("id", orderId)
   }
 
   async deleteOrder(orderId: string): Promise<void> {
-    try {
-      const sb = await this.supabase;
-      // Primeiro deleta os itens
-      await sb.from("order_items").delete().eq("order_id", orderId)
-      // Depois deleta o pedido
-      const { error } = await sb.from("orders").delete().eq("id", orderId)
-      if (error) throw error
-    } catch (e) {
-      console.error("Error deleting order:", e)
-      throw e
-    }
+    const sb = await this.supabase;
+    await sb.from("order_items").delete().eq("order_id", orderId)
+    await sb.from("orders").delete().eq("id", orderId)
   }
 
   private progressionTimers: Map<string, NodeJS.Timeout> = new Map()
@@ -256,45 +231,26 @@ class OrdersManager {
 
   async startOrderProgression(orderId: string) {
     if (this.progressionTimers.has(orderId)) return;
+    const activeOrders = await this.getActiveOrders()
+    const timeMultiplier = Math.max(1, activeOrders.length / 2)
 
-    const activeOrders = await this.getActiveOrdersCount()
-    const timeMultiplier = Math.max(1, activeOrders / 2)
-
-    const preparingStartTimer = setTimeout(async () => {
-      await this.updateOrderStatus(orderId, "preparing")
-    }, 1000)
-
+    setTimeout(async () => { await this.updateOrderStatus(orderId, "preparing") }, 1000)
     const preparingTime = this.BASE_PREPARING_TIME * timeMultiplier
-    const readyTimer = setTimeout(async () => {
-      await this.updateOrderStatus(orderId, "ready")
-    }, preparingTime)
-
+    setTimeout(async () => { await this.updateOrderStatus(orderId, "ready") }, preparingTime)
     const readyTime = preparingTime + (this.BASE_READY_TIME * timeMultiplier)
     const deliveredTimer = setTimeout(async () => {
       await this.updateOrderStatus(orderId, "delivered")
       this.progressionTimers.delete(orderId)
-      try {
-        await storeStatusManager.decrementWaitTime()
-      } catch (error) {
-        console.error("Erro ao decrementar tempo de espera:", error)
-      }
+      await storeStatusManager.decrementWaitTime()
     }, readyTime)
-
     this.progressionTimers.set(orderId, deliveredTimer)
   }
 
   async initializeActiveOrdersProgression() {
     const orders = await this.getActiveOrders()
     for (const order of orders) {
-      if (!this.progressionTimers.has(order.id)) {
-        this.startOrderProgression(order.id)
-      }
+      if (!this.progressionTimers.has(order.id)) this.startOrderProgression(order.id)
     }
-  }
-
-  private async getActiveOrdersCount(): Promise<number> {
-    const orders = await this.getActiveOrders()
-    return orders.length
   }
 
   stopOrderProgression(orderId: string) {
@@ -306,13 +262,9 @@ class OrdersManager {
   }
 
   async cancelOrder(orderId: string): Promise<void> {
-    try {
-      this.stopOrderProgression(orderId)
-      await this.updateOrderStatus(orderId, "cancelled")
-      await storeStatusManager.decrementWaitTime()
-    } catch (e) {
-      console.error("Error cancelling order:", e)
-    }
+    this.stopOrderProgression(orderId)
+    await this.updateOrderStatus(orderId, "cancelled")
+    await storeStatusManager.decrementWaitTime()
   }
 }
 
