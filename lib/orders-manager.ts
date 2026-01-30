@@ -80,6 +80,7 @@ class OrdersManager {
     if (orderError) throw new Error(`Erro Supabase: ${orderError.message}`);
 
     await this.saveOrderItems(orderData.id, order.items)
+    await storeStatusManager.addOrderIncrement()
     this.startOrderProgression(orderData.id).catch(() => {})
 
     return this.mapOrderData(orderData, order.items)
