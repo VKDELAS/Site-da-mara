@@ -3,11 +3,10 @@
 import { HeaderWrapper } from "@/components/header-wrapper"
 import { Footer } from "@/components/footer"
 import { OrderSummary } from "@/components/order-summary"
-import { FeedbackModal } from "@/components/feedback-modal"
 import { useAuth } from "@/lib/auth-context"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
-import { ArrowLeft, Clock, MapPin, Phone, MessageSquare, ChevronRight, Package, ShoppingBag, XCircle, Loader2 } from "lucide-react"
+import { ArrowLeft, Clock, MapPin, Phone, ChevronRight, Package, ShoppingBag, XCircle, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ordersManager, type Order } from "@/lib/orders-manager"
 
@@ -17,8 +16,6 @@ export default function PedidosPage() {
   const [orders, setOrders] = useState<Order[]>([])
   const [isLoadingOrders, setIsLoadingOrders] = useState(true)
   const [cancellingOrderId, setCancellingOrderId] = useState<string | null>(null)
-  const [feedbackModalOrder, setFeedbackModalOrder] = useState<Order | null>(null)
-  const [evaluatedOrders, setEvaluatedOrders] = useState<string[]>([])
 
   useEffect(() => {
     if (!loading && !user) {
@@ -29,14 +26,8 @@ export default function PedidosPage() {
   useEffect(() => {
     if (user) {
       loadOrders()
-      loadEvaluatedOrders()
     }
   }, [user])
-
-  const loadEvaluatedOrders = () => {
-    const evaluated = JSON.parse(localStorage.getItem("evaluated-orders") || "[]")
-    setEvaluatedOrders(evaluated)
-  }
 
   const loadOrders = async () => {
     if (!user) return
@@ -57,7 +48,7 @@ export default function PedidosPage() {
     setCancellingOrderId(order.id)
     try {
       await ordersManager.cancelOrder(order.id)
-      const message = `Olá, gostaria de cancelar meu pedido #${order.orderNumber || order.id.slice(0, 4)}.\n\n*Detalhes do Pedido:*\nCliente: ${order.customerName}\nTotal: R$ ${order.total.toFixed(2).replace('.', ',')}`
+      const message = `Olá, gostaria de cancelar meu pedido #${order.orderNumber || order.id.slice(-4).toUpperCase()}.\n\n*Detalhes do Pedido:*\nCliente: ${order.customerName}\nTotal: R$ ${order.total.toFixed(2).replace('.', ',')}`
       const whatsappUrl = `https://wa.me/5514997361015?text=${encodeURIComponent(message)}`
       window.open(whatsappUrl, "_blank")
       await loadOrders()
@@ -152,7 +143,7 @@ export default function PedidosPage() {
                           <Package className="h-5 w-5" />
                         </div>
                         <div>
-                          <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Pedido #{order.orderNumber || order.id.slice(0, 4)}</p>
+                          <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Pedido #{order.orderNumber || order.id.slice(-4).toUpperCase()}</p>
                           <p className="text-sm font-black text-gray-800">{new Date(order.createdAt).toLocaleDateString('pt-BR')}</p>
                         </div>
                       </div>
@@ -176,6 +167,17 @@ export default function PedidosPage() {
                         <p className="text-lg font-black text-gray-800">R$ {order.total.toFixed(2).replace('.', ',')}</p>
                       </div>
                       <div className="flex gap-2">
+                        {["pending", "preparing"].includes(order.status) && (
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="text-red-500 font-bold hover:bg-red-50"
+                            onClick={() => handleCancelOrder(order)}
+                            disabled={cancellingOrderId === order.id}
+                          >
+                            {cancellingOrderId === order.id ? "..." : "Cancelar"}
+                          </Button>
+                        )}
                         <Button variant="ghost" size="sm" className="text-yellow-600 font-bold hover:bg-yellow-50" onClick={() => router.push(`/pedidos/${order.id}`)}>
                           Detalhes <ChevronRight className="h-4 w-4 ml-1" />
                         </Button>

@@ -31,29 +31,14 @@ class OrdersManager {
   private supabase = getSupabase()
 
   async createOrder(order: any): Promise<Order> {
-    return this.addOrder(order);
-  }
-
-  async addOrder(order: any): Promise<Order> {
     console.log("Iniciando processo de salvamento de pedido...", order);
     
-    let user = null;
-    try {
-      const sb = await this.supabase;
-      const { data: authData } = await sb.auth.getUser();
-      user = authData?.user;
-      console.log("Usuário autenticado detectado:", user?.id);
-    } catch (e) {
-      console.log("Usuário não autenticado ou erro na auth, prosseguindo como anônimo");
-    }
-
     const today = new Date()
     today.setHours(0, 0, 0, 0)
     let nextNumber = 1
     
     try {
       const sb = await this.supabase;
-      // Buscar o maior order_number do dia para sequência correta
       const { data: lastOrders, error: numError } = await sb
         .from("orders")
         .select("order_number")
@@ -64,8 +49,8 @@ class OrdersManager {
       if (numError) throw numError;
 
       if (lastOrders && lastOrders.length > 0) {
-        const lastNum = parseInt(lastOrders[0].order_number)
-        if (!isNaN(lastNum)) nextNumber = lastNum + 1
+        const lastNum = lastOrders[0].order_number
+        if (lastNum && !isNaN(lastNum)) nextNumber = lastNum + 1
       }
     } catch (e) {
       console.error("Erro ao buscar número do pedido, usando fallback randômico:", e)
@@ -73,24 +58,22 @@ class OrdersManager {
     }
 
     const insertData: any = {
-      user_id: user?.id || order.user_id || null,
+      user_id: order.user_id || null,
       customer_name: order.customerName || "Cliente",
       customer_phone: order.customerPhone || "Não informado",
-      customer_address: order.customerAddress || order.address || "",
+      customer_address: order.customerAddress || "",
       customer_neighborhood: order.customerNeighborhood || "",
       customer_complement: order.customerComplement || "",
-      order_number: nextNumber,
       payment_method: order.paymentMethod || "dinheiro",
-      total_amount: order.totalAmount || order.total || 0,
+      total_amount: order.totalAmount || 0,
       discount_amount: order.discountAmount || 0,
       coupon_code: order.couponCode || null,
       status: "pending",
       delivery_type: order.deliveryType || "delivery",
       notes: order.notes || "",
+      order_number: nextNumber,
       metadata: { items: order.items }
     }
-
-    console.log("Tentando inserir na tabela 'orders':", insertData);
 
     const sb = await this.supabase;
     const { data: orderData, error: orderError } = await sb
@@ -100,31 +83,9 @@ class OrdersManager {
       .single()
 
     if (orderError) {
-      console.error("ERRO CRÍTICO AO INSERIR PEDIDO:", orderError);
-      
-      // Fallback: Se falhar com user_id (problema de RLS), tenta sem user_id
-      if (insertData.user_id) {
-        console.log("Tentando fallback sem user_id...");
-        const { data: retryData, error: retryError } = await sb
-          .from("orders")
-          .insert({ ...insertData, user_id: null })
-          .select()
-          .single();
-          
-        if (retryError) {
-          console.error("FALHA NO FALLBACK:", retryError);
-          throw new Error(`Erro Supabase: ${retryError.message}`);
-        }
-        
-        console.log("Pedido salvo via fallback!");
-        await this.saveOrderItems(retryData.id, order.items)
-        return this.mapOrderData(retryData, order.items);
-      }
-      
+      console.error("ERRO AO INSERIR PEDIDO:", orderError);
       throw new Error(`Erro Supabase: ${orderError.message}`);
     }
-
-    console.log("Pedido inserido com sucesso! ID:", orderData.id);
 
     try {
       await this.saveOrderItems(orderData.id, order.items)
@@ -132,11 +93,10 @@ class OrdersManager {
       console.error("Erro ao salvar itens do pedido:", error)
     }
 
-    try {
-      await storeStatusManager.addOrderIncrement()
-    } catch (error) {
-      console.error("Error updating wait time:", error)
-    }
+    // Inicia a progressão automática
+    this.startOrderProgression(orderData.id).catch(err => 
+      console.error("Erro ao iniciar progressão automática:", err)
+    )
 
     return this.mapOrderData(orderData, order.items)
   }
@@ -146,29 +106,17 @@ class OrdersManager {
     
     try {
       const sb = await this.supabase;
-      const itemsToInsert = items.map((item) => {
-        let cleanProductId = item.product_id || item.id
-        if (typeof cleanProductId === 'string' && cleanProductId.includes('-') && cleanProductId.split('-').length > 5) {
-           const parts = cleanProductId.split('-')
-           cleanProductId = parts.slice(0, 5).join('-')
-        }
+      const itemsToInsert = items.map((item) => ({
+        order_id: orderId,
+        product_id: item.product_id || null,
+        product_name: item.product_name || "Produto",
+        product_price: item.product_price || 0,
+        quantity: item.quantity || 1,
+        adicionais: item.adicionais || []
+      }))
 
-        return {
-          order_id: orderId,
-          product_id: cleanProductId && cleanProductId.length === 36 ? cleanProductId : null,
-          product_name: item.product_name || item.name || "Produto",
-          product_price: item.product_price || item.price || 0,
-          quantity: item.quantity || 1,
-          adicionais: item.adicionais ? item.adicionais : []
-        }
-      })
-
-      console.log("Inserindo itens do pedido:", itemsToInsert);
       const { error: itemsError } = await sb.from("order_items").insert(itemsToInsert)
-      
-      if (itemsError) {
-        console.error("Erro ao inserir itens:", itemsError);
-      }
+      if (itemsError) console.error("Erro ao inserir itens:", itemsError);
     } catch (e) {
       console.error("Erro inesperado ao salvar itens:", e)
     }
@@ -221,19 +169,13 @@ class OrdersManager {
         .gte("created_at", today.toISOString())
         .order("created_at", { ascending: false })
 
-      if (error) {
-        console.error("Erro ao buscar pedidos do dia:", error)
-        return []
-      }
-
+      if (error) return []
       return data?.map((o: any) => this.mapOrderData(o)) || []
     } catch (e) {
-      console.error("Erro inesperado ao buscar pedidos:", e);
       return [];
     }
   }
 
-  // Nova função para buscar todos os pedidos ativos (não entregues/cancelados) independente da data
   async getActiveOrders(): Promise<Order[]> {
     try {
       const sb = await this.supabase;
@@ -243,14 +185,9 @@ class OrdersManager {
         .in("status", ["pending", "preparing", "ready"])
         .order("created_at", { ascending: false })
 
-      if (error) {
-        console.error("Erro ao buscar pedidos ativos:", error)
-        return []
-      }
-
+      if (error) return []
       return data?.map((o: any) => this.mapOrderData(o)) || []
     } catch (e) {
-      console.error("Erro inesperado ao buscar pedidos ativos:", e);
       return [];
     }
   }
@@ -264,30 +201,10 @@ class OrdersManager {
         .eq("user_id", userId)
         .order("created_at", { ascending: false })
 
-      if (error) {
-        console.error("Erro ao buscar pedidos do usuário:", error)
-        return []
-      }
-
+      if (error) return []
       return data?.map((o: any) => this.mapOrderData(o)) || []
     } catch (e) {
-      console.error("Erro inesperado ao buscar pedidos do usuário:", e);
       return [];
-    }
-  }
-
-  async cancelOrder(orderId: string): Promise<void> {
-    try {
-      const sb = await this.supabase;
-      const { error } = await sb
-        .from("orders")
-        .update({ status: "cancelled" })
-        .eq("id", orderId)
-      
-      if (error) throw error
-    } catch (e) {
-      console.error("Erro ao cancelar pedido:", e)
-      throw e
     }
   }
 
@@ -319,84 +236,83 @@ class OrdersManager {
     }
   }
 
-  async getTodayStats() {
-    const orders = await this.getTodayOrders()
-    const completedOrders = orders.filter((o) => o.status === "delivered")
-    return {
-      totalOrders: orders.length,
-      pendingOrders: orders.filter((o) => o.status === "pending").length,
-      preparingOrders: orders.filter((o) => o.status === "preparing").length,
-      completedOrders: completedOrders.length,
-      totalSales: completedOrders.reduce((sum, o) => sum + o.total, 0),
-    }
-  }
-
-  async getOrdersByDate(dateStr: string): Promise<Order[]> {
-    const start = new Date(dateStr + 'T00:00:00')
-    const end = new Date(dateStr + 'T23:59:59')
-
-    try {
-      const sb = await this.supabase;
-      const { data, error } = await sb
-        .from("orders")
-        .select(`*, order_items (*)`)
-        .gte("created_at", start.toISOString())
-        .lte("created_at", end.toISOString())
-        .order("created_at", { ascending: false })
-
-      if (error) return []
-      return data?.map((o: any) => this.mapOrderData(o)) || []
-    } catch (e) {
-      return []
-    }
-  }
-
-  async getSalesHistory(): Promise<DailySales[]> {
-    try {
-      const sb = await this.supabase;
-      const { data, error } = await sb
-        .from("orders")
-        .select("created_at, total_amount, status")
-        .eq("status", "delivered")
-        .order("created_at", { ascending: false })
-
-      if (error) return []
-
-      const history: Record<string, DailySales> = {}
-      data.forEach((o: any) => {
-        const date = new Date(o.created_at).toISOString().split('T')[0]
-        if (!history[date]) {
-          history[date] = { date, total: 0, count: 0 }
-        }
-        history[date].total += Number(o.total_amount)
-        history[date].count += 1
-      })
-
-      return Object.values(history)
-    } catch (e) {
-      return []
-    }
-  }
-
-  // Adicionando métodos que faltavam para evitar erros na UI
   async deleteOrder(orderId: string): Promise<void> {
     try {
       const sb = await this.supabase;
-      const { error } = await sb.from("orders").delete().eq("id", orderId);
-      if (error) throw error;
+      // Primeiro deleta os itens
+      await sb.from("order_items").delete().eq("order_id", orderId)
+      // Depois deleta o pedido
+      const { error } = await sb.from("orders").delete().eq("id", orderId)
+      if (error) throw error
     } catch (e) {
-      console.error("Erro ao deletar pedido:", e);
-      throw e;
+      console.error("Error deleting order:", e)
+      throw e
     }
   }
 
+  private progressionTimers: Map<string, NodeJS.Timeout> = new Map()
+  private readonly BASE_PREPARING_TIME = 6 * 60 * 1000 
+  private readonly BASE_READY_TIME = 9 * 60 * 1000 
+
+  async startOrderProgression(orderId: string) {
+    if (this.progressionTimers.has(orderId)) return;
+
+    const activeOrders = await this.getActiveOrdersCount()
+    const timeMultiplier = Math.max(1, activeOrders / 2)
+
+    const preparingStartTimer = setTimeout(async () => {
+      await this.updateOrderStatus(orderId, "preparing")
+    }, 1000)
+
+    const preparingTime = this.BASE_PREPARING_TIME * timeMultiplier
+    const readyTimer = setTimeout(async () => {
+      await this.updateOrderStatus(orderId, "ready")
+    }, preparingTime)
+
+    const readyTime = preparingTime + (this.BASE_READY_TIME * timeMultiplier)
+    const deliveredTimer = setTimeout(async () => {
+      await this.updateOrderStatus(orderId, "delivered")
+      this.progressionTimers.delete(orderId)
+      try {
+        await storeStatusManager.decrementWaitTime()
+      } catch (error) {
+        console.error("Erro ao decrementar tempo de espera:", error)
+      }
+    }, readyTime)
+
+    this.progressionTimers.set(orderId, deliveredTimer)
+  }
+
   async initializeActiveOrdersProgression() {
-    // Implementação vazia ou conforme necessário para manter compatibilidade
-    console.log("Inicializando progressão de pedidos...");
+    const orders = await this.getActiveOrders()
+    for (const order of orders) {
+      if (!this.progressionTimers.has(order.id)) {
+        this.startOrderProgression(order.id)
+      }
+    }
+  }
+
+  private async getActiveOrdersCount(): Promise<number> {
+    const orders = await this.getActiveOrders()
+    return orders.length
   }
 
   stopOrderProgression(orderId: string) {
-    // Implementação vazia para manter compatibilidade
+    const timer = this.progressionTimers.get(orderId)
+    if (timer) {
+      clearTimeout(timer)
+      this.progressionTimers.delete(orderId)
+    }
+  }
+
+  async cancelOrder(orderId: string): Promise<void> {
+    try {
+      this.stopOrderProgression(orderId)
+      await this.updateOrderStatus(orderId, "cancelled")
+      await storeStatusManager.decrementWaitTime()
+    } catch (e) {
+      console.error("Error cancelling order:", e)
+    }
   }
 }
 
