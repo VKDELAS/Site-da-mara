@@ -28,7 +28,8 @@ import {
   Truck,
   ShoppingBag,
   ClipboardList,
-  Receipt
+  Receipt,
+  Ticket
 } from "lucide-react"
 import { ordersManager, type DailySales, type Order } from "@/lib/orders-manager"
 
@@ -376,6 +377,18 @@ export default function AdminCaixaPage() {
                     <div className="flex items-center gap-2 text-slate-400"><Truck className="h-4 w-4" /><span className="text-sm font-medium">Entrega</span></div>
                     <span className="text-sm font-bold">{selectedOrder?.deliveryType === 'delivery' ? 'Delivery' : 'Retirada'}</span>
                   </div>
+
+                  {selectedOrder?.couponCode && (
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center gap-2 text-green-400"><Ticket className="h-4 w-4" /><span className="text-sm font-medium">Cupom</span></div>
+                      <div className="text-right">
+                        <span className="text-sm font-bold text-green-400">{selectedOrder.couponCode}</span>
+                        {selectedOrder.discountAmount > 0 && (
+                          <p className="text-[10px] font-bold text-green-500/70">- R$ {selectedOrder.discountAmount.toFixed(2)}</p>
+                        )}
+                      </div>
+                    </div>
+                  )}
 
                   <Separator className="bg-white/10" />
 

@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { useAuth } from "@/lib/auth-context"
 import { useRouter } from "next/navigation"
-import { Clock, ChefHat, CheckCircle, XCircle, Phone, MapPin, ArrowLeft, RefreshCw, Filter, ShoppingBag, Trash2, User } from "lucide-react"
+import { Clock, ChefHat, CheckCircle, XCircle, Phone, MapPin, ArrowLeft, RefreshCw, Filter, ShoppingBag, Trash2, User, Ticket } from "lucide-react"
 import { ordersManager, type Order } from "@/lib/orders-manager"
 import Link from "next/link"
 
@@ -192,6 +192,22 @@ export default function AdminPedidosPage() {
                           <div className="flex items-start gap-3 p-4 bg-gray-50 rounded-xl"><MapPin className="h-5 w-5 text-yellow-500 flex-shrink-0 mt-1" /><div className="flex-1"><p className="text-sm font-semibold text-gray-900">Retirada no Local</p><p className="text-sm text-gray-600">Cliente buscará na loja</p></div></div>
                         )}
                         <div className="border-t-2 border-gray-100 pt-4">
+                          {order.couponCode && (
+                            <div className="mb-4 p-3 bg-green-50 border border-green-100 rounded-xl flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <div className="h-8 w-8 bg-green-100 rounded-lg flex items-center justify-center text-green-600">
+                                  <Ticket className="h-4 w-4" />
+                                </div>
+                                <div>
+                                  <p className="text-[10px] font-bold text-green-600 uppercase">Cupom Aplicado</p>
+                                  <p className="text-sm font-black text-green-700">{order.couponCode}</p>
+                                </div>
+                              </div>
+                              {order.discountAmount > 0 && (
+                                <p className="text-sm font-bold text-green-600">- R$ {order.discountAmount.toFixed(2)}</p>
+                              )}
+                            </div>
+                          )}
                           <h4 className="font-bold text-gray-900 mb-3">Itens do Pedido</h4>
                           <div className="space-y-2 bg-gray-50 p-4 rounded-xl">
                             {order.items && order.items.length > 0 ? (

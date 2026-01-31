@@ -6,7 +6,7 @@ import { OrderSummary } from "@/components/order-summary"
 import { useAuth } from "@/lib/auth-context"
 import { useRouter, useParams } from "next/navigation"
 import { useEffect, useState } from "react"
-import { ArrowLeft, Clock, MapPin, Phone, MessageSquare, Package, ShoppingBag, CheckCircle2, Truck, Timer } from "lucide-react"
+import { ArrowLeft, Clock, MapPin, Phone, MessageSquare, Package, ShoppingBag, CheckCircle2, Truck, Timer, Ticket } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ordersManager, type Order } from "@/lib/orders-manager"
 
@@ -162,6 +162,17 @@ export default function DetalhesPedidoPage() {
                 ))
               ) : (
                 <p className="text-sm text-gray-400 italic">Itens não disponíveis</p>
+              )}
+              {order.couponCode && (
+                <div className="flex justify-between items-center py-2 px-3 bg-green-50 border border-green-100 rounded-xl mb-2">
+                  <div className="flex items-center gap-2">
+                    <Ticket className="h-4 w-4 text-green-600" />
+                    <span className="text-xs font-black text-green-700 uppercase">Cupom: {order.couponCode}</span>
+                  </div>
+                  {order.discountAmount > 0 && (
+                    <span className="text-xs font-bold text-green-600">- R$ {order.discountAmount.toFixed(2).replace('.', ',')}</span>
+                  )}
+                </div>
               )}
               <div className="pt-4 border-t border-gray-50 flex justify-between items-center">
                 <span className="font-black text-gray-800">Total</span>
