@@ -40,6 +40,7 @@ export default function CheckoutPage() {
   const [complemento, setComplemento] = useState("")
   const [bairro, setBairro] = useState("")
   const [cep, setCep] = useState("")
+  const [naoSeiCep, setNaoSeiCep] = useState(false)
 
   const [observacoes, setObservacoes] = useState("")
   const [formaPagamento, setFormaPagamento] = useState("dinheiro")
