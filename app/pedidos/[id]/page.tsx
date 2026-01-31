@@ -148,17 +148,21 @@ export default function DetalhesPedidoPage() {
               </h3>
             </div>
             <div className="p-5 space-y-4">
-              {order.items.map((item, idx) => (
-                <div key={idx} className="flex justify-between items-start">
-                  <div className="flex-1">
-                    <p className="text-sm font-bold text-gray-800">{item.quantity}x {item.name}</p>
-                    {item.adicionais && item.adicionais.length > 0 && (
-                      <p className="text-xs text-gray-400">+ {item.adicionais.map((a: any) => a.name).join(', ')}</p>
-                    )}
+              {order.items && order.items.length > 0 ? (
+                order.items.map((item, idx) => (
+                  <div key={idx} className="flex justify-between items-start">
+                    <div className="flex-1">
+                      <p className="text-sm font-bold text-gray-800">{item.quantity}x {item.name}</p>
+                      {item.adicionais && item.adicionais.length > 0 && (
+                        <p className="text-xs text-gray-400">+ {item.adicionais.map((a: any) => `${a.quantity || 1}x ${a.name}`).join(', ')}</p>
+                      )}
+                    </div>
+                    <p className="text-sm font-black text-gray-800">R$ {(item.price * item.quantity).toFixed(2).replace('.', ',')}</p>
                   </div>
-                  <p className="text-sm font-black text-gray-800">R$ {(item.price * item.quantity).toFixed(2).replace('.', ',')}</p>
-                </div>
-              ))}
+                ))
+              ) : (
+                <p className="text-sm text-gray-400 italic">Itens não disponíveis</p>
+              )}
               <div className="pt-4 border-t border-gray-50 flex justify-between items-center">
                 <span className="font-black text-gray-800">Total</span>
                 <span className="text-xl font-black text-yellow-600">R$ {order.total.toFixed(2).replace('.', ',')}</span>

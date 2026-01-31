@@ -153,12 +153,23 @@ export default function PedidosPage() {
                     </div>
 
                     <div className="space-y-2 mb-4">
-                      {order.items.map((item, idx) => (
-                        <div key={idx} className="flex justify-between text-sm">
-                          <span className="text-gray-600">{item.quantity}x {item.name}</span>
-                          <span className="font-bold text-gray-800">R$ {(item.price * item.quantity).toFixed(2).replace('.', ',')}</span>
-                        </div>
-                      ))}
+                      {order.items && order.items.length > 0 ? (
+                        order.items.map((item, idx) => (
+                          <div key={idx} className="flex flex-col">
+                            <div className="flex justify-between text-sm">
+                              <span className="text-gray-600">{item.quantity}x {item.name}</span>
+                              <span className="font-bold text-gray-800">R$ {(item.price * item.quantity).toFixed(2).replace('.', ',')}</span>
+                            </div>
+                            {item.adicionais && item.adicionais.length > 0 && (
+                              <p className="text-[10px] text-gray-400 ml-4">
+                                + {item.adicionais.map((a: any) => `${a.quantity || 1}x ${a.name}`).join(', ')}
+                              </p>
+                            )}
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-xs text-gray-400 italic">Itens não disponíveis</p>
+                      )}
                     </div>
 
                     <div className="flex items-center justify-between pt-4 border-t border-gray-50">

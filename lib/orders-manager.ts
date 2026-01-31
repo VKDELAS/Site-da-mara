@@ -102,16 +102,24 @@ class OrdersManager {
 
   private mapOrderData(o: any, items: any[] = []): Order {
     let finalItems = items;
-    if ((!items || items.length === 0) && o.order_items) {
-      finalItems = o.order_items.map((item: any) => ({
-        id: item.product_id,
-        name: item.product_name,
-        quantity: item.quantity,
-        price: Number(item.product_price),
-        adicionais: item.adicionais || []
-      }))
-    } else if ((!items || items.length === 0) && o.metadata?.items) {
-      finalItems = o.metadata.items
+    if (!finalItems || finalItems.length === 0) {
+      if (o.order_items && o.order_items.length > 0) {
+        finalItems = o.order_items.map((item: any) => ({
+          id: item.product_id,
+          name: item.product_name,
+          quantity: item.quantity,
+          price: Number(item.product_price),
+          adicionais: item.adicionais || []
+        }))
+      } else if (o.metadata?.items && o.metadata.items.length > 0) {
+        finalItems = o.metadata.items.map((item: any) => ({
+          id: item.product_id || item.id,
+          name: item.product_name || item.name,
+          quantity: item.quantity,
+          price: Number(item.product_price || item.price),
+          adicionais: item.adicionais || []
+        }))
+      }
     }
 
     return {

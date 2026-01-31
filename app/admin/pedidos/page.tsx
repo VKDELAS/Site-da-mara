@@ -194,12 +194,30 @@ export default function AdminPedidosPage() {
                         <div className="border-t-2 border-gray-100 pt-4">
                           <h4 className="font-bold text-gray-900 mb-3">Itens do Pedido</h4>
                           <div className="space-y-2 bg-gray-50 p-4 rounded-xl">
-                            {order.items.map((item, idx) => (
-                              <div key={idx} className="flex justify-between items-start gap-3 border-b border-gray-100 last:border-0 pb-2 mb-2 last:pb-0 last:mb-0">
-                                <div className="flex-1"><div className="flex items-center gap-2"><span className="flex items-center justify-center w-6 h-6 bg-yellow-100 text-yellow-700 text-xs font-bold rounded-full">{idx + 1}</span><p className="font-bold text-gray-900">{item.quantity}x {item.name}</p></div></div>
-                                <p className="font-bold text-gray-900 flex-shrink-0 pt-1">R$ {(item.price * item.quantity).toFixed(2)}</p>
-                              </div>
-                            ))}
+                            {order.items && order.items.length > 0 ? (
+                              order.items.map((item, idx) => (
+                                <div key={idx} className="flex flex-col border-b border-gray-100 last:border-0 pb-2 mb-2 last:pb-0 last:mb-0">
+                                  <div className="flex justify-between items-start gap-3">
+                                    <div className="flex-1">
+                                      <div className="flex items-center gap-2">
+                                        <span className="flex items-center justify-center w-6 h-6 bg-yellow-100 text-yellow-700 text-xs font-bold rounded-full">{idx + 1}</span>
+                                        <p className="font-bold text-gray-900">{item.quantity}x {item.name}</p>
+                                      </div>
+                                      {item.adicionais && item.adicionais.length > 0 && (
+                                        <div className="ml-8 mt-1">
+                                          <p className="text-xs text-gray-500 font-medium">
+                                            + {item.adicionais.map((a: any) => `${a.quantity || 1}x ${a.name}`).join(', ')}
+                                          </p>
+                                        </div>
+                                      )}
+                                    </div>
+                                    <p className="font-bold text-gray-900 flex-shrink-0 pt-1">R$ {(item.price * item.quantity).toFixed(2)}</p>
+                                  </div>
+                                </div>
+                              ))
+                            ) : (
+                              <p className="text-sm text-gray-500 italic">Nenhum item encontrado para este pedido.</p>
+                            )}
                           </div>
                           <div className="mt-4 pt-4 border-t-2 border-gray-100 flex justify-between items-center"><p className="font-bold text-gray-900">Total do Pedido</p><p className="text-2xl font-black text-yellow-600">R$ {order.total.toFixed(2)}</p></div>
                         </div>
