@@ -29,6 +29,7 @@ export function AddressModal({ isOpen, onClose, onAddressSelect }: AddressModalP
   const [complemento, setComplemento] = useState("")
   const [bairro, setBairro] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [naoSeiCep, setNaoSeiCep] = useState(false)
 
   useEffect(() => {
     if (isOpen && user) {
@@ -234,13 +235,30 @@ export function AddressModal({ isOpen, onClose, onAddressSelect }: AddressModalP
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2 col-span-2">
-                  <Label>CEP</Label>
+                  <div className="flex items-center justify-between">
+                    <Label>CEP</Label>
+                    <div className="flex items-center gap-2">
+                      <input 
+                        type="checkbox" 
+                        id="naoSeiCep" 
+                        checked={naoSeiCep} 
+                        onChange={(e) => {
+                          setNaoSeiCep(e.target.checked)
+                          if (e.target.checked) setCep("17150-000")
+                        }}
+                        className="h-4 w-4 rounded border-gray-300 text-yellow-600 focus:ring-yellow-500"
+                      />
+                      <label htmlFor="naoSeiCep" className="text-xs font-bold text-gray-500 cursor-pointer">Não sei meu CEP</label>
+                    </div>
+                  </div>
                   <Input 
                     value={cep} 
                     onChange={(e) => handleCepChange(e.target.value)}
                     placeholder="00000-000" 
                     maxLength={9}
                     required
+                    disabled={naoSeiCep}
+                    className={naoSeiCep ? "bg-gray-50 text-gray-400" : ""}
                   />
                 </div>
                 <div className="space-y-2 col-span-2">

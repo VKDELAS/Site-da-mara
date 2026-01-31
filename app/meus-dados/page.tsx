@@ -41,12 +41,23 @@ export default function MeusDadosPage() {
 
   const handleSave = async () => {
     if (!user) return
+
+    if (formData.full_name.trim().length < 3) {
+      alert("Por favor, insira seu nome completo.")
+      return
+    }
+
+    const phoneDigits = formData.phone.replace(/\D/g, "")
+    if (phoneDigits.length > 0 && phoneDigits.length < 10) {
+      alert("Por favor, insira um telefone válido com DDD.")
+      return
+    }
     
     setSaving(true)
     try {
       const { error } = await supabase.auth.updateUser({
         data: {
-          full_name: formData.full_name,
+          full_name: formData.full_name.trim(),
           phone: formData.phone,
           birth_date: formData.birth_date,
         }
@@ -64,12 +75,14 @@ export default function MeusDadosPage() {
   }
 
   const handlePhoneChange = (value: string) => {
-    const formatted = value
-      .replace(/\D/g, "")
-      .replace(/(\d{2})(\d)/, "($1) $2")
-      .replace(/(\d{5})(\d)/, "$1-$2")
-      .substring(0, 15)
-    setFormData({ ...formData, phone: formatted })
+    const numbers = value.replace(/\D/g, "")
+    if (numbers.length <= 11) {
+      let formatted = ""
+      if (numbers.length > 0) formatted = `(${numbers.substring(0, 2)}`
+      if (numbers.length > 2) formatted += `) ${numbers.substring(2, 7)}`
+      if (numbers.length > 7) formatted += `-${numbers.substring(7, 11)}`
+      setFormData({ ...formData, phone: formatted })
+    }
   }
 
   if (loading) {

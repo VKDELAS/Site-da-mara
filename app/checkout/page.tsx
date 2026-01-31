@@ -164,17 +164,23 @@ export default function CheckoutPage() {
   const handleTelefoneChange = (value: string) => {
     const numbers = value.replace(/\D/g, "")
     if (numbers.length <= 11) {
-      let formatted = numbers
+      let formatted = ""
       if (numbers.length > 0) formatted = `(${numbers.substring(0, 2)}`
-      if (numbers.length >= 3) formatted += `) ${numbers.substring(2, 7)}`
-      if (numbers.length >= 8) formatted += `-${numbers.substring(7, 11)}`
+      if (numbers.length > 2) formatted += `) ${numbers.substring(2, 7)}`
+      if (numbers.length > 7) formatted += `-${numbers.substring(7, 11)}`
       setTelefone(formatted)
     }
   }
 
   const handleFinalizarPedido = async () => {
-    if (nome.length < 3) {
+    if (nome.trim().length < 3) {
       alert("Por favor, insira seu nome completo.")
+      return
+    }
+
+    const phoneDigits = telefone.replace(/\D/g, "")
+    if (phoneDigits.length < 10) {
+      alert("Por favor, insira um telefone válido com DDD.")
       return
     }
 
@@ -394,7 +400,31 @@ export default function CheckoutPage() {
                       {(useNewAddress || addresses.length === 0) && (
                         <div className="space-y-4">
                           <div className="grid md:grid-cols-3 gap-4">
-                            <div className="space-y-2"><Label className="font-bold text-gray-600">CEP</Label><Input value={cep} onChange={(e) => handleCepChange(e.target.value)} placeholder="00000-000" className="h-12 rounded-xl border-gray-100" /></div>
+                            <div className="space-y-2">
+                              <div className="flex items-center justify-between">
+                                <Label className="font-bold text-gray-600">CEP</Label>
+                                <div className="flex items-center gap-2">
+                                  <input 
+                                    type="checkbox" 
+                                    id="naoSeiCep" 
+                                    checked={naoSeiCep} 
+                                    onChange={(e) => {
+                                      setNaoSeiCep(e.target.checked)
+                                      if (e.target.checked) setCep("17150-000")
+                                    }}
+                                    className="h-4 w-4 rounded border-gray-300 text-yellow-600 focus:ring-yellow-500"
+                                  />
+                                  <label htmlFor="naoSeiCep" className="text-[10px] font-bold text-gray-500 cursor-pointer">Não sei meu CEP</label>
+                                </div>
+                              </div>
+                              <Input 
+                                value={cep} 
+                                onChange={(e) => handleCepChange(e.target.value)} 
+                                placeholder="00000-000" 
+                                className={`h-12 rounded-xl border-gray-100 ${naoSeiCep ? "bg-gray-50 text-gray-400" : ""}`}
+                                disabled={naoSeiCep}
+                              />
+                            </div>
                             <div className="md:col-span-2 space-y-2"><Label className="font-bold text-gray-600">Rua</Label><Input value={rua} onChange={(e) => setRua(e.target.value)} placeholder="Nome da rua" className="h-12 rounded-xl border-gray-100" /></div>
                           </div>
                           <div className="grid md:grid-cols-2 gap-4">
