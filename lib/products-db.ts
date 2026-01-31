@@ -451,10 +451,14 @@ class ProductsManager {
     try {
       const supabase = await getSupabase()
       
-      // Busca todos os itens vendidos para calcular o ranking real de todos os tempos
+      // Busca itens vendidos nos últimos 30 dias para um ranking dinâmico que se renova
+      const thirtyDaysAgo = new Date()
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+
       const { data, error } = await supabase
         .from("order_items")
-        .select("product_name, quantity")
+        .select("product_name, quantity, created_at")
+        .gte("created_at", thirtyDaysAgo.toISOString())
       
       if (error || !data || data.length === 0) {
         const products = await this.getProducts()
@@ -525,10 +529,14 @@ class ProductsManager {
     try {
       const supabase = await getSupabase()
       
-      // Busca TODOS os itens vendidos para um ranking acumulado real
+      // Busca itens vendidos nos últimos 30 dias para um ranking dinâmico que se renova
+      const thirtyDaysAgo = new Date()
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+
       const { data, error } = await supabase
         .from("order_items")
-        .select("product_name, quantity")
+        .select("product_name, quantity, created_at")
+        .gte("created_at", thirtyDaysAgo.toISOString())
       
       // Filtra apenas produtos que pertencem à categoria solicitada
       const products = await this.getProducts()
