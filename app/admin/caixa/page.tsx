@@ -5,7 +5,7 @@ import { HeaderWrapper } from "@/components/header-wrapper"
 import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
@@ -29,7 +29,9 @@ import {
   ShoppingBag,
   ClipboardList,
   Receipt,
-  Ticket
+  Ticket,
+  Trash2,
+  AlertTriangle
 } from "lucide-react"
 import { ordersManager, type DailySales, type Order } from "@/lib/orders-manager"
 
@@ -54,6 +56,9 @@ export default function AdminCaixaPage() {
   const [refreshing, setRefreshing] = useState(false)
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
   const [isOrderDialogOpen, setIsOrderDialogOpen] = useState(false)
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [orderToDelete, setOrderToDelete] = useState<Order | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   const loadData = useCallback(async () => {
     try {
@@ -61,10 +66,16 @@ export default function AdminCaixaPage() {
       const history = await ordersManager.getSalesHistory()
       setStats(todayStats)
       setSalesHistory(history)
+      
+      // Se houver uma data expandida, recarregar os pedidos dela também
+      if (expandedDate) {
+        const orders = await ordersManager.getOrdersByDate(expandedDate)
+        setDateOrders(prev => ({ ...prev, [expandedDate]: orders }))
+      }
     } catch (error) {
       console.error("Erro ao carregar dados:", error)
     }
-  }, [])
+  }, [expandedDate])
 
   useEffect(() => {
     if (!loading) {
@@ -113,6 +124,30 @@ export default function AdminCaixaPage() {
     setIsOrderDialogOpen(true)
   }
 
+  const handleDeleteClick = (e: React.MouseEvent, order: Order) => {
+    e.stopPropagation()
+    setOrderToDelete(order)
+    setIsDeleteDialogOpen(true)
+  }
+
+  const confirmDeleteOrder = async () => {
+    if (!orderToDelete) return
+    
+    setIsDeleting(true)
+    try {
+      await ordersManager.deleteOrder(orderToDelete.id)
+      setIsDeleteDialogOpen(false)
+      setOrderToDelete(null)
+      if (isOrderDialogOpen) setIsOrderDialogOpen(false)
+      await loadData()
+    } catch (error) {
+      console.error("Erro ao deletar pedido:", error)
+      alert("Erro ao deletar pedido. Tente novamente.")
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
   const trocoInfo = useMemo(() => {
     if (!selectedOrder?.notes) return null
     const match = selectedOrder.notes.match(/Troco para:\s*R?\$\s*([\d,.]+)/i)
@@ -143,7 +178,7 @@ export default function AdminCaixaPage() {
                 <ArrowLeft className="h-4 w-4" />
                 <span className="text-sm font-semibold">Voltar ao início</span>
               </div>
-              <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Fluxo de Caixa</h1>
+              <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Gestão Financeira</h1>
               <p className="text-slate-500">Gestão de faturamento e histórico de vendas</p>
             </div>
             
@@ -267,8 +302,18 @@ export default function AdminCaixaPage() {
                                     <p className="font-black text-yellow-600">R$ {order.total.toFixed(2)}</p>
                                     <p className="text-[10px] text-slate-400 font-bold uppercase">{new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
                                   </div>
-                                  <div className="h-8 w-8 rounded-full bg-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm">
-                                    <ChevronDown className="h-4 w-4 text-slate-400 -rotate-90" />
+                                  <div className="flex items-center gap-2">
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      onClick={(e) => handleDeleteClick(e, order)}
+                                      className="h-8 w-8 rounded-full bg-white text-slate-400 hover:text-red-600 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-all shadow-sm"
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                    <div className="h-8 w-8 rounded-full bg-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm">
+                                      <ChevronDown className="h-4 w-4 text-slate-400 -rotate-90" />
+                                    </div>
                                   </div>
                                 </div>
                               </div>
@@ -298,6 +343,14 @@ export default function AdminCaixaPage() {
                   {selectedOrder?.createdAt && new Date(selectedOrder.createdAt).toLocaleString('pt-BR')}
                 </p>
               </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={(e) => selectedOrder && handleDeleteClick(e as any, selectedOrder)}
+                className="bg-white/20 hover:bg-red-500 hover:text-white text-slate-900 rounded-full h-12 w-12 transition-all"
+              >
+                <Trash2 className="h-6 w-6" />
+              </Button>
             </div>
           </DialogHeader>
 
@@ -420,6 +473,39 @@ export default function AdminCaixaPage() {
             >
               Fechar Detalhes
             </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog de Confirmação de Exclusão */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent className="max-w-md p-8 border-none bg-white rounded-[2rem] shadow-2xl">
+          <div className="flex flex-col items-center text-center space-y-4">
+            <div className="h-20 w-20 bg-red-50 rounded-full flex items-center justify-center text-red-500 mb-2">
+              <AlertTriangle className="h-10 w-10" />
+            </div>
+            <DialogHeader>
+              <DialogTitle className="text-2xl font-black text-slate-900">Excluir Pedido?</DialogTitle>
+            </DialogHeader>
+            <p className="text-slate-500 font-medium">
+              Esta ação é irreversível. O pedido <span className="font-bold text-slate-900">#{orderToDelete?.orderNumber}</span> será removido permanentemente de todos os registros e do faturamento.
+            </p>
+            <DialogFooter className="w-full grid grid-cols-2 gap-3 pt-4">
+              <Button
+                variant="outline"
+                onClick={() => setIsDeleteDialogOpen(false)}
+                className="h-12 rounded-xl font-bold border-slate-200 text-slate-600 hover:bg-slate-50"
+              >
+                Cancelar
+              </Button>
+              <Button
+                onClick={confirmDeleteOrder}
+                disabled={isDeleting}
+                className="h-12 rounded-xl font-bold bg-red-500 hover:bg-red-600 text-white shadow-lg shadow-red-100"
+              >
+                {isDeleting ? "Excluindo..." : "Sim, Excluir"}
+              </Button>
+            </DialogFooter>
           </div>
         </DialogContent>
       </Dialog>

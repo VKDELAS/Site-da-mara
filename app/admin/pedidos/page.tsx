@@ -76,7 +76,7 @@ export default function AdminPedidosPage() {
   }
 
   const handleDeleteOrder = async (orderId: string) => {
-    if (!confirm("Tem certeza que deseja DELETAR este pedido permanentemente?")) return
+    if (!confirm("Tem certeza que deseja DELETAR este pedido permanentemente? Esta ação removerá o pedido de todos os registros, inclusive do faturamento.")) return
     try {
       await ordersManager.deleteOrder(orderId)
       await loadOrders()
