@@ -36,5 +36,9 @@ export const validateOrder = (order: any): { isValid: boolean; error?: string } 
     return { isValid: false, error: "Valor total inválido" }
   }
 
+  if (order.deliveryType === "delivery" && (!order.customerAddress || order.customerAddress.trim().length < 10)) {
+    return { isValid: false, error: "Endereço de entrega inválido ou incompleto" }
+  }
+
   return { isValid: true }
 }

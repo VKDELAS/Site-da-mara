@@ -5,8 +5,8 @@ import { Footer } from "@/components/footer"
 import { OrderSummary } from "@/components/order-summary"
 import { productsManager } from "@/lib/products-db"
 
-// Força a revalidação da página a cada 24 horas (86400 segundos)
-export const revalidate = 86400
+// Força a revalidação da página para dados sempre atualizados
+export const revalidate = 0
 
 export default async function Home() {
   // Busca dados reais do Supabase

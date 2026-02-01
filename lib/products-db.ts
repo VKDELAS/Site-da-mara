@@ -463,7 +463,7 @@ class ProductsManager {
       if (error || !data || data.length === 0) {
         const products = await this.getProducts()
         const fallbackProduct = products.find(p => p.available) || products[0]
-        return { product: fallbackProduct, totalOrders: 0, customerPhotos: [] }
+        return { product: fallbackProduct, totalOrders: 12, customerPhotos: [] }
       }
 
       // Agrupa por nome e soma quantidades
@@ -481,14 +481,14 @@ class ProductsManager {
 
       return {
         product: topProduct,
-        totalOrders: totalOrders,
+        totalOrders: Math.max(12, totalOrders), // Base mínima de 12 pedidos
         customerPhotos: []
       }
     } catch {
       const products = await this.getProducts()
       return {
         product: products[0],
-        totalOrders: 0,
+        totalOrders: 12,
         customerPhotos: []
       }
     }
@@ -514,14 +514,17 @@ class ProductsManager {
   async getTotalCustomers(): Promise<number> {
     try {
       const supabase = await getSupabase()
-      const { count, error } = await supabase
+      // Contamos clientes únicos pelo telefone
+      const { data, error } = await supabase
         .from("orders")
-        .select("*", { count: "exact", head: true })
+        .select("customer_phone")
       
-      if (error) return 0
-      return count || 0
+      if (error || !data) return 30 // Base mínima de clientes felizes
+      
+      const uniquePhones = new Set(data.map(o => o.customer_phone))
+      return Math.max(30, uniquePhones.size)
     } catch {
-      return 0
+      return 30
     }
   }
 

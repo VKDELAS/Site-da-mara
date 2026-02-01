@@ -187,11 +187,23 @@ export default function CheckoutPage() {
 
     let enderecoString = ""
     if (deliveryType === "delivery") {
-      const addr = useNewAddress
-        ? { street: rua, number: numero, complement: complemento, neighborhood: bairro, city: "Iacanga", state: "SP", cep }
-        : addresses.find((a) => a.id === selectedAddressId)
+      if (enderecoError) {
+        alert(enderecoError)
+        return
+      }
 
-      if (addr) {
+      if (useNewAddress) {
+        if (!rua.trim() || !numero.trim() || !bairro.trim()) {
+          alert("Por favor, preencha todos os campos obrigatórios do endereço (Rua, Número e Bairro).")
+          return
+        }
+        enderecoString = `${rua}, ${numero}${complemento ? " - " + complemento : ""} - ${bairro}, Iacanga/SP`
+      } else {
+        const addr = addresses.find((a) => a.id === selectedAddressId)
+        if (!addr) {
+          alert("Por favor, selecione um endereço de entrega ou cadastre um novo.")
+          return
+        }
         enderecoString = `${addr.street}, ${addr.number}${addr.complement ? " - " + addr.complement : ""} - ${addr.neighborhood}, ${addr.city}/${addr.state}`
       }
     }

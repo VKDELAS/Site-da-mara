@@ -1,5 +1,6 @@
 import { getSupabase } from "./supabase-fix"
 import { storeStatusManager } from "./store-status-manager"
+import { validateOrder } from "./validation"
 
 export interface Order {
   id: string
@@ -31,6 +32,11 @@ class OrdersManager {
   private supabase = getSupabase()
 
   async createOrder(order: any): Promise<Order> {
+    const validation = validateOrder(order)
+    if (!validation.isValid) {
+      throw new Error(validation.error || "Dados do pedido inválidos")
+    }
+
     const today = new Date()
     today.setHours(0, 0, 0, 0)
     let nextNumber = 1
