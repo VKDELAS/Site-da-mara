@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { useAuth } from "@/lib/auth-context"
 import { useRouter } from "next/navigation"
-import { Clock, ChefHat, CheckCircle, XCircle, Phone, MapPin, ArrowLeft, RefreshCw, Filter, ShoppingBag, Trash2, User, Ticket, Megaphone, Zap, Tag, Image } from "lucide-react"
+import { Clock, ChefHat, CheckCircle, XCircle, Phone, MapPin, ArrowLeft, RefreshCw, Filter, ShoppingBag, Trash2, User, Ticket, Megaphone, Zap, Tag, Image, CreditCard, FileText } from "lucide-react"
 import { ordersManager, type Order } from "@/lib/orders-manager"
 import { storeStatusManager } from "@/lib/store-status-manager"
 import { Switch } from "@/components/ui/switch"
@@ -174,84 +174,33 @@ export default function AdminPedidosPage() {
             </div>
           </div>
 
-          {/* SEÇÃO DE PROMOÇÃO */}
-          <Card className="mb-8 border-2 border-yellow-400 bg-yellow-50/50 overflow-hidden rounded-3xl shadow-xl shadow-yellow-100">
-            <div className="bg-yellow-400 p-4 flex items-center gap-3">
-              <Megaphone className="h-6 w-6 text-gray-900" />
-              <h2 className="text-xl font-black text-gray-900 uppercase tracking-tight">Configurar Super Promoção</h2>
-            </div>
-            <CardContent className="p-6">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-center">
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between p-4 bg-white rounded-2xl border-2 border-yellow-100 shadow-sm">
-                    <div className="flex items-center gap-3">
-                      <div className={`p-3 rounded-xl ${isPromoActive ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-400'}`}>
-                        <Zap className={`h-6 w-6 ${isPromoActive ? 'fill-current' : ''}`} />
-                      </div>
-                      <div>
-                        <p className="font-black text-gray-900">Status da Promoção</p>
-                        <p className="text-sm text-gray-500">{isPromoActive ? 'Ativa no site agora!' : 'Desativada no momento'}</p>
-                      </div>
-                    </div>
-                    <Switch 
-                      checked={isPromoActive} 
-                      onCheckedChange={handleTogglePromo}
-                      disabled={isUpdatingPromo}
-                      className="data-[state=checked]:bg-green-500"
-                    />
-                  </div>
-
-                  <div className="flex flex-col gap-4 p-4 bg-white rounded-2xl border-2 border-yellow-100 shadow-sm">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label className="font-black text-gray-900 flex items-center gap-2 text-xs">
-                          <Tag className="h-3 w-3 text-yellow-600" />
-                          Preço Promocional (Batatas)
-                        </Label>
-                        <div className="relative">
-                          <span className="absolute left-3 top-1/2 -translate-y-1/2 font-bold text-gray-400 text-sm">R$</span>
-                          <Input 
-                            type="number" 
-                            value={promoPrice} 
-                            onChange={(e) => setPromoPrice(e.target.value)}
-                            className="pl-9 h-10 rounded-xl border-2 border-gray-100 focus:border-yellow-400 font-bold text-sm"
-                          />
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        <Label className="font-black text-gray-900 flex items-center gap-2 text-xs">
-                          <Image className="h-3 w-3 text-yellow-600" />
-                          Caminho da Imagem
-                        </Label>
-                        <Input 
-                          value={promoImage} 
-                          onChange={(e) => setPromoImage(e.target.value)}
-                          placeholder="/images/promo-batatop.png"
-                          className="h-10 rounded-xl border-2 border-gray-100 focus:border-yellow-400 font-bold text-xs"
-                        />
-                      </div>
-                    </div>
-                    <Button 
-                      onClick={handleUpdatePromoSettings}
-                      disabled={isUpdatingPromo}
-                      className="h-10 bg-gray-900 hover:bg-black text-white font-black rounded-xl px-6 text-sm"
-                    >
-                      Salvar Configurações
-                    </Button>
-                  </div>
+          {/* LINK PARA PÁGINA DE PROMOÇÃO */}
+          <Link href="/admin/promocoes">
+            <Card className="mb-8 border-2 border-orange-400 bg-orange-50/50 overflow-hidden rounded-3xl shadow-xl shadow-orange-100 hover:shadow-orange-200 transition-all cursor-pointer group">
+              <div className="bg-orange-400 p-4 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Megaphone className="h-6 w-6 text-white" />
+                  <h2 className="text-xl font-black text-white uppercase tracking-tight">Gerenciar Promoção Ativa</h2>
                 </div>
-                <div className="hidden lg:flex bg-white p-6 rounded-2xl border-2 border-yellow-100 shadow-sm flex-col items-center text-center space-y-2">
-                  <div className="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center">
-                    <Megaphone className="h-6 w-6 text-yellow-600" />
-                  </div>
-                  <h3 className="font-black text-gray-900">Promoção Rápida</h3>
-                  <p className="text-xs text-gray-500 leading-relaxed">
-                    Ative a promoção para mudar o preço de todas as batatas e exibir o banner na home.
-                  </p>
-                </div>
+                <ArrowLeft className="h-6 w-6 text-white rotate-180 group-hover:translate-x-1 transition-transform" />
               </div>
-            </CardContent>
-          </Card>
+              <CardContent className="p-4 flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className={`h-10 w-10 rounded-xl flex items-center justify-center ${isPromoActive ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-400'}`}>
+                    <Zap className={`h-5 w-5 ${isPromoActive ? 'fill-current' : ''}`} />
+                  </div>
+                  <div>
+                    <p className="font-bold text-gray-900">Status: {isPromoActive ? 'Ativa' : 'Desativada'}</p>
+                    <p className="text-xs text-gray-500">Clique para configurar preço e banner</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="text-xs font-bold text-orange-600 uppercase">Preço Atual</p>
+                  <p className="text-lg font-black text-gray-900">R$ {parseFloat(promoPrice).toFixed(2)}</p>
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
 
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-8">
             <button onClick={() => setFilter("all")} className={`p-4 rounded-2xl font-bold text-sm transition-all ${filter === "all" ? "bg-yellow-400 text-white shadow-lg" : "bg-white text-gray-700 border-2 border-gray-100 hover:border-yellow-200"}`}>
@@ -312,6 +261,26 @@ export default function AdminPedidosPage() {
                         {order.deliveryType === "pickup" && (
                           <div className="flex items-start gap-3 p-4 bg-gray-50 rounded-xl"><MapPin className="h-5 w-5 text-yellow-500 flex-shrink-0 mt-1" /><div className="flex-1"><p className="text-sm font-semibold text-gray-900">Retirada no Local</p><p className="text-sm text-gray-600">Cliente buscará na loja</p></div></div>
                         )}
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-xl">
+                            <div className="h-10 w-10 bg-white rounded-full flex items-center justify-center shadow-sm"><CreditCard className="h-5 w-5 text-blue-500" /></div>
+                            <div>
+                              <p className="text-xs font-bold text-gray-400 uppercase">Pagamento</p>
+                              <p className="font-bold text-gray-900 uppercase">{order.paymentMethod}</p>
+                            </div>
+                          </div>
+                          {order.notes && (
+                            <div className="flex items-start gap-3 p-4 bg-gray-50 rounded-xl">
+                              <div className="h-10 w-10 bg-white rounded-full flex items-center justify-center shadow-sm flex-shrink-0"><FileText className="h-5 w-5 text-orange-500" /></div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-xs font-bold text-gray-400 uppercase">Observações</p>
+                                <p className="text-sm font-medium text-gray-700 break-words">{order.notes}</p>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
                         <div className="border-t-2 border-gray-100 pt-4">
                           {order.couponCode && (
                             <div className="mb-4 p-3 bg-green-50 border border-green-100 rounded-xl flex items-center justify-between">

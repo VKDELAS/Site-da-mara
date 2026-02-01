@@ -251,6 +251,26 @@ export default function AdminPage() {
               </Card>
             </Link>
 
+            {/* Gerenciar Promoção */}
+            <Link href="/admin/promocoes" className="group">
+              <Card className="border-none shadow-md bg-gradient-to-br from-orange-50 to-white rounded-3xl overflow-hidden hover:shadow-xl transition-all hover:-translate-y-1 cursor-pointer h-full">
+                <CardContent className="p-8">
+                  <div className="flex items-start gap-4 mb-6">
+                    <div className="h-16 w-16 bg-gradient-to-br from-orange-400 to-orange-500 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                      <Megaphone className="h-8 w-8 text-white" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-2xl font-black text-gray-900 mb-1">Gerenciar Promoção</h3>
+                      <p className="text-gray-600 text-sm">Configure a promoção ativa no site</p>
+                    </div>
+                  </div>
+                  <Button className="w-full bg-gradient-to-r from-orange-400 to-orange-500 hover:from-orange-500 hover:to-orange-600 text-white font-bold h-12 rounded-xl shadow-lg hover:shadow-xl transition-all">
+                    Acessar Promoção
+                  </Button>
+                </CardContent>
+              </Card>
+            </Link>
+
 
           </div>
         </div>
