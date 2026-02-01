@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { HeaderWrapper } from "@/components/header-wrapper"
 import { Footer } from "@/components/footer"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { ArrowLeft, Edit, Plus, Trash2, Package, Coffee, UtensilsCrossed, Zap, Eye, EyeOff, Tag, Megaphone, Settings2 } from "lucide-react"
+import { ArrowLeft, Edit, Plus, Trash2, Package, Coffee, UtensilsCrossed, Zap, Eye, EyeOff, Tag, Megaphone, Settings2, Image } from "lucide-react"
 import Link from "next/link"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { productsManager, type Product, type Adicional } from "@/lib/products-db"
@@ -45,6 +45,7 @@ export default function AdminProdutosPage() {
   // Promo states
   const [isPromoActive, setIsPromoActive] = useState(false)
   const [promoPrice, setPromoPrice] = useState("24.99")
+  const [promoImage, setPromoImage] = useState("/images/promo-batatop.png")
   const [isUpdatingPromo, setIsUpdatingPromo] = useState(false)
 
   // Form states for products
@@ -88,6 +89,7 @@ export default function AdminProdutosPage() {
     const status = await storeStatusManager.getStatus()
     setIsPromoActive(status.isPromoActive ?? false)
     setPromoPrice((status.promoPrice ?? 24.99).toString())
+    setPromoImage(status.promoImage ?? "/images/promo-batatop.png")
   }
 
   const handleTogglePromo = async () => {
@@ -100,7 +102,7 @@ export default function AdminProdutosPage() {
     }
   }
 
-  const handleUpdatePromoPrice = async () => {
+  const handleUpdatePromoSettings = async () => {
     const price = parseFloat(promoPrice)
     if (isNaN(price) || price <= 0) {
       alert("Preço inválido")
@@ -109,7 +111,8 @@ export default function AdminProdutosPage() {
     setIsUpdatingPromo(true)
     try {
       await storeStatusManager.updatePromoPrice(price)
-      alert("Preço da promoção atualizado com sucesso!")
+      await storeStatusManager.updatePromoImage(promoImage)
+      alert("Configurações da promoção atualizadas com sucesso!")
     } finally {
       setIsUpdatingPromo(false)
     }
@@ -412,28 +415,42 @@ export default function AdminProdutosPage() {
                   />
                 </div>
 
-                <div className="flex flex-col sm:flex-row gap-4 p-4 bg-white rounded-2xl border-2 border-yellow-100 shadow-sm">
-                  <div className="flex-1 space-y-2">
-                    <Label className="font-black text-gray-900 flex items-center gap-2">
-                      <Tag className="h-4 w-4 text-yellow-600" />
-                      Preço Promocional (Batatas)
-                    </Label>
-                    <div className="relative">
-                      <span className="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-gray-400">R$</span>
+                <div className="flex flex-col gap-4 p-4 bg-white rounded-2xl border-2 border-yellow-100 shadow-sm">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="font-black text-gray-900 flex items-center gap-2">
+                        <Tag className="h-4 w-4 text-yellow-600" />
+                        Preço Promocional (Batatas)
+                      </Label>
+                      <div className="relative">
+                        <span className="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-gray-400">R$</span>
+                        <Input 
+                          type="number" 
+                          value={promoPrice} 
+                          onChange={(e) => setPromoPrice(e.target.value)}
+                          className="pl-12 h-12 rounded-xl border-2 border-gray-100 focus:border-yellow-400 font-bold text-lg"
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="font-black text-gray-900 flex items-center gap-2">
+                        <Image className="h-4 w-4 text-yellow-600" />
+                        Caminho da Imagem
+                      </Label>
                       <Input 
-                        type="number" 
-                        value={promoPrice} 
-                        onChange={(e) => setPromoPrice(e.target.value)}
-                        className="pl-12 h-12 rounded-xl border-2 border-gray-100 focus:border-yellow-400 font-bold text-lg"
+                        value={promoImage} 
+                        onChange={(e) => setPromoImage(e.target.value)}
+                        placeholder="/images/promo-batatop.png"
+                        className="h-12 rounded-xl border-2 border-gray-100 focus:border-yellow-400 font-bold"
                       />
                     </div>
                   </div>
                   <Button 
-                    onClick={handleUpdatePromoPrice}
+                    onClick={handleUpdatePromoSettings}
                     disabled={isUpdatingPromo}
-                    className="sm:self-end h-12 bg-gray-900 hover:bg-black text-white font-black rounded-xl px-8"
+                    className="h-12 bg-gray-900 hover:bg-black text-white font-black rounded-xl px-8"
                   >
-                    Salvar Preço
+                    Salvar Configurações da Promoção
                   </Button>
                 </div>
               </div>

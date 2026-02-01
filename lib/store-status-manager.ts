@@ -14,6 +14,7 @@ export interface StoreStatus {
   // Novos campos para promoção
   isPromoActive?: boolean
   promoPrice?: number
+  promoImage?: string
 }
 
 class StoreStatusManager {
@@ -99,6 +100,7 @@ class StoreStatusManager {
         if (status.isDeliveryFeeEnabled === undefined) status.isDeliveryFeeEnabled = true
         if (status.isPromoActive === undefined) status.isPromoActive = false
         if (status.promoPrice === undefined) status.promoPrice = 24.99
+        if (status.promoImage === undefined) status.promoImage = "/images/promo-batatop.png"
       }
 
       // Aplica horário automático se não houver override manual
@@ -135,7 +137,8 @@ class StoreStatusManager {
       manualOverride: false,
       lastManualChange: undefined,
       isPromoActive: false,
-      promoPrice: 24.99
+      promoPrice: 24.99,
+      promoImage: "/images/promo-batatop.png"
     }
   }
 
@@ -196,6 +199,15 @@ class StoreStatusManager {
     const newStatus = {
       ...status,
       promoPrice: price
+    }
+    await this.saveStatus(newStatus)
+  }
+
+  async updatePromoImage(imageUrl: string): Promise<void> {
+    const status = await this.getStatus()
+    const newStatus = {
+      ...status,
+      promoImage: imageUrl
     }
     await this.saveStatus(newStatus)
   }

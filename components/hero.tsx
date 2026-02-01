@@ -42,6 +42,7 @@ export function Hero({
   const [deliveryFee, setDeliveryFee] = useState(3.00)
   const [isPromoActive, setIsPromoActive] = useState(false)
   const [promoPrice, setPromoPrice] = useState(24.99)
+  const [promoImage, setPromoImage] = useState("/images/promo-batatop.png")
 
   useEffect(() => {
     const checkUserAddress = async () => {
@@ -64,6 +65,7 @@ export function Hero({
       setDeliveryFee(status.deliveryFee ?? 3.00)
       setIsPromoActive(status.isPromoActive ?? false)
       setPromoPrice(status.promoPrice ?? 24.99)
+      setPromoImage(status.promoImage ?? "/images/promo-batatop.png")
     }
     updateStatus()
     const interval = setInterval(updateStatus, 10000)
@@ -109,23 +111,17 @@ export function Hero({
         {isPromoActive && (
           <div className="mb-12 animate-in fade-in slide-in-from-top-8 duration-1000">
             <Link href="/cardapio">
-              <div className="relative group overflow-hidden rounded-[2rem] shadow-2xl shadow-yellow-200 border-4 border-yellow-400 cursor-pointer transition-all hover:scale-[1.01] active:scale-[0.99]">
+              <div className="relative group overflow-hidden rounded-[2rem] shadow-lg shadow-yellow-100 border-2 border-yellow-200 cursor-pointer transition-all hover:scale-[1.01] active:scale-[0.99]">
                 <img 
-                  src="/images/promo-batatop.png" 
+                  src={promoImage} 
                   alt="Promoção Batatop" 
-                  className="w-full h-auto object-cover"
+                  className="w-full h-auto object-cover max-h-[300px]"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                
-                {/* BADGE FLUTUANTE DE PROMOÇÃO */}
-                <div className="absolute top-4 right-4 bg-red-600 text-white px-6 py-2 rounded-full font-black text-lg shadow-xl animate-pulse flex items-center gap-2">
-                  <Megaphone className="h-5 w-5" />
-                  OFERTA ATIVA!
-                </div>
+                <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                 
                 {/* BOTÃO DE AÇÃO NO BANNER */}
                 <div className="absolute bottom-6 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all translate-y-4 group-hover:translate-y-0">
-                  <Button className="bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-black px-8 py-6 rounded-2xl text-xl shadow-2xl">
+                  <Button className="bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-black px-8 py-4 rounded-2xl text-lg shadow-2xl">
                     APROVEITAR AGORA
                     <ArrowRight className="ml-2 h-6 w-6" />
                   </Button>

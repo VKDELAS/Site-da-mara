@@ -8,8 +8,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { useAuth } from "@/lib/auth-context"
 import { useRouter } from "next/navigation"
-import { Clock, ChefHat, CheckCircle, XCircle, Phone, MapPin, ArrowLeft, RefreshCw, Filter, ShoppingBag, Trash2, User, Ticket } from "lucide-react"
+import { Clock, ChefHat, CheckCircle, XCircle, Phone, MapPin, ArrowLeft, RefreshCw, Filter, ShoppingBag, Trash2, User, Ticket, Megaphone, Zap, Tag, Image } from "lucide-react"
 import { ordersManager, type Order } from "@/lib/orders-manager"
+import { storeStatusManager } from "@/lib/store-status-manager"
+import { Switch } from "@/components/ui/switch"
+import { Label } from "@/components/ui/label"
+import { Input } from "@/components/ui/input"
 import Link from "next/link"
 
 const ADMIN_EMAILS = ["enzzobaraldo2008@gmail.com", "maraysis9010@gmail.com"]
@@ -30,6 +34,10 @@ export default function AdminPedidosPage() {
   const [filter, setFilter] = useState<"all" | Order["status"]>("all")
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
+  const [isPromoActive, setIsPromoActive] = useState(false)
+  const [promoPrice, setPromoPrice] = useState("24.99")
+  const [promoImage, setPromoImage] = useState("/images/promo-batatop.png")
+  const [isUpdatingPromo, setIsUpdatingPromo] = useState(false)
 
   useEffect(() => {
     if (!loading) {
@@ -38,6 +46,7 @@ export default function AdminPedidosPage() {
       } else if (user.email && ADMIN_EMAILS.includes(user.email)) {
         setIsAdmin(true)
         loadOrders()
+        loadPromoStatus()
         // Inicializar progressão automática dos pedidos ativos
         ordersManager.initializeActiveOrdersProgression()
         // Atualizar a cada 10 segundos
@@ -61,6 +70,39 @@ export default function AdminPedidosPage() {
       index === self.findIndex((t) => t.id === order.id)
     )
     setOrders(uniqueOrders)
+  }
+
+  const loadPromoStatus = async () => {
+    const status = await storeStatusManager.getStatus()
+    setIsPromoActive(status.isPromoActive ?? false)
+    setPromoPrice((status.promoPrice ?? 24.99).toString())
+    setPromoImage(status.promoImage ?? "/images/promo-batatop.png")
+  }
+
+  const handleTogglePromo = async () => {
+    setIsUpdatingPromo(true)
+    try {
+      const newState = await storeStatusManager.togglePromoStatus()
+      setIsPromoActive(newState)
+    } finally {
+      setIsUpdatingPromo(false)
+    }
+  }
+
+  const handleUpdatePromoSettings = async () => {
+    const price = parseFloat(promoPrice)
+    if (isNaN(price) || price <= 0) {
+      alert("Preço inválido")
+      return
+    }
+    setIsUpdatingPromo(true)
+    try {
+      await storeStatusManager.updatePromoPrice(price)
+      await storeStatusManager.updatePromoImage(promoImage)
+      alert("Configurações da promoção atualizadas com sucesso!")
+    } finally {
+      setIsUpdatingPromo(false)
+    }
   }
 
   const handleRefresh = async () => {
@@ -131,6 +173,85 @@ export default function AdminPedidosPage() {
               </Button>
             </div>
           </div>
+
+          {/* SEÇÃO DE PROMOÇÃO */}
+          <Card className="mb-8 border-2 border-yellow-400 bg-yellow-50/50 overflow-hidden rounded-3xl shadow-xl shadow-yellow-100">
+            <div className="bg-yellow-400 p-4 flex items-center gap-3">
+              <Megaphone className="h-6 w-6 text-gray-900" />
+              <h2 className="text-xl font-black text-gray-900 uppercase tracking-tight">Configurar Super Promoção</h2>
+            </div>
+            <CardContent className="p-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-center">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between p-4 bg-white rounded-2xl border-2 border-yellow-100 shadow-sm">
+                    <div className="flex items-center gap-3">
+                      <div className={`p-3 rounded-xl ${isPromoActive ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-400'}`}>
+                        <Zap className={`h-6 w-6 ${isPromoActive ? 'fill-current' : ''}`} />
+                      </div>
+                      <div>
+                        <p className="font-black text-gray-900">Status da Promoção</p>
+                        <p className="text-sm text-gray-500">{isPromoActive ? 'Ativa no site agora!' : 'Desativada no momento'}</p>
+                      </div>
+                    </div>
+                    <Switch 
+                      checked={isPromoActive} 
+                      onCheckedChange={handleTogglePromo}
+                      disabled={isUpdatingPromo}
+                      className="data-[state=checked]:bg-green-500"
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-4 p-4 bg-white rounded-2xl border-2 border-yellow-100 shadow-sm">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label className="font-black text-gray-900 flex items-center gap-2 text-xs">
+                          <Tag className="h-3 w-3 text-yellow-600" />
+                          Preço Promocional (Batatas)
+                        </Label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 font-bold text-gray-400 text-sm">R$</span>
+                          <Input 
+                            type="number" 
+                            value={promoPrice} 
+                            onChange={(e) => setPromoPrice(e.target.value)}
+                            className="pl-9 h-10 rounded-xl border-2 border-gray-100 focus:border-yellow-400 font-bold text-sm"
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="font-black text-gray-900 flex items-center gap-2 text-xs">
+                          <Image className="h-3 w-3 text-yellow-600" />
+                          Caminho da Imagem
+                        </Label>
+                        <Input 
+                          value={promoImage} 
+                          onChange={(e) => setPromoImage(e.target.value)}
+                          placeholder="/images/promo-batatop.png"
+                          className="h-10 rounded-xl border-2 border-gray-100 focus:border-yellow-400 font-bold text-xs"
+                        />
+                      </div>
+                    </div>
+                    <Button 
+                      onClick={handleUpdatePromoSettings}
+                      disabled={isUpdatingPromo}
+                      className="h-10 bg-gray-900 hover:bg-black text-white font-black rounded-xl px-6 text-sm"
+                    >
+                      Salvar Configurações
+                    </Button>
+                  </div>
+                </div>
+                <div className="hidden lg:flex bg-white p-6 rounded-2xl border-2 border-yellow-100 shadow-sm flex-col items-center text-center space-y-2">
+                  <div className="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center">
+                    <Megaphone className="h-6 w-6 text-yellow-600" />
+                  </div>
+                  <h3 className="font-black text-gray-900">Promoção Rápida</h3>
+                  <p className="text-xs text-gray-500 leading-relaxed">
+                    Ative a promoção para mudar o preço de todas as batatas e exibir o banner na home.
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-8">
             <button onClick={() => setFilter("all")} className={`p-4 rounded-2xl font-bold text-sm transition-all ${filter === "all" ? "bg-yellow-400 text-white shadow-lg" : "bg-white text-gray-700 border-2 border-gray-100 hover:border-yellow-200"}`}>
