@@ -9,6 +9,7 @@ import { useEffect, useState } from "react"
 import { ArrowLeft, Clock, MapPin, Phone, ChevronRight, Package, ShoppingBag, XCircle, Loader2, Ticket } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ordersManager, type Order } from "@/lib/orders-manager"
+import { FeedbackModal } from "@/components/feedback-modal"
 
 export default function PedidosPage() {
   const { user, loading } = useAuth()
@@ -16,6 +17,8 @@ export default function PedidosPage() {
   const [orders, setOrders] = useState<Order[]>([])
   const [isLoadingOrders, setIsLoadingOrders] = useState(true)
   const [cancellingOrderId, setCancellingOrderId] = useState<string | null>(null)
+  const [feedbackModalOrder, setFeedbackModalOrder] = useState<Order | null>(null)
+  const [evaluatedOrders, setEvaluatedOrders] = useState<string[]>([])
 
   useEffect(() => {
     if (!loading && !user) {
@@ -26,8 +29,14 @@ export default function PedidosPage() {
   useEffect(() => {
     if (user) {
       loadOrders()
+      loadEvaluatedOrders()
     }
   }, [user])
+
+  const loadEvaluatedOrders = () => {
+    const evaluated = JSON.parse(localStorage.getItem("evaluated-orders") || "[]")
+    setEvaluatedOrders(evaluated)
+  }
 
   const loadOrders = async () => {
     if (!user) return
@@ -194,11 +203,27 @@ export default function PedidosPage() {
                           <Button 
                             variant="ghost" 
                             size="sm" 
-                            className="text-red-500 font-bold hover:bg-red-50"
+                            className="text-red-500 font-bold hover:bg-red-50 hover:text-red-600" 
                             onClick={() => handleCancelOrder(order)}
                             disabled={cancellingOrderId === order.id}
                           >
-                            {cancellingOrderId === order.id ? "..." : "Cancelar"}
+                            {cancellingOrderId === order.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <>
+                                <XCircle className="h-4 w-4 mr-1" /> Cancelar
+                              </>
+                            )}
+                          </Button>
+                        )}
+                        {!evaluatedOrders.includes(order.id) && order.status !== "cancelled" && (
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="text-yellow-600 font-bold hover:bg-yellow-50" 
+                            onClick={() => setFeedbackModalOrder(order)}
+                          >
+                            ⭐ Avaliar
                           </Button>
                         )}
                         <Button variant="ghost" size="sm" className="text-yellow-600 font-bold hover:bg-yellow-50" onClick={() => router.push(`/pedidos/${order.id}`)}>
@@ -215,6 +240,17 @@ export default function PedidosPage() {
       </main>
       <Footer />
       <OrderSummary />
+      {/* Feedback Modal */}
+      {feedbackModalOrder && (
+        <FeedbackModal
+          orderId={feedbackModalOrder.id}
+          orderNumber={feedbackModalOrder.orderNumber || feedbackModalOrder.id.slice(-4).toUpperCase()}
+          onClose={() => setFeedbackModalOrder(null)}
+          onSuccess={() => {
+            loadEvaluatedOrders()
+          }}
+        />
+      )}
     </div>
   )
 }
