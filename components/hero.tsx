@@ -115,7 +115,7 @@ export function Hero({
                 <img 
                   src={promoImage} 
                   alt="Promoção Batatop" 
-                  className="w-full h-auto object-cover max-h-[300px]"
+                  className="w-full h-auto object-contain md:object-cover max-h-[250px] md:max-h-[450px]"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                 
