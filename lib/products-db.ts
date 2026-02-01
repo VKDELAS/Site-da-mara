@@ -463,7 +463,7 @@ class ProductsManager {
       if (error || !data || data.length === 0) {
         const products = await this.getProducts()
         const fallbackProduct = products.find(p => p.available) || products[0]
-        return { product: fallbackProduct, totalOrders: 12, customerPhotos: [] }
+        return { product: fallbackProduct, totalOrders: 35, customerPhotos: [] }
       }
 
       // Agrupa por nome e soma quantidades
@@ -478,17 +478,20 @@ class ProductsManager {
 
       const products = await this.getProducts()
       const topProduct = products.find(p => p.name === topProductName) || products[0]
+      
+      // Buscamos o total de clientes para garantir que pedidos >= clientes
+      const totalCustomers = await this.getTotalCustomers()
 
       return {
         product: topProduct,
-        totalOrders: Math.max(12, totalOrders), // Base mínima de 12 pedidos
+        totalOrders: Math.max(totalCustomers + 5, totalOrders), // Garante que pedidos > clientes
         customerPhotos: []
       }
     } catch {
       const products = await this.getProducts()
       return {
         product: products[0],
-        totalOrders: 12,
+        totalOrders: 35, // Base mínima coerente com 30 clientes
         customerPhotos: []
       }
     }
