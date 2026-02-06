@@ -176,90 +176,89 @@ __turbopack_context__.s([
 var __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$supabase$2f$client$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/lib/supabase/client.ts [app-client] (ecmascript)");
 ;
 class AddressesManager {
-    // Usamos um getter para garantir que o cliente do Supabase esteja sempre pronto
+    _supabase = null;
     get supabase() {
-        return (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$supabase$2f$client$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["createBrowserClient"])();
+        if (!this._supabase) {
+            try {
+                this._supabase = (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$supabase$2f$client$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["createBrowserClient"])();
+            } catch (e) {
+                console.error("[AddressesManager] Erro ao inicializar cliente Supabase:", e);
+            }
+        }
+        return this._supabase;
     }
     async getUserAddresses(userId) {
         try {
-            if (!userId) {
-                console.warn("[AddressesManager] Tentativa de buscar endereços sem userId");
-                return [];
-            }
-            const { data, error } = await this.supabase.from("addresses").select("*").eq("user_id", userId).order("is_default", {
+            if (!userId) return [];
+            const client = this.supabase;
+            if (!client) return [];
+            const { data, error } = await client.from("addresses").select("*").eq("user_id", userId).order("is_default", {
                 ascending: false
             }).order("created_at", {
                 ascending: false
             });
             if (error) {
-                console.error("[AddressesManager] Erro ao buscar endereços:", error.message, error.details);
-                throw error;
+                console.error("[AddressesManager] Erro Supabase:", error.message);
+                return [];
             }
             return data || [];
         } catch (error) {
-            console.error("[AddressesManager] Erro crítico em getUserAddresses:", error.message || error);
+            console.error("[AddressesManager] Erro de rede ou conexão:", error.message || error);
             return [];
         }
     }
     async addAddress(address) {
         try {
-            const { data, error } = await this.supabase.from("addresses").insert([
+            const client = this.supabase;
+            if (!client) return null;
+            const { data, error } = await client.from("addresses").insert([
                 address
             ]).select().single();
-            if (error) {
-                console.error("[AddressesManager] Erro ao adicionar endereço:", error.message, error.details);
-                throw error;
-            }
+            if (error) throw error;
             return data;
         } catch (error) {
-            console.error("[AddressesManager] Erro crítico em addAddress:", error.message || error);
+            console.error("[AddressesManager] Erro ao adicionar endereço:", error.message || error);
             return null;
         }
     }
     async updateAddress(id, updates) {
         try {
-            const { data, error } = await this.supabase.from("addresses").update(updates).eq("id", id).select().single();
-            if (error) {
-                console.error("[AddressesManager] Erro ao atualizar endereço:", error.message, error.details);
-                throw error;
-            }
+            const client = this.supabase;
+            if (!client) return null;
+            const { data, error } = await client.from("addresses").update(updates).eq("id", id).select().single();
+            if (error) throw error;
             return data;
         } catch (error) {
-            console.error("[AddressesManager] Erro crítico em updateAddress:", error.message || error);
+            console.error("[AddressesManager] Erro ao atualizar endereço:", error.message || error);
             return null;
         }
     }
     async deleteAddress(id) {
         try {
-            const { error } = await this.supabase.from("addresses").delete().eq("id", id);
-            if (error) {
-                console.error("[AddressesManager] Erro ao deletar endereço:", error.message, error.details);
-                throw error;
-            }
+            const client = this.supabase;
+            if (!client) return false;
+            const { error } = await client.from("addresses").delete().eq("id", id);
+            if (error) throw error;
             return true;
         } catch (error) {
-            console.error("[AddressesManager] Erro crítico em deleteAddress:", error.message || error);
+            console.error("[AddressesManager] Erro ao deletar endereço:", error.message || error);
             return false;
         }
     }
     async setDefaultAddress(userId, addressId) {
         try {
-            // Primeiro, remove o padrão de todos os outros endereços do usuário
-            const { error: updateError } = await this.supabase.from("addresses").update({
+            const client = this.supabase;
+            if (!client) return false;
+            await client.from("addresses").update({
                 is_default: false
             }).eq("user_id", userId);
-            if (updateError) throw updateError;
-            // Depois, define o novo endereço como padrão
-            const { error } = await this.supabase.from("addresses").update({
+            const { error } = await client.from("addresses").update({
                 is_default: true
             }).eq("id", addressId).eq("user_id", userId);
-            if (error) {
-                console.error("[AddressesManager] Erro ao definir endereço padrão:", error.message, error.details);
-                throw error;
-            }
+            if (error) throw error;
             return true;
         } catch (error) {
-            console.error("[AddressesManager] Erro crítico em setDefaultAddress:", error.message || error);
+            console.error("[AddressesManager] Erro ao definir padrão:", error.message || error);
             return false;
         }
     }

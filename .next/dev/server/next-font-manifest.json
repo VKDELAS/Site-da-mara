@@ -1,6 +1,12 @@
 {
   "app": {
+    "[project]/app/_not-found/page": [
+      "static/media/caa3a2e1cccd8315-s.p.853070df.woff2"
+    ],
     "[project]/app/admin/caixa/page": [
+      "static/media/caa3a2e1cccd8315-s.p.853070df.woff2"
+    ],
+    "[project]/app/admin/cupons/page": [
       "static/media/caa3a2e1cccd8315-s.p.853070df.woff2"
     ],
     "[project]/app/admin/feedbacks/page": [
@@ -25,6 +31,9 @@
       "static/media/caa3a2e1cccd8315-s.p.853070df.woff2"
     ],
     "[project]/app/page": [
+      "static/media/caa3a2e1cccd8315-s.p.853070df.woff2"
+    ],
+    "[project]/app/pedidos/page": [
       "static/media/caa3a2e1cccd8315-s.p.853070df.woff2"
     ]
   },

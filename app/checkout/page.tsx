@@ -296,7 +296,7 @@ export default function CheckoutPage() {
       window.open(whatsappUrl, '_blank')
       
       // Redirecionar página atual para Meus Pedidos
-      router.push('/meus-pedidos')
+      router.push('/pedidos')
       
     } catch (error) {
       console.error("Erro ao finalizar pedido:", error)
@@ -403,8 +403,33 @@ export default function CheckoutPage() {
                         <div className="space-y-4">
                           <div className="flex items-center justify-between"><Label className="font-bold text-gray-600">Dados do Endereço</Label>{user && addresses.length > 0 && <Button variant="ghost" onClick={() => setUseNewAddress(false)} className="text-gray-400 text-xs font-bold">Voltar aos salvos</Button>}</div>
                           <div className="grid md:grid-cols-3 gap-4">
-                            <div className="md:col-span-2 space-y-2"><Label className="text-xs font-bold text-gray-400">CEP</Label><Input value={cep} onChange={(e) => handleCepChange(e.target.value)} placeholder="00000-000" className="h-12 rounded-xl border-gray-100" /></div>
-                            <div className="flex items-end pb-2"><label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={naoSeiCep} onChange={(e) => setNaoSeiCep(e.target.checked)} className="rounded border-gray-300 text-yellow-500 focus:ring-yellow-500" /><span className="text-xs font-bold text-gray-500">Não sei meu CEP</span></label></div>
+                            <div className="md:col-span-2 space-y-2">
+                              <Label className="text-xs font-bold text-gray-400">CEP</Label>
+                              <Input 
+                                value={cep} 
+                                onChange={(e) => handleCepChange(e.target.value)} 
+                                placeholder="00000-000" 
+                                className="h-12 rounded-xl border-gray-100" 
+                                disabled={naoSeiCep}
+                              />
+                            </div>
+                            <div className="flex items-end pb-2">
+                              <label className="flex items-center gap-2 cursor-pointer">
+                                <input 
+                                  type="checkbox" 
+                                  checked={naoSeiCep} 
+                                  onChange={(e) => {
+                                    setNaoSeiCep(e.target.checked);
+                                    if (e.target.checked) {
+                                      setCep("");
+                                      setEnderecoError("");
+                                    }
+                                  }} 
+                                  className="rounded border-gray-300 text-yellow-500 focus:ring-yellow-500" 
+                                />
+                                <span className="text-xs font-bold text-gray-500">Não sei meu CEP</span>
+                              </label>
+                            </div>
                           </div>
                           <div className="grid md:grid-cols-4 gap-4">
                             <div className="md:col-span-3 space-y-2"><Label className="text-xs font-bold text-gray-400">Rua</Label><Input value={rua} onChange={(e) => setRua(e.target.value)} placeholder="Nome da rua" className="h-12 rounded-xl border-gray-100" /></div>
