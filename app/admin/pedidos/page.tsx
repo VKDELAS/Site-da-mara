@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { useAuth } from "@/lib/auth-context"
 import { useRouter } from "next/navigation"
-import { Clock, ChefHat, CheckCircle, XCircle, Phone, MapPin, ArrowLeft, RefreshCw, Filter, ShoppingBag, Trash2, User, Ticket, Megaphone, Zap, Tag, Image, CreditCard, FileText, Volume2, VolumeX } from "lucide-react"
+import { Clock, ChefHat, CheckCircle, XCircle, Phone, MapPin, ArrowLeft, RefreshCw, Filter, ShoppingBag, Trash2, User, Ticket, Megaphone, Zap, Tag, Image, CreditCard, FileText, Volume2, VolumeX, BellRing } from "lucide-react"
 import { ordersManager, type Order } from "@/lib/orders-manager"
 import { storeStatusManager } from "@/lib/store-status-manager"
 import { Switch } from "@/components/ui/switch"
@@ -34,6 +34,7 @@ export default function AdminPedidosPage() {
   const [filter, setFilter] = useState<"all" | Order["status"]>("all")
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [audioEnabled, setAudioEnabled] = useState(false)
+  const [permissionStatus, setPermissionStatus] = useState<string>("default")
   const lastOrdersCount = useRef<number>(0)
   const audioRef = useRef<HTMLAudioElement | null>(null)
 
@@ -44,15 +45,18 @@ export default function AdminPedidosPage() {
       setAudioEnabled(true)
     }
 
+    // Verificar permissão de notificação
+    if ("Notification" in window) {
+      setPermissionStatus(Notification.permission)
+    }
+
     if (!loading) {
       if (!user) {
         router.push("/login")
       } else if (user.email && ADMIN_EMAILS.includes(user.email)) {
         setIsAdmin(true)
         loadOrders(true)
-        // Inicializar progressão automática dos pedidos ativos
         ordersManager.initializeActiveOrdersProgression()
-        // Atualizar a cada 10 segundos
         const interval = setInterval(() => {
           loadOrders()
           ordersManager.initializeActiveOrdersProgression()
@@ -67,19 +71,35 @@ export default function AdminPedidosPage() {
 
   const playNotificationSound = () => {
     if (audioEnabled && audioRef.current) {
-      // Tocar som. Se já estiver tocando, reinicia.
+      // Tenta tocar o som com volume máximo
+      audioRef.current.volume = 1.0
       audioRef.current.currentTime = 0
-      audioRef.current.play().catch(err => console.error("Erro ao tocar som:", err))
+      const playPromise = audioRef.current.play()
       
-      // Notificação do navegador (funciona mesmo fora da aba se permitido)
-      if ("Notification" in window) {
-        if (Notification.permission === "granted") {
-          new Notification("Novo Pedido Recebido!", {
-            body: "Um novo pedido acaba de chegar no sistema.",
-            icon: "/favicon.ico"
-          })
-        } else if (Notification.permission !== "denied") {
-          Notification.requestPermission()
+      if (playPromise !== undefined) {
+        playPromise.catch(err => {
+          console.error("Erro ao tocar som (bloqueio do navegador):", err)
+          // Se falhar, avisa o usuário que ele precisa interagir com a página
+        })
+      }
+      
+      // Vibração para celulares (se suportado)
+      if ("vibrate" in navigator) {
+        navigator.vibrate([500, 200, 500, 200, 500])
+      }
+      
+      // Notificação do navegador
+      if ("Notification" in window && Notification.permission === "granted") {
+        const notification = new Notification("🚨 NOVO PEDIDO - BATATOP!", {
+          body: "Um novo pedido acaba de chegar! Abra o painel para conferir.",
+          icon: "/favicon.ico",
+          tag: "novo-pedido", // Evita múltiplas notificações iguais
+          requireInteraction: true // Mantém a notificação visível até o usuário clicar
+        })
+        
+        notification.onclick = () => {
+          window.focus()
+          notification.close()
         }
       }
     }
@@ -94,7 +114,7 @@ export default function AdminPedidosPage() {
         index === self.findIndex((t) => t.id === order.id)
       )
       
-      // Verificar se há novos pedidos para tocar o som
+      // Se o número de pedidos aumentou, toca o som
       if (!isInitial && uniqueOrders.length > lastOrdersCount.current) {
         playNotificationSound()
       }
@@ -119,7 +139,7 @@ export default function AdminPedidosPage() {
   }
 
   const handleDeleteOrder = async (orderId: string) => {
-    if (!confirm("Tem certeza que deseja DELETAR este pedido permanentemente? Esta ação removerá o pedido de todos os registros, inclusive do faturamento.")) return
+    if (!confirm("Tem certeza que deseja DELETAR este pedido permanentemente?")) return
     try {
       await ordersManager.deleteOrder(orderId)
       await loadOrders()
@@ -132,14 +152,21 @@ export default function AdminPedidosPage() {
     const newState = !audioEnabled
     setAudioEnabled(newState)
     localStorage.setItem("admin-audio-enabled", String(newState))
+    
     if (newState) {
-      // Solicitar permissão de notificação ao ativar o som
-      if ("Notification" in window && Notification.permission === "default") {
-        Notification.requestPermission()
+      // Solicitar permissão de notificação
+      if ("Notification" in window) {
+        Notification.requestPermission().then(permission => {
+          setPermissionStatus(permission)
+        })
       }
-      // Tocar um som curto para confirmar a ativação e "desbloquear" o áudio no navegador
+      
+      // Tocar som de teste para "desbloquear" o áudio no navegador
       if (audioRef.current) {
-        audioRef.current.play().catch(() => {})
+        audioRef.current.volume = 1.0
+        audioRef.current.play().catch(() => {
+          alert("Clique em qualquer lugar da página para ativar o som de notificações.")
+        })
       }
     }
   }
@@ -168,14 +195,37 @@ export default function AdminPedidosPage() {
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-yellow-50 via-white to-yellow-50">
       <HeaderWrapper />
-      {/* Som de notificação mais longo e chamativo (Campainha de loja) */}
+      
+      {/* SOM DE ALTO IMPACTO (Campainha de Loja Forte) */}
       <audio 
         ref={audioRef} 
         src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" 
         preload="auto" 
       />
+
       <main className="flex-1 py-8 px-4 md:px-6">
         <div className="container mx-auto max-w-7xl">
+          
+          {/* AVISO DE CONFIGURAÇÃO DE SOM */}
+          {!audioEnabled && (
+            <div className="mb-6 p-4 bg-red-50 border-2 border-red-200 rounded-2xl flex items-center justify-between animate-bounce">
+              <div className="flex items-center gap-3 text-red-700">
+                <VolumeX className="h-6 w-6" />
+                <p className="font-black text-sm">O SOM ESTÁ DESATIVADO! Você não ouvirá quando chegar pedido.</p>
+              </div>
+              <Button onClick={toggleAudio} className="bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl">
+                ATIVAR AGORA
+              </Button>
+            </div>
+          )}
+
+          {permissionStatus === "denied" && (
+            <div className="mb-6 p-4 bg-orange-50 border-2 border-orange-200 rounded-2xl flex items-center gap-3 text-orange-700">
+              <BellRing className="h-6 w-6" />
+              <p className="font-bold text-sm">As notificações estão bloqueadas no seu navegador. Para receber avisos no celular, você precisa permitir as notificações nas configurações do site.</p>
+            </div>
+          )}
+
           <div className="mb-8">
             <Link href="/admin">
               <Button variant="ghost" className="mb-6 text-gray-600 hover:text-yellow-600 hover:bg-yellow-50 font-semibold gap-2">
@@ -198,13 +248,13 @@ export default function AdminPedidosPage() {
                 <Button 
                   onClick={toggleAudio} 
                   variant={audioEnabled ? "default" : "outline"}
-                  className={`font-bold rounded-xl gap-2 shadow-lg transition-all ${audioEnabled ? "bg-green-500 hover:bg-green-600 text-white" : "border-gray-200 text-gray-500"}`}
+                  className={`font-black rounded-xl gap-2 shadow-lg transition-all h-12 px-6 ${audioEnabled ? "bg-green-500 hover:bg-green-600 text-white scale-105" : "border-gray-200 text-gray-500"}`}
                 >
-                  {audioEnabled ? <Volume2 className="h-5 w-5 animate-pulse" /> : <VolumeX className="h-5 w-5" />}
-                  {audioEnabled ? "Som Ativado" : "Som Desativado"}
+                  {audioEnabled ? <Volume2 className="h-6 w-6 animate-pulse" /> : <VolumeX className="h-6 w-6" />}
+                  {audioEnabled ? "SOM LIGADO" : "SOM DESLIGADO"}
                 </Button>
                 
-                <Button onClick={handleRefresh} disabled={isRefreshing} className="bg-yellow-400 hover:bg-yellow-500 text-white font-bold rounded-xl gap-2 shadow-lg">
+                <Button onClick={handleRefresh} disabled={isRefreshing} className="bg-yellow-400 hover:bg-yellow-500 text-white font-bold rounded-xl gap-2 shadow-lg h-12">
                   <RefreshCw className={`h-5 w-5 ${isRefreshing ? "animate-spin" : ""}`} /> Atualizar
                 </Button>
               </div>
