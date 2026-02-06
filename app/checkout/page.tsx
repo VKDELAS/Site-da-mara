@@ -10,9 +10,9 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { useCart } from "@/lib/cart-context"
+import { useCart, type CartItem } from "@/lib/cart-context"
 import { useAuth } from "@/lib/auth-context"
-import { ShoppingBag, MapPin, CreditCard, AlertCircle, Plus, Store, Ticket, Check, X, User, Loader2, Utensils } from "lucide-react"
+import { ShoppingBag, MapPin, CreditCard, AlertCircle, Plus, Store, Ticket, Check, X, User, Loader2, Utensils, MessageCircle } from "lucide-react"
 import Link from "next/link"
 import { couponsManager, type Coupon } from "@/lib/cupons-manager"
 import { storeStatusManager } from "@/lib/store-status-manager"
@@ -233,7 +233,8 @@ export default function CheckoutPage() {
           product_name: item.name,
           product_price: item.price,
           quantity: item.quantity,
-          adicionais: item.adicionais || []
+          adicionais: item.adicionais || [],
+          pastaType: item.pastaType || null // Incluindo o tipo de macarrão
         }))
       }
 
@@ -260,94 +261,80 @@ export default function CheckoutPage() {
         const itemAdicionaisTotal = itemAdicionais.reduce((sum, a) => sum + ((a.price || 0) * (a.quantity || 1)), 0)
         const itemTotal = (itemPrice + itemAdicionaisTotal) * itemQty
         message += `*${itemQty}x ${(item.name || "Produto").toUpperCase()}*\n`
+        if (item.pastaType) {
+          message += `  Tipo: ${item.pastaType.toUpperCase()}\n`
+        }
         message += `  Preço un: R$ ${itemPrice.toFixed(2).replace('.', ',')}\n`
         if (itemAdicionais.length > 0) {
           message += `  + ${itemAdicionais.length} adicionais\n`
           itemAdicionais.forEach(a => {
-            message += `    - ${a.quantity || 1}x ${a.name || "Adicional"} (R$ ${((a.price || 0) * (a.quantity || 1)).toFixed(2).replace('.', ',')})\n`
+            message += `    - ${a.quantity}x ${a.name} (R$ ${a.price.toFixed(2).replace('.', ',')})\n`
           })
         }
-        message += `  *Subtotal item: R$ ${itemTotal.toFixed(2).replace('.', ',')}*\n\n`
+        message += `  *Subtotal: R$ ${itemTotal.toFixed(2).replace('.', ',')}*\n\n`
       })
       message += "------------------------------------------\n"
-      message += `Subtotal: R$ ${getTotalPrice().toFixed(2).replace('.', ',')}\n`
-      if (appliedCoupon) {
-        message += `Cupom (${appliedCoupon.code}): -R$ ${getDiscountAmount().toFixed(2).replace('.', ',')}\n`
+      message += `*SUBTOTAL: R$ ${getTotalPrice().toFixed(2).replace('.', ',')}*\n`
+      if (getDiscountAmount() > 0) {
+        message += `*DESCONTO: - R$ ${getDiscountAmount().toFixed(2).replace('.', ',')}*\n`
       }
       message += `*TOTAL A PAGAR: R$ ${getFinalTotal().toFixed(2).replace('.', ',')}*\n\n`
-      message += "*PAGAMENTO*\n"
-      message += `* Método: ${formaPagamento.toUpperCase()}\n`
-      if (formaPagamento === "dinheiro" && troco) message += `* Troco para: R$ ${troco}\n`
-      message += `* Precisa de colher: ${precisaTalheres === "sim" ? "SIM" : "NÃO"}\n`
-      if (observacoes) message += `\n*OBSERVAÇÕES:*\n${observacoes}\n`
+      message += `*FORMA DE PAGAMENTO: ${formaPagamento.toUpperCase()}*\n`
+      if (formaPagamento === "dinheiro" && troco) {
+        message += `*Troco para: R$ ${troco}*\n`
+      }
       message += "\n------------------------------------------\n"
-      message += "Pedido enviado pelo site Batatop"
+      message += `*OBSERVAÇÕES:*\n${observacoes || "Nenhuma"}\n`
+      message += `*PRECISA DE COLHER: ${precisaTalheres === "sim" ? "SIM" : "NÃO"}*\n`
 
-      const whatsappUrl = `https://wa.me/5514997361015?text=${encodeURIComponent(message)}`
+      const encodedMessage = encodeURIComponent(message)
+      const whatsappUrl = `https://wa.me/5514991183535?text=${encodedMessage}`
       
       clearCart()
-      window.open(whatsappUrl, "_blank")
-      router.push("/pedidos")
-
+      
+      // Abrir WhatsApp em nova aba
+      window.open(whatsappUrl, '_blank')
+      
+      // Redirecionar página atual para Meus Pedidos
+      router.push('/meus-pedidos')
+      
     } catch (error) {
-      console.error(error)
-      alert("Erro ao processar pedido")
+      console.error("Erro ao finalizar pedido:", error)
+      alert("Ocorreu um erro ao processar seu pedido. Por favor, tente novamente.")
     } finally {
       setIsSubmitting(false)
     }
   }
 
-  if (items.length === 0) {
-    return (
-      <div className="min-h-screen flex flex-col">
-        <HeaderWrapper />
-        <main className="flex-1 flex items-center justify-center py-12">
-          <div className="text-center space-y-4">
-            <div className="h-20 w-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto">
-              <ShoppingBag className="h-10 w-10 text-gray-300" />
-            </div>
-            <h2 className="text-2xl font-black text-gray-800">Seu carrinho está vazio</h2>
-            <Button asChild className="bg-yellow-500 hover:bg-yellow-600 text-white font-bold rounded-2xl px-8">
-              <Link href="/cardapio">Ver Cardápio</Link>
-            </Button>
-          </div>
-        </main>
-        <Footer />
-      </div>
-    )
-  }
-
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
       <HeaderWrapper />
-      <main className="flex-1 py-8">
-        <div className="container mx-auto px-4 max-w-6xl">
-          <div className="flex items-center gap-3 mb-8">
-            <div className="h-12 w-12 bg-yellow-500 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-yellow-100">
-              <ShoppingBag className="h-6 w-6" />
+      <main className="flex-1 py-8 px-4 md:px-6">
+        <div className="container mx-auto max-w-6xl">
+          <div className="flex items-center gap-4 mb-8">
+            <div className="h-12 w-12 bg-yellow-500 rounded-2xl flex items-center justify-center shadow-lg">
+              <ShoppingBag className="h-6 w-6 text-white" />
             </div>
             <div>
-              <h1 className="text-3xl font-black text-gray-800">Finalizar Pedido</h1>
-              <p className="text-gray-500 text-sm">Quase lá! Só precisamos de mais alguns detalhes.</p>
+              <h1 className="text-3xl font-black text-gray-900">Finalizar Pedido</h1>
+              <p className="text-gray-500 font-medium">Preencha os dados para entrega</p>
             </div>
           </div>
 
-          <div className="grid lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2 space-y-6">
-              <Card className="rounded-3xl border-none shadow-sm overflow-hidden">
-                <CardHeader className="bg-white border-b border-gray-50">
-                  <CardTitle className="text-lg font-black flex items-center gap-2">
-                    <User className="h-5 w-5 text-yellow-500" /> Seus Dados
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-6 grid md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label className="font-bold text-gray-600">Nome Completo</Label>
-                    <Input value={nome} onChange={(e) => handleNomeChange(e.target.value)} placeholder="Como quer ser chamado?" className="h-12 rounded-xl border-gray-100" />
+              {/* AVISO DO WHATSAPP */}
+              <Card className="rounded-3xl border-2 border-green-500 bg-green-50 overflow-hidden shadow-lg animate-pulse">
+                <CardContent className="p-6 flex items-center gap-4">
+                  <div className="h-12 w-12 bg-green-500 rounded-full flex items-center justify-center shrink-0 shadow-md">
+                    <MessageCircle className="h-6 w-6 text-white" />
                   </div>
-                  <div className="space-y-2">
-                    <Label className="font-bold text-gray-600">WhatsApp</Label>
-                    <Input value={telefone} onChange={(e) => handleTelefoneChange(e.target.value)} placeholder="(00) 00000-0000" className="h-12 rounded-xl border-gray-100" />
+                  <div>
+                    <h3 className="text-lg font-black text-green-800">ATENÇÃO: PASSO IMPORTANTE!</h3>
+                    <p className="text-sm text-green-700 font-bold leading-tight">
+                      Após clicar em "Finalizar Pedido", o WhatsApp abrirá em uma nova aba. 
+                      <span className="text-green-900 underline ml-1">Você PRECISA clicar em ENVIAR a mensagem</span> que aparecerá lá para que possamos receber seu pedido!
+                    </p>
                   </div>
                 </CardContent>
               </Card>
@@ -355,97 +342,79 @@ export default function CheckoutPage() {
               <Card className="rounded-3xl border-none shadow-sm overflow-hidden">
                 <CardHeader className="bg-white border-b border-gray-50">
                   <CardTitle className="text-lg font-black flex items-center gap-2">
-                    <MapPin className="h-5 w-5 text-yellow-500" /> Como quer receber?
+                    <User className="h-5 w-5 text-yellow-500" /> Seus Dados
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="p-6">
-                  {!isDeliveryEnabled && (
-                    <div className="mb-6 p-4 bg-orange-50 border border-orange-100 rounded-2xl flex items-start gap-3 text-orange-800">
-                      <AlertCircle className="h-5 w-5 shrink-0 mt-0.5 text-orange-600" />
-                      <div>
-                        <p className="text-sm font-bold">Entregas Temporariamente Indisponíveis</p>
-                        <p className="text-xs opacity-90">No momento estamos trabalhando apenas com **retirada no local**.</p>
-                      </div>
+                <CardContent className="p-6 space-y-4">
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="font-bold text-gray-600">Nome Completo</Label>
+                      <Input value={nome} onChange={(e) => handleNomeChange(e.target.value)} placeholder="Como quer ser chamado?" className="h-12 rounded-xl border-gray-100" />
                     </div>
-                  )}
-                  <RadioGroup value={deliveryType} onValueChange={(v: any) => { if (!isDeliveryEnabled && v === "delivery") return; setDeliveryType(v); }} className="grid md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="font-bold text-gray-600">WhatsApp</Label>
+                      <Input value={telefone} onChange={(e) => handleTelefoneChange(e.target.value)} placeholder="(00) 00000-0000" className="h-12 rounded-xl border-gray-100" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="rounded-3xl border-none shadow-sm overflow-hidden">
+                <CardHeader className="bg-white border-b border-gray-50">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-lg font-black flex items-center gap-2">
+                      <MapPin className="h-5 w-5 text-yellow-500" /> Entrega ou Retirada
+                    </CardTitle>
+                  </div>
+                </CardHeader>
+                <CardContent className="p-6">
+                  <RadioGroup value={deliveryType} onValueChange={(val: any) => setDeliveryType(val)} className="grid md:grid-cols-2 gap-4 mb-6">
                     <div className={!isDeliveryEnabled ? "opacity-50 cursor-not-allowed" : ""}>
                       <RadioGroupItem value="delivery" id="delivery" className="peer sr-only" disabled={!isDeliveryEnabled} />
-                      <Label htmlFor="delivery" className={`flex flex-col items-center justify-between rounded-2xl border-2 border-gray-100 bg-white p-4 transition-all ${isDeliveryEnabled ? "hover:bg-gray-50 peer-data-[state=checked]:border-yellow-500 cursor-pointer" : "cursor-not-allowed"}`}>
-                        <MapPin className={`h-6 w-6 mb-2 ${isDeliveryEnabled ? "text-gray-400 peer-data-[state=checked]:text-yellow-500" : "text-gray-300"}`} />
-                        <span className="font-bold text-gray-600">Entrega</span>
-                        <span className="text-xs text-gray-400">{isDeliveryEnabled ? "Receba em casa" : "Indisponível"}</span>
+                      <Label htmlFor="delivery" className="flex flex-col items-center justify-center rounded-2xl border-2 border-gray-100 bg-white p-4 hover:bg-gray-50 peer-data-[state=checked]:border-yellow-500 cursor-pointer transition-all h-full">
+                        <span className="font-bold text-gray-600">Delivery (Entrega)</span>
+                        {!isDeliveryEnabled && <span className="text-[10px] text-red-500 font-bold mt-1">INDISPONÍVEL NO MOMENTO</span>}
                       </Label>
                     </div>
                     <div>
                       <RadioGroupItem value="pickup" id="pickup" className="peer sr-only" />
-                      <Label htmlFor="pickup" className="flex flex-col items-center justify-between rounded-2xl border-2 border-gray-100 bg-white p-4 hover:bg-gray-50 peer-data-[state=checked]:border-yellow-500 cursor-pointer transition-all">
-                        <Store className="h-6 w-6 mb-2 text-gray-400 peer-data-[state=checked]:text-yellow-500" />
-                        <span className="font-bold text-gray-600">Retirada</span>
-                        <span className="text-xs text-gray-400">Busque no local</span>
+                      <Label htmlFor="pickup" className="flex flex-col items-center justify-center rounded-2xl border-2 border-gray-100 bg-white p-4 hover:bg-gray-50 peer-data-[state=checked]:border-yellow-500 cursor-pointer transition-all h-full">
+                        <span className="font-bold text-gray-600">Retirada no Local</span>
                       </Label>
                     </div>
                   </RadioGroup>
 
                   {deliveryType === "delivery" && (
-                    <div className="mt-6 space-y-6">
-                      {addresses.length > 0 && (
-                        <div className="space-y-3">
-                          <Label className="font-bold text-gray-600">Seus Endereços Salvos</Label>
+                    <div className="space-y-6 animate-in fade-in slide-in-from-top-2 duration-300">
+                      {user && addresses.length > 0 && !useNewAddress ? (
+                        <div className="space-y-4">
+                          <Label className="font-bold text-gray-600">Selecione um endereço salvo:</Label>
                           <div className="grid gap-3">
                             {addresses.map((addr) => (
-                              <div key={addr.id} onClick={() => { setSelectedAddressId(addr.id); setUseNewAddress(false); }} className={`p-4 rounded-2xl border-2 cursor-pointer transition-all flex items-start gap-3 ${selectedAddressId === addr.id && !useNewAddress ? "border-yellow-500 bg-yellow-50" : "border-gray-100 hover:border-yellow-200"}`}>
-                                <div className={`mt-1 h-5 w-5 rounded-full border-2 flex items-center justify-center ${selectedAddressId === addr.id && !useNewAddress ? "border-yellow-500" : "border-gray-300"}`}>
-                                  {selectedAddressId === addr.id && !useNewAddress && <div className="h-2.5 w-2.5 rounded-full bg-yellow-500" />}
-                                </div>
-                                <div className="flex-1">
-                                  <p className="font-bold text-gray-800">{addr.street}, {addr.number}</p>
-                                  <p className="text-sm text-gray-500">{addr.neighborhood} - {addr.city}/{addr.state}</p>
-                                </div>
+                              <div key={addr.id} onClick={() => setSelectedAddressId(addr.id)} className={`p-4 rounded-2xl border-2 cursor-pointer transition-all ${selectedAddressId === addr.id ? "border-yellow-500 bg-yellow-50" : "border-gray-100 hover:border-gray-200"}`}>
+                                <p className="font-bold text-gray-900">{addr.street}, {addr.number}</p>
+                                <p className="text-sm text-gray-500">{addr.neighborhood} - {addr.city}/{addr.state}</p>
                               </div>
                             ))}
                           </div>
-                          <Button variant="ghost" onClick={() => setUseNewAddress(true)} className="w-full rounded-xl border-2 border-dashed border-gray-200 text-gray-500 hover:border-yellow-500 h-12">
-                            <Plus className="h-4 w-4 mr-2" /> Usar outro endereço
-                          </Button>
+                          <Button variant="ghost" onClick={() => setUseNewAddress(true)} className="text-yellow-600 font-bold gap-2"><Plus className="h-4 w-4" /> Usar outro endereço</Button>
                         </div>
-                      )}
-                      {(useNewAddress || addresses.length === 0) && (
+                      ) : (
                         <div className="space-y-4">
+                          <div className="flex items-center justify-between"><Label className="font-bold text-gray-600">Dados do Endereço</Label>{user && addresses.length > 0 && <Button variant="ghost" onClick={() => setUseNewAddress(false)} className="text-gray-400 text-xs font-bold">Voltar aos salvos</Button>}</div>
                           <div className="grid md:grid-cols-3 gap-4">
-                            <div className="space-y-2">
-                              <div className="flex items-center justify-between">
-                                <Label className="font-bold text-gray-600">CEP</Label>
-                                <div className="flex items-center gap-2">
-                                  <input 
-                                    type="checkbox" 
-                                    id="naoSeiCep" 
-                                    checked={naoSeiCep} 
-                                    onChange={(e) => {
-                                      setNaoSeiCep(e.target.checked)
-                                      if (e.target.checked) setCep("17150-000")
-                                    }}
-                                    className="h-4 w-4 rounded border-gray-300 text-yellow-600 focus:ring-yellow-500"
-                                  />
-                                  <label htmlFor="naoSeiCep" className="text-[10px] font-bold text-gray-500 cursor-pointer">Não sei meu CEP</label>
-                                </div>
-                              </div>
-                              <Input 
-                                value={cep} 
-                                onChange={(e) => handleCepChange(e.target.value)} 
-                                placeholder="00000-000" 
-                                className={`h-12 rounded-xl border-gray-100 ${naoSeiCep ? "bg-gray-50 text-gray-400" : ""}`}
-                                disabled={naoSeiCep}
-                              />
-                            </div>
-                            <div className="md:col-span-2 space-y-2"><Label className="font-bold text-gray-600">Rua</Label><Input value={rua} onChange={(e) => setRua(e.target.value)} placeholder="Nome da rua" className="h-12 rounded-xl border-gray-100" /></div>
+                            <div className="md:col-span-2 space-y-2"><Label className="text-xs font-bold text-gray-400">CEP</Label><Input value={cep} onChange={(e) => handleCepChange(e.target.value)} placeholder="00000-000" className="h-12 rounded-xl border-gray-100" /></div>
+                            <div className="flex items-end pb-2"><label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={naoSeiCep} onChange={(e) => setNaoSeiCep(e.target.checked)} className="rounded border-gray-300 text-yellow-500 focus:ring-yellow-500" /><span className="text-xs font-bold text-gray-500">Não sei meu CEP</span></label></div>
+                          </div>
+                          <div className="grid md:grid-cols-4 gap-4">
+                            <div className="md:col-span-3 space-y-2"><Label className="text-xs font-bold text-gray-400">Rua</Label><Input value={rua} onChange={(e) => setRua(e.target.value)} placeholder="Nome da rua" className="h-12 rounded-xl border-gray-100" /></div>
+                            <div className="space-y-2"><Label className="text-xs font-bold text-gray-400">Número</Label><Input value={numero} onChange={(e) => setNumero(e.target.value)} placeholder="Nº" className="h-12 rounded-xl border-gray-100" /></div>
                           </div>
                           <div className="grid md:grid-cols-2 gap-4">
-                            <div className="space-y-2"><Label className="font-bold text-gray-600">Número</Label><Input value={numero} onChange={(e) => setNumero(e.target.value)} placeholder="Nº" className="h-12 rounded-xl border-gray-100" /></div>
-                            <div className="space-y-2"><Label className="font-bold text-gray-600">Bairro</Label><Input value={bairro} onChange={(e) => setBairro(e.target.value)} placeholder="Seu bairro" className="h-12 rounded-xl border-gray-100" /></div>
+                            <div className="space-y-2"><Label className="text-xs font-bold text-gray-400">Bairro</Label><Input value={bairro} onChange={(e) => setBairro(e.target.value)} placeholder="Seu bairro" className="h-12 rounded-xl border-gray-100" /></div>
+                            <div className="space-y-2"><Label className="text-xs font-bold text-gray-400">Complemento (Opcional)</Label><Input value={complemento} onChange={(e) => setComplemento(e.target.value)} placeholder="Apto, bloco, etc" className="h-12 rounded-xl border-gray-100" /></div>
                           </div>
-                          <div className="space-y-2"><Label className="font-bold text-gray-600">Complemento (Opcional)</Label><Input value={complemento} onChange={(e) => setComplemento(e.target.value)} placeholder="Apto, bloco..." className="h-12 rounded-xl border-gray-100" /></div>
-                          {enderecoError && <div className="p-4 bg-red-50 border border-red-100 rounded-2xl flex items-start gap-3 text-red-600"><AlertCircle className="h-5 w-5 shrink-0 mt-0.5" /><p className="text-sm font-medium">{enderecoError}</p></div>}
+                          {enderecoError && <div className="p-3 bg-red-50 border border-red-100 rounded-xl flex items-center gap-2 text-red-600 text-xs font-bold"><AlertCircle className="h-4 w-4" /> {enderecoError}</div>}
                         </div>
                       )}
                     </div>
@@ -516,6 +485,9 @@ export default function CheckoutPage() {
                           <div className="flex justify-between gap-4 items-start">
                             <div className="flex-1">
                               <p className="text-base font-black text-gray-900 leading-tight"><span className="text-yellow-600 mr-1">{item.quantity}x</span> {item.name}</p>
+                              {item.pastaType && (
+                                <p className="text-[10px] font-bold text-yellow-600 uppercase mt-0.5">Tipo: {item.pastaType}</p>
+                              )}
                               {item.adicionais && item.adicionais.length > 0 && (
                                 <div className="mt-1.5 flex flex-wrap gap-1">
                                   {item.adicionais.map((a, idx) => (

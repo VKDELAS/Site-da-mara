@@ -51,7 +51,12 @@ export default function AdminFeedbacksPage() {
   const loadFeedbacks = async () => {
     setIsLoadingFeedbacks(true)
     try {
-      // Busca sem filtros de RLS complexos para garantir que apareça
+      if (!supabase) {
+        console.error("Supabase não inicializado");
+        setIsLoadingFeedbacks(false);
+        return;
+      }
+
       const { data, error } = await supabase
         .from("feedbacks")
         .select("*")
@@ -61,8 +66,8 @@ export default function AdminFeedbacksPage() {
 
       setFeedbacks(data || [])
       calculateStats(data || [])
-    } catch (error) {
-      console.error("Erro ao carregar feedbacks:", error)
+    } catch (error: any) {
+      console.error("Erro ao carregar feedbacks:", error.message || error)
     } finally {
       setIsLoadingFeedbacks(false)
     }
@@ -87,17 +92,6 @@ export default function AdminFeedbacksPage() {
     return "text-red-600 bg-red-50"
   }
 
-  const getRatingLabel = (rating: number) => {
-    const labels: Record<number, string> = {
-      1: "Muito ruim",
-      2: "Ruim",
-      3: "Regular",
-      4: "Bom",
-      5: "Excelente",
-    }
-    return labels[rating] || ""
-  }
-
   if (loading || !isAdmin) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-yellow-50 to-white">
@@ -115,7 +109,6 @@ export default function AdminFeedbacksPage() {
       
       <main className="flex-1 py-4 md:py-8 px-4 md:px-6">
         <div className="container mx-auto max-w-5xl">
-          {/* Header */}
           <div className="mb-6 md:mb-8">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
@@ -141,9 +134,7 @@ export default function AdminFeedbacksPage() {
             </div>
           </div>
 
-          {/* Stats Cards - Mobile Scrollable */}
           <div className="flex md:grid md:grid-cols-3 gap-4 mb-8 overflow-x-auto pb-4 md:pb-0 no-scrollbar">
-            {/* Total */}
             <Card className="min-w-[160px] flex-1 border-none shadow-sm bg-white rounded-2xl">
               <CardContent className="p-5">
                 <p className="text-gray-500 text-xs font-bold uppercase tracking-wider mb-1">Total</p>
@@ -151,7 +142,6 @@ export default function AdminFeedbacksPage() {
               </CardContent>
             </Card>
 
-            {/* Média */}
             <Card className="min-w-[160px] flex-1 border-none shadow-sm bg-white rounded-2xl">
               <CardContent className="p-5">
                 <p className="text-gray-500 text-xs font-bold uppercase tracking-wider mb-1">Média</p>
@@ -162,7 +152,6 @@ export default function AdminFeedbacksPage() {
               </CardContent>
             </Card>
 
-            {/* Distribuição - Desktop Only or Expandable */}
             <Card className="hidden md:block border-none shadow-sm bg-white rounded-2xl">
               <CardContent className="p-5">
                 <div className="space-y-1">
@@ -184,7 +173,6 @@ export default function AdminFeedbacksPage() {
             </Card>
           </div>
 
-          {/* Feedbacks List */}
           <div className="space-y-4">
             {isLoadingFeedbacks ? (
               <div className="flex flex-col items-center justify-center py-20">
@@ -204,13 +192,11 @@ export default function AdminFeedbacksPage() {
                 <Card key={feedback.id} className="border-none shadow-sm bg-white rounded-2xl overflow-hidden hover:shadow-md transition-all border border-gray-50">
                   <CardContent className="p-5">
                     <div className="flex items-start gap-4">
-                      {/* Rating Circle */}
                       <div className={`flex-shrink-0 w-12 h-12 rounded-xl flex flex-col items-center justify-center ${getRatingColor(feedback.rating)}`}>
                         <span className="text-lg font-black leading-none">{feedback.rating}</span>
                         <Star className="h-3 w-3 fill-current" />
                       </div>
 
-                      {/* Content */}
                       <div className="flex-1 min-w-0">
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 mb-2">
                           <h3 className="font-black text-gray-900 truncate">{feedback.customer_name}</h3>
@@ -219,7 +205,6 @@ export default function AdminFeedbacksPage() {
                           </span>
                         </div>
 
-                        {/* Comment */}
                         {feedback.comment ? (
                           <p className="text-gray-700 text-sm leading-relaxed bg-gray-50 p-3 rounded-xl mb-3 italic">
                             "{feedback.comment}"
@@ -228,7 +213,6 @@ export default function AdminFeedbacksPage() {
                           <p className="text-gray-400 text-xs mb-3 italic">Sem comentário</p>
                         )}
 
-                        {/* Footer Info */}
                         <div className="flex flex-wrap items-center gap-3 text-[10px] font-bold text-gray-400 uppercase tracking-wider">
                           <div className="flex items-center gap-1">
                             <Package className="h-3 w-3" />

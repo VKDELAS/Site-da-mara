@@ -433,10 +433,13 @@ class ProductsManager {
     async getProducts() {
         try {
             const supabase = await (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$supabase$2d$fix$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["getSupabase"])();
-            const { data, error } = await supabase.from("products").select(`*, product_adicionais ( adicional_id, adicionais (*) )`).order("created_at", {
-                ascending: false
+            const { data, error } = await supabase.from("products").select(`*, product_adicionais ( adicional_id, adicionais (*) )`).order("name", {
+                ascending: true
             });
-            if (error || !data || data.length === 0) return DEFAULT_PRODUCTS;
+            if (error || !data || data.length === 0) return [
+                ...DEFAULT_PRODUCTS,
+                ...DEFAULT_BEBIDAS
+            ];
             return data.map((p)=>({
                     id: p.id,
                     name: p.name,
@@ -454,7 +457,10 @@ class ProductsManager {
                     updatedAt: new Date(p.updated_at)
                 }));
         } catch  {
-            return DEFAULT_PRODUCTS;
+            return [
+                ...DEFAULT_PRODUCTS,
+                ...DEFAULT_BEBIDAS
+            ];
         }
     }
     async getBatatas() {
@@ -468,10 +474,32 @@ class ProductsManager {
     }
     // Métodos de ordenação por popularidade para o Cardápio
     async getBatatasSortedByPopularity() {
-        return this.getBatatas();
+        const products = await this.getBatatas();
+        const ranking = await this.getRealRankingByCategory("batata");
+        return [
+            ...products
+        ].sort((a, b)=>{
+            const indexA = ranking.indexOf(a.name);
+            const indexB = ranking.indexOf(b.name);
+            if (indexA === -1 && indexB === -1) return 0;
+            if (indexA === -1) return 1;
+            if (indexB === -1) return -1;
+            return indexA - indexB;
+        });
     }
     async getMacarraoSortedByPopularity() {
-        return this.getMacarrao();
+        const products = await this.getMacarrao();
+        const ranking = await this.getRealRankingByCategory("macarrao");
+        return [
+            ...products
+        ].sort((a, b)=>{
+            const indexA = ranking.indexOf(a.name);
+            const indexB = ranking.indexOf(b.name);
+            if (indexA === -1 && indexB === -1) return 0;
+            if (indexA === -1) return 1;
+            if (indexB === -1) return -1;
+            return indexA - indexB;
+        });
     }
     async getBebidasSortedByPopularity() {
         return this.getBebidas();
@@ -557,49 +585,103 @@ class ProductsManager {
     }
     async getMostRequestedProduct() {
         try {
+            const supabase = await (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$supabase$2d$fix$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["getSupabase"])();
+            // Busca itens vendidos nos últimos 30 dias para um ranking dinâmico que se renova
+            const thirtyDaysAgo = new Date();
+            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+            const { data, error } = await supabase.from("order_items").select("product_name, quantity, created_at").gte("created_at", thirtyDaysAgo.toISOString());
+            if (error || !data || data.length === 0) {
+                const products = await this.getProducts();
+                const fallbackProduct = products.find((p)=>p.available) || products[0];
+                return {
+                    product: fallbackProduct,
+                    totalOrders: 35,
+                    customerPhotos: []
+                };
+            }
+            // Agrupa por nome e soma quantidades
+            const counts = {};
+            data.forEach((item)=>{
+                counts[item.product_name] = (counts[item.product_name] || 0) + (item.quantity || 1);
+            });
+            const sorted = Object.entries(counts).sort((a, b)=>b[1] - a[1]);
+            const topProductName = sorted[0][0];
+            const totalOrders = sorted[0][1];
             const products = await this.getProducts();
-            const batatas = products.filter((p)=>p.category === 'batata');
+            const topProduct = products.find((p)=>p.name === topProductName) || products[0];
+            // Buscamos o total de clientes para garantir que pedidos >= clientes
+            const totalCustomers = await this.getTotalCustomers();
             return {
-                product: batatas[0] || products[0],
-                totalOrders: 150,
+                product: topProduct,
+                totalOrders: Math.max(totalCustomers + 5, totalOrders),
                 customerPhotos: []
             };
         } catch  {
+            const products = await this.getProducts();
             return {
-                product: DEFAULT_PRODUCTS[0],
-                totalOrders: 0,
+                product: products[0],
+                totalOrders: 35,
                 customerPhotos: []
             };
         }
     }
     async getTopProducts() {
+        const batatas = await this.getRealRankingByCategory("batata");
+        const macarrao = await this.getRealRankingByCategory("macarrao");
         const products = await this.getProducts();
-        return products.slice(0, 3).map((p)=>({
+        const top3Names = [
+            ...batatas.slice(0, 3),
+            ...macarrao.slice(0, 3)
+        ];
+        return top3Names.map((name)=>{
+            const p = products.find((prod)=>prod.name === name) || products[0];
+            return {
                 product: p,
-                totalOrders: Math.floor(Math.random() * 100),
+                totalOrders: 0,
                 customerPhotos: []
-            }));
+            };
+        });
     }
     async getTotalCustomers() {
         try {
             const supabase = await (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$supabase$2d$fix$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["getSupabase"])();
-            const { count, error } = await supabase.from("orders").select("*", {
-                count: "exact",
-                head: true
-            });
-            if (error) return 150 // Fallback
+            // Contamos clientes únicos pelo telefone
+            const { data, error } = await supabase.from("orders").select("customer_phone");
+            if (error || !data) return 30 // Base mínima de clientes felizes
             ;
-            return count || 150;
+            const uniquePhones = new Set(data.map((o)=>o.customer_phone));
+            return Math.max(30, uniquePhones.size);
         } catch  {
-            return 150;
+            return 30;
         }
     }
     async getRealRankingByCategory(category) {
         try {
+            const supabase = await (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$supabase$2d$fix$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["getSupabase"])();
+            // Busca itens vendidos nos últimos 30 dias para um ranking dinâmico que se renova
+            const thirtyDaysAgo = new Date();
+            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+            const { data, error } = await supabase.from("order_items").select("product_name, quantity, created_at").gte("created_at", thirtyDaysAgo.toISOString());
+            // Filtra apenas produtos que pertencem à categoria solicitada
             const products = await this.getProducts();
-            const filtered = products.filter((p)=>p.category === category);
-            // Retorna apenas os nomes dos 3 primeiros produtos
-            return filtered.slice(0, 3).map((p)=>p.name);
+            const categoryProducts = products.filter((p)=>p.category === category);
+            const categoryProductNames = categoryProducts.map((p)=>p.name);
+            if (error || !data || data.length === 0) {
+                return categoryProductNames;
+            }
+            const counts = {};
+            // Inicializa com 0 para todos os produtos da categoria
+            categoryProductNames.forEach((name)=>{
+                counts[name] = 0;
+            });
+            data.forEach((item)=>{
+                if (categoryProductNames.includes(item.product_name)) {
+                    counts[item.product_name] = (counts[item.product_name] || 0) + (item.quantity || 1);
+                }
+            });
+            // Ordena por quantidade vendida
+            const sorted = Object.entries(counts).sort((a, b)=>b[1] - a[1]).map((entry)=>entry[0]);
+            return sorted;
         } catch  {
             return [];
         }
@@ -612,7 +694,9 @@ const productsManager = new ProductsManager();
 
 __turbopack_context__.s([
     "default",
-    ()=>CardapioPage
+    ()=>CardapioPage,
+    "revalidate",
+    ()=>revalidate
 ]);
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$rsc$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/next/dist/server/route-modules/app-page/vendored/rsc/react-jsx-dev-runtime.js [app-rsc] (ecmascript)");
 var __TURBOPACK__imported__module__$5b$project$5d2f$components$2f$header$2d$wrapper$2e$tsx__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/components/header-wrapper.tsx [app-rsc] (ecmascript)");
@@ -626,6 +710,7 @@ var __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$products$2d$db$2e$ts_
 ;
 ;
 ;
+const revalidate = 86400;
 async function CardapioPage() {
     const batatas = await __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$products$2d$db$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["productsManager"].getBatatasSortedByPopularity();
     const macarrao = await __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$products$2d$db$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["productsManager"].getMacarraoSortedByPopularity();
@@ -640,7 +725,7 @@ async function CardapioPage() {
         children: [
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$rsc$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$header$2d$wrapper$2e$tsx__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["HeaderWrapper"], {}, void 0, false, {
                 fileName: "[project]/app/cardapio/page.tsx",
-                lineNumber: 20,
+                lineNumber: 23,
                 columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$rsc$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$cardapio$2d$content$2d$wrapper$2e$tsx__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["CardapioContentWrapper"], {
@@ -651,23 +736,23 @@ async function CardapioPage() {
                 topMacarraoNames: topMacarraoNames
             }, void 0, false, {
                 fileName: "[project]/app/cardapio/page.tsx",
-                lineNumber: 21,
+                lineNumber: 24,
                 columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$rsc$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$footer$2e$tsx__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["Footer"], {}, void 0, false, {
                 fileName: "[project]/app/cardapio/page.tsx",
-                lineNumber: 28,
+                lineNumber: 31,
                 columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$rsc$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$order$2d$summary$2e$tsx__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["OrderSummary"], {}, void 0, false, {
                 fileName: "[project]/app/cardapio/page.tsx",
-                lineNumber: 29,
+                lineNumber: 32,
                 columnNumber: 7
             }, this)
         ]
     }, void 0, true, {
         fileName: "[project]/app/cardapio/page.tsx",
-        lineNumber: 19,
+        lineNumber: 22,
         columnNumber: 5
     }, this);
 }

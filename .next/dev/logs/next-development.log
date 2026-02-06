@@ -1,44 +1,74 @@
-[00:00:01.238] Server  LOG      ✓ Ready in 1023ms
-[00:00:04.450] Server  LOG      ○ Compiling / ...
-[00:00:10.741] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
-[00:00:11.154] Browser LOG     %c[Vercel Web Analytics]%c Debug mode is enabled by default in development. No requests will be sent to the server. color: rgb(120, 120, 120) color: inherit
-[00:00:11.154] Browser LOG     %c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {"path":"/","route":"/"}
-[00:00:11.154] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/ color: rgb(120, 120, 120) color: inherit {"dp":"/","o":"http://localhost:3000/","r":"","sdkn":"@vercel/analytics/next","sdkv":"1.3.1","sv":"0.1.3","ts":1769480983223}
-[00:00:13.691] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/cardapio color: rgb(120, 120, 120) color: inherit {"dp":"/cardapio","o":"http://localhost:3000/cardapio","sdkn":"@vercel/analytics/next","sdkv":"1.3.1","sv":"0.1.3","ts":1769480985763}
-[00:00:18.085] Browser ERROR   `DialogContent` requires a `DialogTitle` for the component to be accessible for screen reader users.
+[00:00:01.222] Server  LOG      ✓ Ready in 1004ms
+[00:00:04.772] Server  LOG      ○ Compiling /admin/pedidos ...
+[00:00:07.555] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:00:08.217] Browser WARN    GoTrueClient@sb-eucwoxjmjfqylyrqunwk-auth-token:1 (2.90.0) 2026-02-06T00:03:00.941Z Multiple GoTrueClient instances detected in the same browser context. It is not an error, but this should be avoided as it may produce undefined behavior when used concurrently under the same storage key.
+[00:00:08.217] Browser LOG     %c[Vercel Web Analytics]%c Debug mode is enabled by default in development. No requests will be sent to the server. color: rgb(120, 120, 120) color: inherit
+[00:00:08.217] Browser LOG     %c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {"path":"/admin/pedidos","route":"/admin/pedidos"}
+[00:00:08.217] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/admin/pedidos color: rgb(120, 120, 120) color: inherit {"dp":"/admin/pedidos","o":"http://localhost:3000/admin/pedidos","r":"","sdkn":"@vercel/analytics/next","sdkv":"1.3.1","sv":"0.1.3","ts":1770336181226}
+[00:00:53.562] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/admin color: rgb(120, 120, 120) color: inherit {"dp":"/admin","o":"http://localhost:3000/admin","sdkn":"@vercel/analytics/next","sdkv":"1.3.1","sv":"0.1.3","ts":1770336226757}
+[00:00:56.266] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/admin/pedidos color: rgb(120, 120, 120) color: inherit {"dp":"/admin/pedidos","o":"http://localhost:3000/admin/pedidos","sdkn":"@vercel/analytics/next","sdkv":"1.3.1","sv":"0.1.3","ts":1770336229491}
+[00:01:10.987] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/admin color: rgb(120, 120, 120) color: inherit {"dp":"/admin","o":"http://localhost:3000/admin","sdkn":"@vercel/analytics/next","sdkv":"1.3.1","sv":"0.1.3","ts":1770336244205}
+[00:01:17.859] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/ color: rgb(120, 120, 120) color: inherit {"dp":"/","o":"http://localhost:3000/","sdkn":"@vercel/analytics/next","sdkv":"1.3.1","sv":"0.1.3","ts":1770336251081}
+[00:01:30.551] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/cardapio color: rgb(120, 120, 120) color: inherit {"dp":"/cardapio","o":"http://localhost:3000/cardapio","sdkn":"@vercel/analytics/next","sdkv":"1.3.1","sv":"0.1.3","ts":1770336263786}
+[00:01:32.751] Browser ERROR   `DialogContent` requires a `DialogTitle` for the component to be accessible for screen reader users.
 
 If you want to hide the `DialogTitle`, you can wrap it with our VisuallyHidden component.
 
 For more information, see https://radix-ui.com/primitives/docs/components/dialog
-[00:00:18.085] Browser WARN    Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
-[00:00:18.085] Browser ERROR   `DialogContent` requires a `DialogTitle` for the component to be accessible for screen reader users.
+[00:01:32.751] Browser WARN    Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+[00:01:32.751] Browser ERROR   `DialogContent` requires a `DialogTitle` for the component to be accessible for screen reader users.
 
 If you want to hide the `DialogTitle`, you can wrap it with our VisuallyHidden component.
 
 For more information, see https://radix-ui.com/primitives/docs/components/dialog
-[00:00:18.085] Browser WARN    Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
-[00:00:28.153] Browser ERROR   `DialogContent` requires a `DialogTitle` for the component to be accessible for screen reader users.
+[00:01:32.751] Browser WARN    Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+[00:01:35.494] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/carrinho color: rgb(120, 120, 120) color: inherit {"dp":"/carrinho","o":"http://localhost:3000/carrinho","sdkn":"@vercel/analytics/next","sdkv":"1.3.1","sv":"0.1.3","ts":1770336268725}
+[00:01:38.126] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/checkout color: rgb(120, 120, 120) color: inherit {"dp":"/checkout","o":"http://localhost:3000/checkout","sdkn":"@vercel/analytics/next","sdkv":"1.3.1","sv":"0.1.3","ts":1770336271367}
+[00:02:20.998] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:02:20.998] Browser WARN    GoTrueClient@sb-eucwoxjmjfqylyrqunwk-auth-token:1 (2.90.0) 2026-02-06T00:05:14.294Z Multiple GoTrueClient instances detected in the same browser context. It is not an error, but this should be avoided as it may produce undefined behavior when used concurrently under the same storage key.
+[00:02:21.346] Browser LOG     %c[Vercel Web Analytics]%c Debug mode is enabled by default in development. No requests will be sent to the server. color: rgb(120, 120, 120) color: inherit
+[00:02:21.346] Browser LOG     %c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {"path":"/checkout","route":"/checkout"}
+[00:02:21.346] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/checkout color: rgb(120, 120, 120) color: inherit {"dp":"/checkout","o":"http://localhost:3000/checkout","r":"","sdkn":"@vercel/analytics/next","sdkv":"1.3.1","sv":"0.1.3","ts":1770336314589}
+[00:04:25.067] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/ color: rgb(120, 120, 120) color: inherit {"dp":"/","o":"http://localhost:3000/","sdkn":"@vercel/analytics/next","sdkv":"1.3.1","sv":"0.1.3","ts":1770336438268}
+[00:04:26.162] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/admin color: rgb(120, 120, 120) color: inherit {"dp":"/admin","o":"http://localhost:3000/admin","sdkn":"@vercel/analytics/next","sdkv":"1.3.1","sv":"0.1.3","ts":1770336439374}
+[00:04:30.264] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/admin/pedidos color: rgb(120, 120, 120) color: inherit {"dp":"/admin/pedidos","o":"http://localhost:3000/admin/pedidos","sdkn":"@vercel/analytics/next","sdkv":"1.3.1","sv":"0.1.3","ts":1770336443468}
+[00:04:58.172] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/admin color: rgb(120, 120, 120) color: inherit {"dp":"/admin","o":"http://localhost:3000/admin","sdkn":"@vercel/analytics/next","sdkv":"1.3.1","sv":"0.1.3","ts":1770336471392}
+[00:05:00.199] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/admin/caixa color: rgb(120, 120, 120) color: inherit {"dp":"/admin/caixa","o":"http://localhost:3000/admin/caixa","sdkn":"@vercel/analytics/next","sdkv":"1.3.1","sv":"0.1.3","ts":1770336473410}
+[00:05:06.110] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/admin color: rgb(120, 120, 120) color: inherit {"dp":"/admin","o":"http://localhost:3000/admin","sdkn":"@vercel/analytics/next","sdkv":"1.3.1","sv":"0.1.3","ts":1770336479334}
+[00:05:08.994] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/admin/feedbacks color: rgb(120, 120, 120) color: inherit {"dp":"/admin/feedbacks","o":"http://localhost:3000/admin/feedbacks","sdkn":"@vercel/analytics/next","sdkv":"1.3.1","sv":"0.1.3","ts":1770336482211}
+[00:05:20.259] Browser ERROR   Erro ao carregar feedbacks: {"code":"","details":"","hint":"","message":"TypeError: NetworkError when attempting to fetch resource."}
+[00:05:20.259] Browser ERROR   [AddressesManager] Erro ao buscar endereços: TypeError: NetworkError when attempting to fetch resource. 
+[00:05:20.259] Browser ERROR   [AddressesManager] Erro crítico em getUserAddresses: TypeError: NetworkError when attempting to fetch resource.
+[00:05:20.390] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/admin color: rgb(120, 120, 120) color: inherit {"dp":"/admin","o":"http://localhost:3000/admin","sdkn":"@vercel/analytics/next","sdkv":"1.3.1","sv":"0.1.3","ts":1770336493612}
+[00:06:46.460] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/admin/pedidos color: rgb(120, 120, 120) color: inherit {"dp":"/admin/pedidos","o":"http://localhost:3000/admin/pedidos","sdkn":"@vercel/analytics/next","sdkv":"1.3.1","sv":"0.1.3","ts":1770336579678}
+[00:13:48.123] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:13:48.532] Browser LOG     %c[Vercel Web Analytics]%c Debug mode is enabled by default in development. No requests will be sent to the server. color: rgb(120, 120, 120) color: inherit
+[00:13:48.532] Browser LOG     %c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {"path":"/","route":"/"}
+[00:13:48.532] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/ color: rgb(120, 120, 120) color: inherit {"dp":"/","o":"http://localhost:3000/","r":"","sdkn":"@vercel/analytics/next","sdkv":"1.3.1","sv":"0.1.3","ts":1770337001774}
+[00:13:50.056] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/login color: rgb(120, 120, 120) color: inherit {"dp":"/login","o":"http://localhost:3000/login","sdkn":"@vercel/analytics/next","sdkv":"1.3.1","sv":"0.1.3","ts":1770337003285}
+[00:14:48.839] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/cardapio color: rgb(120, 120, 120) color: inherit {"dp":"/cardapio","o":"http://localhost:3000/cardapio","sdkn":"@vercel/analytics/next","sdkv":"1.3.1","sv":"0.1.3","ts":1770337062080}
+[00:14:56.972] Browser ERROR   `DialogContent` requires a `DialogTitle` for the component to be accessible for screen reader users.
 
 If you want to hide the `DialogTitle`, you can wrap it with our VisuallyHidden component.
 
 For more information, see https://radix-ui.com/primitives/docs/components/dialog
-[00:00:28.153] Browser WARN    Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
-[00:00:28.153] Browser ERROR   `DialogContent` requires a `DialogTitle` for the component to be accessible for screen reader users.
+[00:14:56.972] Browser WARN    Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+[00:14:56.972] Browser ERROR   `DialogContent` requires a `DialogTitle` for the component to be accessible for screen reader users.
 
 If you want to hide the `DialogTitle`, you can wrap it with our VisuallyHidden component.
 
 For more information, see https://radix-ui.com/primitives/docs/components/dialog
-[00:00:28.153] Browser WARN    Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
-[00:00:44.777] Browser ERROR   `DialogContent` requires a `DialogTitle` for the component to be accessible for screen reader users.
-
-If you want to hide the `DialogTitle`, you can wrap it with our VisuallyHidden component.
-
-For more information, see https://radix-ui.com/primitives/docs/components/dialog
-[00:00:44.777] Browser WARN    Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
-[00:00:44.777] Browser ERROR   `DialogContent` requires a `DialogTitle` for the component to be accessible for screen reader users.
-
-If you want to hide the `DialogTitle`, you can wrap it with our VisuallyHidden component.
-
-For more information, see https://radix-ui.com/primitives/docs/components/dialog
-[00:00:44.777] Browser WARN    Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
-[00:00:53.225] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/login color: rgb(120, 120, 120) color: inherit {"dp":"/login","o":"http://localhost:3000/login","sdkn":"@vercel/analytics/next","sdkv":"1.3.1","sv":"0.1.3","ts":1769481025301}
+[00:14:56.972] Browser WARN    Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+[00:14:58.999] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/carrinho color: rgb(120, 120, 120) color: inherit {"dp":"/carrinho","o":"http://localhost:3000/carrinho","sdkn":"@vercel/analytics/next","sdkv":"1.3.1","sv":"0.1.3","ts":1770337072232}
+[00:15:00.198] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/checkout color: rgb(120, 120, 120) color: inherit {"dp":"/checkout","o":"http://localhost:3000/checkout","sdkn":"@vercel/analytics/next","sdkv":"1.3.1","sv":"0.1.3","ts":1770337073412}
+[00:15:00.198] Browser WARN    GoTrueClient@sb-eucwoxjmjfqylyrqunwk-auth-token:1 (2.90.0) 2026-02-06T00:17:53.430Z Multiple GoTrueClient instances detected in the same browser context. It is not an error, but this should be avoided as it may produce undefined behavior when used concurrently under the same storage key.
+[00:25:46.233] Server  LOG      ✓ Compiled in 1200ms
+[00:26:07.686] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/admin color: rgb(120, 120, 120) color: inherit {"dp":"/admin","o":"http://localhost:3000/admin","sdkn":"@vercel/analytics/next","sdkv":"1.3.1","sv":"0.1.3","ts":1770337740904}
+[00:26:09.910] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/admin/pedidos color: rgb(120, 120, 120) color: inherit {"dp":"/admin/pedidos","o":"http://localhost:3000/admin/pedidos","sdkn":"@vercel/analytics/next","sdkv":"1.3.1","sv":"0.1.3","ts":1770337743124}
+[00:26:29.506] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/admin color: rgb(120, 120, 120) color: inherit {"dp":"/admin","o":"http://localhost:3000/admin","sdkn":"@vercel/analytics/next","sdkv":"1.3.1","sv":"0.1.3","ts":1770337762729}
+[00:26:35.252] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/admin/caixa color: rgb(120, 120, 120) color: inherit {"dp":"/admin/caixa","o":"http://localhost:3000/admin/caixa","sdkn":"@vercel/analytics/next","sdkv":"1.3.1","sv":"0.1.3","ts":1770337768465}
+[00:26:49.792] Browser WARN    Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+[00:26:49.792] Browser WARN    Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+[00:26:59.317] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/admin color: rgb(120, 120, 120) color: inherit {"dp":"/admin","o":"http://localhost:3000/admin","sdkn":"@vercel/analytics/next","sdkv":"1.3.1","sv":"0.1.3","ts":1770337792528}
+[00:27:04.004] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/admin/pedidos color: rgb(120, 120, 120) color: inherit {"dp":"/admin/pedidos","o":"http://localhost:3000/admin/pedidos","sdkn":"@vercel/analytics/next","sdkv":"1.3.1","sv":"0.1.3","ts":1770337797221}
+[00:27:10.292] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/admin color: rgb(120, 120, 120) color: inherit {"dp":"/admin","o":"http://localhost:3000/admin","sdkn":"@vercel/analytics/next","sdkv":"1.3.1","sv":"0.1.3","ts":1770337803493}

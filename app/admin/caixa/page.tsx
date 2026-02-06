@@ -64,8 +64,29 @@ export default function AdminCaixaPage() {
     try {
       const todayStats = await ordersManager.getTodayStats()
       const history = await ordersManager.getSalesHistory()
+      
+      // Adicionar o dia de hoje ao histórico se não estiver lá
+      const todayStr = new Date().toISOString().split('T')[0]
+      const hasToday = history.some(h => h.date === todayStr)
+      
+      let finalHistory = [...history]
+      if (!hasToday && todayStats.completedOrders > 0) {
+        finalHistory.unshift({
+          date: todayStr,
+          total: todayStats.totalSales,
+          count: todayStats.completedOrders
+        })
+      } else if (hasToday) {
+        // Atualizar os dados de hoje no histórico caso já existam
+        finalHistory = finalHistory.map(h => 
+          h.date === todayStr 
+            ? { ...h, total: todayStats.totalSales, count: todayStats.completedOrders }
+            : h
+        )
+      }
+
       setStats(todayStats)
-      setSalesHistory(history)
+      setSalesHistory(finalHistory)
       
       // Se houver uma data expandida, recarregar os pedidos dela também
       if (expandedDate) {
@@ -256,65 +277,57 @@ export default function AdminCaixaPage() {
                         </div>
                         <div>
                           <p className="font-bold text-slate-900 capitalize">
-                            {new Date(day.date + 'T12:00:00').toLocaleDateString("pt-BR", { weekday: 'long', day: 'numeric', month: 'long' })}
+                            {new Date(day.date + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}
+                            {day.date === new Date().toISOString().split('T')[0] && <Badge className="ml-2 bg-blue-100 text-blue-600 border-none">Hoje</Badge>}
                           </p>
-                          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{day.count} {day.count === 1 ? 'Pedido' : 'Pedidos'}</p>
+                          <p className="text-sm text-slate-500 font-medium">{day.count} {day.count === 1 ? 'pedido finalizado' : 'pedidos finalizados'}</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-6">
-                        <div className="text-right hidden sm:block">
-                          <p className="text-lg font-black text-yellow-600">R$ {day.total.toFixed(2)}</p>
-                          <p className="text-[10px] font-bold text-slate-400 uppercase">Total do dia</p>
+                        <div className="text-right">
+                          <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Total</p>
+                          <p className="text-lg font-black text-slate-900">
+                            {showRevenue ? `R$ ${day.total.toFixed(2)}` : "••••"}
+                          </p>
                         </div>
-                        {expandedDate === day.date ? <ChevronUp className="h-5 w-5 text-slate-300" /> : <ChevronDown className="h-5 w-5 text-slate-300" />}
+                        {expandedDate === day.date ? <ChevronUp className="h-5 w-5 text-slate-400" /> : <ChevronDown className="h-5 w-5 text-slate-400" />}
                       </div>
                     </div>
 
                     {expandedDate === day.date && (
-                      <div className="px-5 pb-5 pt-2 border-t border-slate-50">
+                      <div className="px-5 pb-5 animate-in slide-in-from-top-2 duration-300">
+                        <Separator className="mb-4 bg-slate-100" />
                         {loadingOrders === day.date ? (
-                          <div className="py-8 flex justify-center"><div className="animate-spin h-6 w-6 border-2 border-yellow-500 border-t-transparent rounded-full"></div></div>
+                          <div className="py-8 flex justify-center"><Clock className="h-6 w-6 text-yellow-500 animate-spin" /></div>
                         ) : (
-                          <div className="grid gap-2">
+                          <div className="space-y-3">
                             {dateOrders[day.date]?.map((order) => (
                               <div 
-                                key={order.id}
+                                key={order.id} 
                                 onClick={() => handleOrderClick(order)}
-                                className="group flex items-center justify-between p-4 bg-yellow-50/30 hover:bg-white hover:shadow-md border border-transparent hover:border-yellow-100 rounded-2xl transition-all cursor-pointer"
+                                className="flex items-center justify-between p-4 rounded-2xl bg-slate-50 hover:bg-white hover:shadow-md border border-transparent hover:border-slate-100 transition-all cursor-pointer group"
                               >
-                                <div className="flex items-center gap-4 flex-1 min-w-0">
-                                  <div className="h-10 w-10 rounded-xl bg-white flex items-center justify-center text-yellow-600 shadow-sm">
-                                    <Receipt className="h-5 w-5" />
+                                <div className="flex items-center gap-4">
+                                  <div className="h-10 w-10 rounded-xl bg-white flex items-center justify-center font-black text-slate-400 border border-slate-100 group-hover:text-yellow-600 group-hover:border-yellow-100 transition-colors">
+                                    #{order.orderNumber}
                                   </div>
-                                  <div className="flex-1 min-w-0">
-                                    <div className="flex items-center gap-2">
-                                      <p className="font-bold text-slate-900">#{order.orderNumber}</p>
-                                      <span className="text-slate-300">|</span>
-                                      <p className="text-sm font-bold text-slate-700 truncate">{order.customerName}</p>
-                                    </div>
-                                    <p className="text-[11px] text-slate-500 font-medium truncate mt-0.5">
-                                      {order.items.map(i => `${i.quantity}x ${i.name}`).join(', ')}
+                                  <div>
+                                    <p className="font-bold text-slate-900">{order.customerName}</p>
+                                    <p className="text-xs text-slate-500 font-medium">
+                                      {new Date(order.createdAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })} • {order.paymentMethod.toUpperCase()}
                                     </p>
                                   </div>
                                 </div>
-                                <div className="flex items-center gap-4 ml-4">
-                                  <div className="text-right">
-                                    <p className="font-black text-yellow-600">R$ {order.total.toFixed(2)}</p>
-                                    <p className="text-[10px] text-slate-400 font-bold uppercase">{new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
-                                  </div>
-                                  <div className="flex items-center gap-2">
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      onClick={(e) => handleDeleteClick(e, order)}
-                                      className="h-8 w-8 rounded-full bg-white text-slate-400 hover:text-red-600 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-all shadow-sm"
-                                    >
-                                      <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                    <div className="h-8 w-8 rounded-full bg-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm">
-                                      <ChevronDown className="h-4 w-4 text-slate-400 -rotate-90" />
-                                    </div>
-                                  </div>
+                                <div className="flex items-center gap-4">
+                                  <p className="font-black text-slate-900">R$ {order.total.toFixed(2)}</p>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    className="h-8 w-8 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg"
+                                    onClick={(e) => handleDeleteClick(e, order)}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
                                 </div>
                               </div>
                             ))}
@@ -330,182 +343,99 @@ export default function AdminCaixaPage() {
         </div>
       </main>
 
+      {/* Modal de Detalhes do Pedido */}
       <Dialog open={isOrderDialogOpen} onOpenChange={setIsOrderDialogOpen}>
-        <DialogContent className="max-w-lg p-0 border-none bg-white rounded-[2.5rem] overflow-hidden shadow-2xl">
-          <DialogHeader className="bg-yellow-500 p-8 text-slate-900 relative">
-            <div className="flex justify-between items-start">
-              <div className="space-y-1">
-                <Badge className="bg-slate-900 hover:bg-slate-900 text-white font-black border-none px-3 py-1 rounded-full mb-2">
-                  PEDIDO FINALIZADO
-                </Badge>
-                <DialogTitle className="text-4xl font-black tracking-tighter">#{selectedOrder?.orderNumber}</DialogTitle>
-                <p className="text-slate-800 text-sm font-bold opacity-70">
-                  {selectedOrder?.createdAt && new Date(selectedOrder.createdAt).toLocaleString('pt-BR')}
-                </p>
-              </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={(e) => selectedOrder && handleDeleteClick(e as any, selectedOrder)}
-                className="bg-white/20 hover:bg-red-500 hover:text-white text-slate-900 rounded-full h-12 w-12 transition-all"
-              >
-                <Trash2 className="h-6 w-6" />
-              </Button>
+        <DialogContent className="max-w-md rounded-[2rem] border-none p-0 overflow-hidden">
+          <DialogHeader className="bg-yellow-500 p-6 text-white">
+            <div className="flex items-center justify-between">
+              <DialogTitle className="text-2xl font-black">Pedido #{selectedOrder?.orderNumber}</DialogTitle>
+              <Badge className="bg-white/20 text-white border-none font-bold uppercase tracking-wider">
+                {selectedOrder?.status === 'delivered' ? 'Entregue' : selectedOrder?.status}
+              </Badge>
             </div>
           </DialogHeader>
-
-          <ScrollArea className="max-h-[60vh]">
-            <div className="p-8 space-y-8">
-              <section className="space-y-4">
-                <div className="flex items-center gap-2 text-slate-400">
-                  <ShoppingBag className="h-4 w-4" />
-                  <h4 className="text-xs font-bold uppercase tracking-widest">Dados do Cliente</h4>
+          
+          <ScrollArea className="max-h-[70vh]">
+            <div className="p-6 space-y-6">
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-500"><Phone className="h-5 w-5" /></div>
+                  <div><p className="text-[10px] font-bold text-slate-400 uppercase">WhatsApp</p><p className="font-bold text-slate-900">{selectedOrder?.customerPhone}</p></div>
                 </div>
-                <div className="grid gap-3">
-                  <div className="flex items-center gap-3 p-4 bg-slate-50 rounded-2xl">
-                    <div className="h-10 w-10 bg-white rounded-xl flex items-center justify-center shadow-sm text-slate-400"><ClipboardList className="h-5 w-5" /></div>
-                    <div><p className="text-[10px] font-bold text-slate-400 uppercase">Nome</p><p className="font-bold text-slate-900">{selectedOrder?.customerName}</p></div>
-                  </div>
-                  <div className="flex items-center gap-3 p-4 bg-slate-50 rounded-2xl">
-                    <div className="h-10 w-10 bg-white rounded-xl flex items-center justify-center shadow-sm text-slate-400"><Phone className="h-5 w-5" /></div>
-                    <div><p className="text-[10px] font-bold text-slate-400 uppercase">WhatsApp</p><p className="font-bold text-slate-900">{selectedOrder?.customerPhone}</p></div>
-                  </div>
-                  {selectedOrder?.deliveryType === 'delivery' && (
-                    <div className="flex items-center gap-3 p-4 bg-slate-50 rounded-2xl">
-                      <div className="h-10 w-10 bg-white rounded-xl flex items-center justify-center shadow-sm text-slate-400"><MapPin className="h-5 w-5" /></div>
-                      <div className="flex-1"><p className="text-[10px] font-bold text-slate-400 uppercase">Endereço de Entrega</p><p className="font-bold text-slate-900 text-sm leading-tight">{selectedOrder?.address}</p></div>
+                <div className="flex items-start gap-3">
+                  <div className="h-10 w-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-500 shrink-0"><MapPin className="h-5 w-5" /></div>
+                  <div><p className="text-[10px] font-bold text-slate-400 uppercase">Endereço</p><p className="font-bold text-slate-900 text-sm leading-tight">{selectedOrder?.address}</p></div>
+                </div>
+              </div>
+
+              <Separator className="bg-slate-100" />
+
+              <div className="space-y-3">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Itens do Pedido</p>
+                {selectedOrder?.items.map((item, i) => (
+                  <div key={i} className="flex justify-between gap-4">
+                    <div className="flex-1">
+                      <p className="text-sm font-bold text-slate-900"><span className="text-yellow-600">{item.quantity}x</span> {item.name}</p>
+                      {item.pastaType && <p className="text-[10px] font-bold text-yellow-600 uppercase">Tipo: {item.pastaType}</p>}
+                      {item.adicionais?.map((a: any, j: number) => (
+                        <p key={j} className="text-[10px] text-slate-500 font-medium">+ {a.quantity}x {a.name}</p>
+                      ))}
                     </div>
-                  )}
-                </div>
-              </section>
-
-              <section className="space-y-4">
-                <div className="flex items-center gap-2 text-slate-400">
-                  <Package className="h-4 w-4" />
-                  <h4 className="text-xs font-bold uppercase tracking-widest">Itens do Pedido</h4>
-                </div>
-                <div className="space-y-2">
-                  {selectedOrder?.items.map((item, idx) => (
-                    <div key={idx} className="p-4 border border-slate-100 rounded-2xl space-y-2">
-                      <div className="flex justify-between items-start">
-                        <div className="flex gap-3">
-                          <span className="h-6 w-6 bg-slate-100 rounded-lg flex items-center justify-center text-xs font-black text-slate-600">{item.quantity}x</span>
-                          <p className="font-bold text-slate-900">{item.name}</p>
-                        </div>
-                        <p className="font-bold text-slate-900">R$ {(item.price * item.quantity).toFixed(2)}</p>
-                      </div>
-                      {item.adicionais && item.adicionais.length > 0 && (
-                        <div className="pl-9 flex flex-wrap gap-1.5">
-                          {item.adicionais.map((add: any, i: number) => (
-                            <Badge key={i} variant="outline" className="bg-slate-50 border-slate-200 text-slate-500 text-[10px] font-bold py-0 px-2">
-                              + {add.name || add}
-                            </Badge>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </section>
-
-              <section className="space-y-4">
-                <div className="flex items-center gap-2 text-slate-400">
-                  <Wallet className="h-4 w-4" />
-                  <h4 className="text-xs font-bold uppercase tracking-widest">Pagamento e Resumo</h4>
-                </div>
-                <div className="bg-slate-900 rounded-[2rem] p-6 text-white space-y-4">
-                  <div className="flex justify-between items-center">
-                    <div className="flex items-center gap-2 text-slate-400"><Wallet className="h-4 w-4" /><span className="text-sm font-medium">Método</span></div>
-                    <Badge className="bg-white/10 hover:bg-white/20 text-white border-none font-bold capitalize">{selectedOrder?.paymentMethod}</Badge>
+                    <p className="text-sm font-black text-slate-900">R$ {(item.price * item.quantity).toFixed(2)}</p>
                   </div>
-                  
-                  {selectedOrder?.paymentMethod === 'dinheiro' && trocoInfo && (
-                    <div className="flex justify-between items-center p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-xl">
-                      <div className="flex items-center gap-2 text-yellow-500"><TrendingUp className="h-4 w-4" /><span className="text-sm font-bold">Troco para</span></div>
-                      <span className="font-black text-yellow-500 text-lg">R$ {trocoInfo}</span>
-                    </div>
-                  )}
-
-                  <div className="flex justify-between items-center">
-                    <div className="flex items-center gap-2 text-slate-400"><Truck className="h-4 w-4" /><span className="text-sm font-medium">Entrega</span></div>
-                    <span className="text-sm font-bold">{selectedOrder?.deliveryType === 'delivery' ? 'Delivery' : 'Retirada'}</span>
-                  </div>
-
-                  {selectedOrder?.couponCode && (
-                    <div className="flex justify-between items-center">
-                      <div className="flex items-center gap-2 text-green-400"><Ticket className="h-4 w-4" /><span className="text-sm font-medium">Cupom</span></div>
-                      <div className="text-right">
-                        <span className="text-sm font-bold text-green-400">{selectedOrder.couponCode}</span>
-                        {selectedOrder.discountAmount > 0 && (
-                          <p className="text-[10px] font-bold text-green-500/70">- R$ {selectedOrder.discountAmount.toFixed(2)}</p>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  <Separator className="bg-white/10" />
-
-                  <div className="flex justify-between items-end pt-2">
-                    <p className="text-slate-400 font-bold text-xs uppercase">Total Pago</p>
-                    <p className="text-3xl font-black text-yellow-500">R$ {selectedOrder?.total.toFixed(2)}</p>
-                  </div>
-                </div>
-              </section>
+                ))}
+              </div>
 
               {selectedOrder?.notes && (
-                <section className="space-y-3">
-                  <div className="flex items-center gap-2 text-slate-400">
-                    <ClipboardList className="h-4 w-4" />
-                    <h4 className="text-xs font-bold uppercase tracking-widest">Observações</h4>
-                  </div>
-                  <div className="p-4 bg-blue-50 border border-blue-100 rounded-2xl">
-                    <p className="text-sm text-blue-900 font-medium leading-relaxed">{selectedOrder.notes}</p>
-                  </div>
-                </section>
+                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100">
+                  <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Observações</p>
+                  <p className="text-sm text-slate-700 font-medium">{selectedOrder.notes}</p>
+                </div>
               )}
+
+              <div className="pt-4 space-y-2">
+                <div className="flex justify-between text-sm font-bold text-slate-500"><span>Subtotal</span><span>R$ {(selectedOrder?.total || 0 + (selectedOrder?.discountAmount || 0)).toFixed(2)}</span></div>
+                {selectedOrder?.discountAmount ? (
+                  <div className="flex justify-between text-sm font-bold text-green-600"><span>Desconto</span><span>- R$ {selectedOrder.discountAmount.toFixed(2)}</span></div>
+                ) : null}
+                <div className="flex justify-between items-center pt-2">
+                  <span className="text-lg font-black text-slate-900">Total Pago</span>
+                  <span className="text-2xl font-black text-yellow-600">R$ {selectedOrder?.total.toFixed(2)}</span>
+                </div>
+                <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase bg-slate-50 p-2 rounded-lg">
+                  <Receipt className="h-3 w-3" />
+                  <span>Pagamento via {selectedOrder?.paymentMethod}</span>
+                  {trocoInfo && <span className="ml-auto text-orange-600">Troco para R$ {trocoInfo}</span>}
+                </div>
+              </div>
             </div>
           </ScrollArea>
           
-          <div className="p-8 pt-0">
-            <Button 
-              onClick={() => setIsOrderDialogOpen(false)}
-              className="w-full h-14 bg-yellow-500 hover:bg-yellow-600 text-slate-900 font-black rounded-2xl text-lg shadow-xl transition-all active:scale-[0.98]"
-            >
-              Fechar Detalhes
-            </Button>
-          </div>
+          <DialogFooter className="p-6 bg-slate-50">
+            <Button variant="outline" onClick={() => setIsOrderDialogOpen(false)} className="w-full rounded-xl font-bold">Fechar</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Dialog de Confirmação de Exclusão */}
+      {/* Modal de Confirmação de Exclusão */}
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <DialogContent className="max-w-md p-8 border-none bg-white rounded-[2rem] shadow-2xl">
+        <DialogContent className="max-w-sm rounded-[2rem] border-none p-6">
           <div className="flex flex-col items-center text-center space-y-4">
-            <div className="h-20 w-20 bg-red-50 rounded-full flex items-center justify-center text-red-500 mb-2">
-              <AlertTriangle className="h-10 w-10" />
+            <div className="h-16 w-16 bg-red-50 rounded-full flex items-center justify-center text-red-500">
+              <AlertTriangle className="h-8 w-8" />
             </div>
-            <DialogHeader>
-              <DialogTitle className="text-2xl font-black text-slate-900">Excluir Pedido?</DialogTitle>
-            </DialogHeader>
-            <p className="text-slate-500 font-medium">
-              Esta ação é irreversível. O pedido <span className="font-bold text-slate-900">#{orderToDelete?.orderNumber}</span> será removido permanentemente de todos os registros e do faturamento.
-            </p>
-            <DialogFooter className="w-full grid grid-cols-2 gap-3 pt-4">
-              <Button
-                variant="outline"
-                onClick={() => setIsDeleteDialogOpen(false)}
-                className="h-12 rounded-xl font-bold border-slate-200 text-slate-600 hover:bg-slate-50"
-              >
-                Cancelar
+            <div className="space-y-2">
+              <DialogTitle className="text-xl font-black text-slate-900">Excluir Pedido?</DialogTitle>
+              <p className="text-sm text-slate-500 font-medium">
+                Esta ação é permanente e removerá o pedido #{orderToDelete?.orderNumber} de todos os registros financeiros.
+              </p>
+            </div>
+            <div className="grid grid-cols-2 gap-3 w-full pt-2">
+              <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)} disabled={isDeleting} className="rounded-xl font-bold">Cancelar</Button>
+              <Button variant="destructive" onClick={confirmDeleteOrder} disabled={isDeleting} className="rounded-xl font-bold bg-red-500 hover:bg-red-600">
+                {isDeleting ? <Clock className="h-4 w-4 animate-spin" /> : "Sim, Excluir"}
               </Button>
-              <Button
-                onClick={confirmDeleteOrder}
-                disabled={isDeleting}
-                className="h-12 rounded-xl font-bold bg-red-500 hover:bg-red-600 text-white shadow-lg shadow-red-100"
-              >
-                {isDeleting ? "Excluindo..." : "Sim, Excluir"}
-              </Button>
-            </DialogFooter>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

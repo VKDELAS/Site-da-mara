@@ -438,7 +438,8 @@ function CartProvider({ children }) {
                         id: a.id,
                         quantity: a.quantity
                     }));
-            const existingItemIndex = prev.findIndex((item)=>item.id.split('-')[0] === newItem.id.split('-')[0] && item.category === newItem.category && item.macarraoType === newItem.macarraoType && JSON.stringify(sortAdicionais(item.adicionais)) === JSON.stringify(sortAdicionais(newItem.adicionais)));
+            const existingItemIndex = prev.findIndex((item)=>item.id.split('-')[0] === newItem.id.split('-')[0] && item.category === newItem.category && item.pastaType === newItem.pastaType && // Comparar também o tipo de macarrão
+                JSON.stringify(sortAdicionais(item.adicionais)) === JSON.stringify(sortAdicionais(newItem.adicionais)));
             if (existingItemIndex !== -1) {
                 const updated = [
                     ...prev
@@ -449,7 +450,7 @@ function CartProvider({ children }) {
                 };
                 return updated;
             }
-            // Gerar um ID único para cada combinação de produto + adicionais
+            // Gerar um ID único para cada combinação de produto + adicionais + tipo de macarrão
             return [
                 ...prev,
                 {
@@ -882,6 +883,12 @@ class StoreStatusManager {
         max: 22
     };
     cachedStatus = null;
+    // Constantes de horário
+    OPENING_HOUR = 10 // 10:00
+    ;
+    CLOSING_HOUR = 23 // 23:30
+    ;
+    CLOSING_MINUTE = 30;
     // Métodos síncronos para UI rápida
     isStoreOpenSync() {
         return this.cachedStatus?.isOpen ?? true;
@@ -891,6 +898,21 @@ class StoreStatusManager {
             min: this.cachedStatus?.waitTimeMin ?? this.defaultWaitTime.min,
             max: this.cachedStatus?.waitTimeMax ?? this.defaultWaitTime.max
         };
+    }
+    /**
+   * Verifica se a loja deve estar aberta baseado no horário automático
+   * Retorna true se está dentro do horário de funcionamento
+   */ shouldBeOpenBySchedule() {
+        const now = new Date();
+        const currentHour = now.getHours();
+        const currentMinute = now.getMinutes();
+        // Abre às 10:00 e fecha às 23:30
+        const openingTime = this.OPENING_HOUR * 60 // 600 minutos
+        ;
+        const closingTime = this.CLOSING_HOUR * 60 + this.CLOSING_MINUTE // 1410 minutos
+        ;
+        const currentTime = currentHour * 60 + currentMinute;
+        return currentTime >= openingTime && currentTime < closingTime;
     }
     processActiveOrders(status) {
         const now = Date.now();
@@ -919,6 +941,20 @@ class StoreStatusManager {
                 await this.saveStatus(status);
             } else {
                 status = data.setting_value;
+                // Garante que novos campos existam
+                if (status.deliveryFee === undefined) status.deliveryFee = 3.00;
+                if (status.isDeliveryFeeEnabled === undefined) status.isDeliveryFeeEnabled = true;
+                if (status.isPromoActive === undefined) status.isPromoActive = false;
+                if (status.promoPrice === undefined) status.promoPrice = 24.99;
+                if (status.promoImage === undefined) status.promoImage = "/images/promo-batatop.png";
+            }
+            // Aplica horário automático se não houver override manual
+            if (!status.manualOverride) {
+                const shouldBeOpen = this.shouldBeOpenBySchedule();
+                if (status.isOpen !== shouldBeOpen) {
+                    status.isOpen = shouldBeOpen;
+                    await this.saveStatus(status);
+                }
             }
             const adjustedStatus = this.processActiveOrders(status);
             if (JSON.stringify(status.activeOrders) !== JSON.stringify(adjustedStatus.activeOrders)) {
@@ -932,20 +968,106 @@ class StoreStatusManager {
     }
     getDefaultStatus() {
         return {
-            isOpen: true,
+            isOpen: this.shouldBeOpenBySchedule(),
+            isDeliveryEnabled: true,
+            deliveryFee: 3.00,
+            isDeliveryFeeEnabled: true,
             waitTimeMin: this.defaultWaitTime.min,
             waitTimeMax: this.defaultWaitTime.max,
-            activeOrders: []
+            activeOrders: [],
+            manualOverride: false,
+            lastManualChange: undefined,
+            isPromoActive: false,
+            promoPrice: 24.99,
+            promoImage: "/images/promo-batatop.png"
         };
     }
     async toggleStoreStatus() {
         const status = await this.getStatus();
         const newStatus = {
             ...status,
-            isOpen: !status.isOpen
+            isOpen: !status.isOpen,
+            manualOverride: true,
+            lastManualChange: new Date().toISOString()
         };
         await this.saveStatus(newStatus);
         return newStatus.isOpen;
+    }
+    async toggleDeliveryStatus() {
+        const status = await this.getStatus();
+        const newStatus = {
+            ...status,
+            isDeliveryEnabled: !status.isDeliveryEnabled
+        };
+        await this.saveStatus(newStatus);
+        return newStatus.isDeliveryEnabled;
+    }
+    async toggleDeliveryFeeStatus() {
+        const status = await this.getStatus();
+        const newStatus = {
+            ...status,
+            isDeliveryFeeEnabled: !status.isDeliveryFeeEnabled
+        };
+        await this.saveStatus(newStatus);
+        return newStatus.isDeliveryFeeEnabled;
+    }
+    async updateDeliveryFee(fee) {
+        const status = await this.getStatus();
+        const newStatus = {
+            ...status,
+            deliveryFee: fee
+        };
+        await this.saveStatus(newStatus);
+    }
+    // Novos métodos para promoção
+    async togglePromoStatus() {
+        const status = await this.getStatus();
+        const newStatus = {
+            ...status,
+            isPromoActive: !status.isPromoActive
+        };
+        await this.saveStatus(newStatus);
+        return newStatus.isPromoActive || false;
+    }
+    async updatePromoPrice(price) {
+        const status = await this.getStatus();
+        const newStatus = {
+            ...status,
+            promoPrice: price
+        };
+        await this.saveStatus(newStatus);
+    }
+    async updatePromoImage(imageUrl) {
+        const status = await this.getStatus();
+        const newStatus = {
+            ...status,
+            promoImage: imageUrl
+        };
+        await this.saveStatus(newStatus);
+    }
+    /**
+   * Remove o override manual e volta a usar o horário automático
+   */ async resetToAutoSchedule() {
+        const status = await this.getStatus();
+        const shouldBeOpen = shouldBeOpenBySchedule();
+        const newStatus = {
+            ...status,
+            isOpen: shouldBeOpen,
+            manualOverride: false,
+            lastManualChange: undefined
+        };
+        await this.saveStatus(newStatus);
+        return newStatus;
+    }
+    /**
+   * Retorna informações sobre o status de agendamento
+   */ getScheduleInfo() {
+        return {
+            openingTime: `${String(this.OPENING_HOUR).padStart(2, '0')}:00`,
+            closingTime: `${String(this.CLOSING_HOUR).padStart(2, '0')}:${String(this.CLOSING_MINUTE).padStart(2, '0')}`,
+            isManualOverride: this.cachedStatus?.manualOverride ?? false,
+            shouldBeOpenNow: this.shouldBeOpenBySchedule()
+        };
     }
     /**
    * ADICIONA UM NOVO PEDIDO À FILA (Incrementa 5 minutos)
@@ -1018,6 +1140,16 @@ class StoreStatusManager {
         } catch (err) {
             console.error("[StoreStatusManager] Error in saveStatus:", err);
         }
+    }
+    /**
+   * Inicia verificação periódica do horário automático
+   * Deve ser chamado uma vez quando a aplicação inicia
+   */ startAutoScheduleCheck() {
+        // Verifica a cada minuto se o status deve mudar
+        setInterval(async ()=>{
+            const status = await this.getStatus();
+        // O método getStatus já aplica a lógica de horário automático
+        }, 60000); // A cada 60 segundos
     }
 }
 const storeStatusManager = new StoreStatusManager();

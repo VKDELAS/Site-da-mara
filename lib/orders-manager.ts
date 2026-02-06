@@ -240,25 +240,59 @@ class OrdersManager {
     await sb.from("orders").delete().eq("id", orderId)
   }
 
-  private progressionTimers: Map<string, NodeJS.Timeout> = new Map()
+  private progressionTimers: Map<string, NodeJS.Timeout[]> = new Map()
   private readonly BASE_PREPARING_TIME = 6 * 60 * 1000 
   private readonly BASE_READY_TIME = 9 * 60 * 1000 
 
   async startOrderProgression(orderId: string) {
     if (this.progressionTimers.has(orderId)) return;
+    
+    const sb = await this.supabase;
+    const { data: order } = await sb.from("orders").select("status, created_at").eq("id", orderId).single();
+    if (!order || order.status === "delivered" || order.status === "cancelled") return;
+
     const activeOrders = await this.getActiveOrders()
     const timeMultiplier = Math.max(1, activeOrders.length / 2)
+    const timers: NodeJS.Timeout[] = [];
 
-    setTimeout(async () => { await this.updateOrderStatus(orderId, "preparing") }, 1000)
     const preparingTime = this.BASE_PREPARING_TIME * timeMultiplier
-    setTimeout(async () => { await this.updateOrderStatus(orderId, "ready") }, preparingTime)
     const readyTime = preparingTime + (this.BASE_READY_TIME * timeMultiplier)
-    const deliveredTimer = setTimeout(async () => {
-      await this.updateOrderStatus(orderId, "delivered")
-      this.progressionTimers.delete(orderId)
-      await storeStatusManager.decrementWaitTime()
-    }, readyTime)
-    this.progressionTimers.set(orderId, deliveredTimer)
+
+    if (order.status === "pending") {
+      timers.push(setTimeout(async () => { 
+        await this.updateOrderStatus(orderId, "preparing") 
+      }, 1000));
+      
+      timers.push(setTimeout(async () => { 
+        await this.updateOrderStatus(orderId, "ready") 
+      }, preparingTime));
+
+      timers.push(setTimeout(async () => {
+        await this.updateOrderStatus(orderId, "delivered")
+        this.progressionTimers.delete(orderId)
+        await storeStatusManager.decrementWaitTime()
+      }, readyTime));
+    } else if (order.status === "preparing") {
+      timers.push(setTimeout(async () => { 
+        await this.updateOrderStatus(orderId, "ready") 
+      }, preparingTime / 2)); // Assume metade do tempo se já estiver preparando
+
+      timers.push(setTimeout(async () => {
+        await this.updateOrderStatus(orderId, "delivered")
+        this.progressionTimers.delete(orderId)
+        await storeStatusManager.decrementWaitTime()
+      }, readyTime / 2));
+    } else if (order.status === "ready") {
+      timers.push(setTimeout(async () => {
+        await this.updateOrderStatus(orderId, "delivered")
+        this.progressionTimers.delete(orderId)
+        await storeStatusManager.decrementWaitTime()
+      }, (this.BASE_READY_TIME * timeMultiplier) / 2));
+    }
+
+    if (timers.length > 0) {
+      this.progressionTimers.set(orderId, timers)
+    }
   }
 
   async initializeActiveOrdersProgression() {
@@ -269,9 +303,9 @@ class OrdersManager {
   }
 
   stopOrderProgression(orderId: string) {
-    const timer = this.progressionTimers.get(orderId)
-    if (timer) {
-      clearTimeout(timer)
+    const timers = this.progressionTimers.get(orderId)
+    if (timers) {
+      timers.forEach(t => clearTimeout(t))
       this.progressionTimers.delete(orderId)
     }
   }
