@@ -101,7 +101,8 @@ class OrdersManager {
       product_name: item.product_name || "Produto",
       product_price: item.product_price || 0,
       quantity: item.quantity || 1,
-      adicionais: item.adicionais || []
+      adicionais: item.adicionais || [],
+      pasta_type: item.pastaType || null // Salvando o tipo de macarrão
     }))
     await sb.from("order_items").insert(itemsToInsert)
   }
@@ -115,7 +116,8 @@ class OrdersManager {
           name: item.product_name,
           quantity: item.quantity,
           price: Number(item.product_price),
-          adicionais: item.adicionais || []
+          adicionais: item.adicionais || [],
+          pastaType: item.pasta_type || null // Mapeando o tipo de macarrão
         }))
       } else if (o.metadata?.items && o.metadata.items.length > 0) {
         finalItems = o.metadata.items.map((item: any) => ({
@@ -123,7 +125,8 @@ class OrdersManager {
           name: item.product_name || item.name,
           quantity: item.quantity,
           price: Number(item.product_price || item.price),
-          adicionais: item.adicionais || []
+          adicionais: item.adicionais || [],
+          pastaType: item.pastaType || null // Mapeando do metadata
         }))
       }
     }

@@ -288,7 +288,7 @@ export default function CheckoutPage() {
       message += `*PRECISA DE COLHER: ${precisaTalheres === "sim" ? "SIM" : "NÃO"}*\n`
 
       const encodedMessage = encodeURIComponent(message)
-      const whatsappUrl = `https://wa.me/5514991183535?text=${encodedMessage}`
+      const whatsappUrl = `https://wa.me/5514997361015?text=${encodedMessage}`
       
       clearCart()
       
