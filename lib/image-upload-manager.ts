@@ -39,6 +39,8 @@ class ImageUploadManager {
     category: "product" | "promo" | "general" = "general"
   ): Promise<{ id: string; url: string; name: string }> {
     try {
+      console.log(`[ImageUploadManager] Iniciando upload - Arquivo: ${file.name}, Categoria: ${category}`);
+      
       // Validação do arquivo
       if (!file.type.startsWith("image/")) {
         throw new Error("O arquivo deve ser uma imagem")
@@ -55,16 +57,21 @@ class ImageUploadManager {
       const id = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
 
       // Salva no banco de dados
+      // Garantimos que o objeto de inserção tenha a categoria correta
+      const insertData = {
+        id,
+        name: file.name,
+        data: base64Data,
+        mime_type: file.type,
+        category: category, // Garantir que a categoria passada seja usada
+        uploaded_at: new Date().toISOString(),
+      };
+      
+      console.log(`[ImageUploadManager] Enviando para Supabase:`, { ...insertData, data: "BASE64_DATA_HIDDEN" });
+      
       const { data, error } = await this.supabase
         .from("uploaded_images")
-        .insert({
-          id,
-          name: file.name,
-          data: base64Data,
-          mime_type: file.type,
-          category,
-          uploaded_at: new Date().toISOString(),
-        })
+        .insert(insertData)
         .select()
 
       if (error) throw error
@@ -90,14 +97,19 @@ class ImageUploadManager {
     category: "product" | "promo" | "general"
   ): Promise<UploadedImage[]> {
     try {
+      console.log(`[ImageUploadManager] Buscando imagens da categoria: ${category}`);
       const { data, error } = await this.supabase
         .from("uploaded_images")
         .select("*")
         .eq("category", category)
         .order("uploaded_at", { ascending: false })
 
-      if (error) throw error
+      if (error) {
+        console.error(`[ImageUploadManager] Erro ao buscar imagens da categoria ${category}:`, error);
+        throw error
+      }
 
+      console.log(`[ImageUploadManager] ${data?.length || 0} imagens encontradas para categoria ${category}`);
       return (data || []).map((img: any) => ({
         id: img.id,
         name: img.name,

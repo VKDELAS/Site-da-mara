@@ -110,7 +110,9 @@ export default function AdminPromocoesPage() {
   const loadImages = async () => {
     try {
       setLoadingImages(true)
+      console.log("[AdminPromocoes] Carregando imagens da categoria 'promo'...")
       const images = await imageUploadManager.getImagesByCategory("promo")
+      console.log("[AdminPromocoes] Imagens carregadas:", images.length, images)
       setPromoImages(images)
     } catch (error) {
       console.error("Erro ao carregar imagens:", error)

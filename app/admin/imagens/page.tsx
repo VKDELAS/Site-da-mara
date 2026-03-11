@@ -55,6 +55,7 @@ export default function AdminImagensPage() {
   }
 
   const handleImageUpload = (url: string, name: string) => {
+    console.log("[AdminImagens] Upload concluído, recarregando lista...");
     loadImages() // Recarrega a lista de imagens
   }
 

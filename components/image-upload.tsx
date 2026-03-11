@@ -55,7 +55,12 @@ export function ImageUpload({
       setFileName(file.name)
 
       // Faz upload
-      const result = await imageUploadManager.uploadImage(file, category)
+      // Forçamos a categoria para garantir que ela seja passada corretamente
+      const uploadCategory = category || "general";
+      console.log(`[ImageUpload] Iniciando upload para categoria: ${uploadCategory}`);
+      
+      const result = await imageUploadManager.uploadImage(file, uploadCategory)
+      console.log(`[ImageUpload] Upload concluído:`, result);
 
       // Callback com a URL da imagem
       onImageUpload(result.url, result.name)
