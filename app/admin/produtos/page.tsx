@@ -45,7 +45,7 @@ export default function AdminProdutosPage() {
   // Promo states
   const [isPromoActive, setIsPromoActive] = useState(false)
   const [promoPrice, setPromoPrice] = useState("24.99")
-  const [promoImage, setPromoImage] = useState("/images/promo-batatop.png")
+  const [promoImage, setPromoImage] = useState<string | undefined>()
   const [isUpdatingPromo, setIsUpdatingPromo] = useState(false)
 
   // Form states for products
@@ -89,7 +89,7 @@ export default function AdminProdutosPage() {
     const status = await storeStatusManager.getStatus()
     setIsPromoActive(status.isPromoActive ?? false)
     setPromoPrice((status.promoPrice ?? 24.99).toString())
-    setPromoImage(status.promoImage ?? "/images/promo-batatop.png")
+    setPromoImage(status.promoImage)
   }
 
   const handleTogglePromo = async () => {

@@ -137,14 +137,14 @@ export function Hero({
 
       <div className="container mx-auto px-4">
         
-        {/* BANNER DE PROMOÇÃO ESTILO IFOOD */}
-        {(superPromoActive || itemPromoActive) && (superPromoImage || itemPromoImage || promoImage) && (
+        {/* BANNER DE PROMOÇÃO ESTILO IFOOD - SÓ APARECE COM IMAGEM SELECIONADA */}
+        {(superPromoActive || itemPromoActive) && (superPromoImage || itemPromoImage) && (
           <div className="mb-12 animate-in fade-in slide-in-from-top-8 duration-1000">
             <Link href="/cardapio">
               <div className="relative group overflow-hidden rounded-[2rem] shadow-lg shadow-yellow-100 border-2 border-yellow-200 cursor-pointer transition-all hover:scale-[1.01] active:scale-[0.99]">
                 <img 
-                  src={superPromoImage || itemPromoImage || promoImage} 
-                  alt="Promoção batata top" 
+                  src={superPromoImage || itemPromoImage} 
+                  alt="Promoção" 
                   className="w-full h-auto object-contain md:object-cover max-h-[250px] md:max-h-[450px]"
                   onError={(e) => {
                     e.currentTarget.style.display = 'none'
