@@ -114,7 +114,7 @@ export class ThermalPrinter {
     // Cabeçalho Centralizado
     commands.push(ThermalPrinter.ESC, 0x61, 0x01);
     commands.push(ThermalPrinter.GS, 0x21, 0x11); // Dobro de tamanho
-    commands.push(...Array.from(encoder.encode("BATATOP\n")));
+    commands.push(...Array.from(encoder.encode("batata top\n")));
     
     commands.push(ThermalPrinter.GS, 0x21, 0x00); // Tamanho normal
     commands.push(...Array.from(encoder.encode("Delivery de Batatas\n")));

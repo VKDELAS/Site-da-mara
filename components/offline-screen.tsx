@@ -14,7 +14,7 @@ export function OfflineScreen() {
       <div className="mb-8">
         <Image
           src="/logo.png"
-          alt="BATATOP"
+          alt="batata top"
           width={80}
           height={80}
           className="mx-auto mb-12"

@@ -18,7 +18,7 @@ export function Footer() {
                     <div className="relative w-full h-full">
                       <Image
                         src="/logo.png"
-                        alt="BATATOP Delivery"
+                        alt="batata top Delivery"
                         fill
                         className="rounded-full object-contain pointer-events-none"
                         priority
@@ -55,10 +55,10 @@ export function Footer() {
             </div>
           </div>
 
-          {/* Batatop */}
+          {/* batata top */}
           <div>
             <h3 className="text-gray-900 font-black text-sm uppercase tracking-widest mb-6">
-              Batatop
+              batata top
             </h3>
             <ul className="space-y-4">
               <li>
@@ -146,13 +146,13 @@ export function Footer() {
               <div className="relative w-10 h-10 grayscale opacity-50">
                 <Image
                   src="/logo.png"
-                  alt="BATATOP"
+                  alt="batata top"
                   fill
                   className="object-contain"
                 />
               </div>
               <div className="text-[11px] text-gray-400 font-bold">
-                © {new Date().getFullYear()} BATATOP DELIVERY. TODOS OS DIREITOS RESERVADOS.
+                © {new Date().getFullYear()} batata top DELIVERY. TODOS OS DIREITOS RESERVADOS.
               </div>
             </div>
             

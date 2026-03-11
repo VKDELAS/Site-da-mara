@@ -1,6 +1,12 @@
 // Sistema de gerenciamento de status da loja e tempo de espera com FILA INDEPENDENTE
 import { getSupabaseBrowserClient } from "./supabase/client"
 
+export interface PromoProduct {
+  productId: string
+  productName: string
+  promoPrice: number
+}
+
 export interface StoreStatus {
   isOpen: boolean
   isDeliveryEnabled: boolean // Novo campo para controle de entregas
@@ -15,6 +21,7 @@ export interface StoreStatus {
   isPromoActive?: boolean
   promoPrice?: number
   promoImage?: string
+  promoProducts?: PromoProduct[] // Produtos específicos em promoção
 }
 
 class StoreStatusManager {
@@ -101,6 +108,7 @@ class StoreStatusManager {
         if (status.isPromoActive === undefined) status.isPromoActive = false
         if (status.promoPrice === undefined) status.promoPrice = 24.99
         if (status.promoImage === undefined) status.promoImage = "/images/promo-batatop.png"
+        if (status.promoProducts === undefined) status.promoProducts = []
       }
 
       // Aplica horário automático se não houver override manual
@@ -138,7 +146,8 @@ class StoreStatusManager {
       lastManualChange: undefined,
       isPromoActive: false,
       promoPrice: 24.99,
-      promoImage: "/images/promo-batatop.png"
+      promoImage: "/images/promo-batatop.png",
+      promoProducts: []
     }
   }
 
@@ -210,6 +219,24 @@ class StoreStatusManager {
       promoImage: imageUrl
     }
     await this.saveStatus(newStatus)
+  }
+
+  async updatePromoProducts(products: PromoProduct[]): Promise<void> {
+    const status = await this.getStatus()
+    const newStatus = {
+      ...status,
+      promoProducts: products
+    }
+    await this.saveStatus(newStatus)
+  }
+
+  getPromoProductPrice(productId: string): number | null {
+    const promoProduct = this.cachedStatus?.promoProducts?.find(p => p.productId === productId)
+    return promoProduct ? promoProduct.promoPrice : null
+  }
+
+  isProductInPromo(productId: string): boolean {
+    return (this.cachedStatus?.promoProducts || []).some(p => p.productId === productId)
   }
 
   /**

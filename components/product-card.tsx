@@ -26,7 +26,7 @@ export function ProductCard({ product, rank = null, isMostRequested = false }: P
   const [dialogOpen, setDialogOpen] = useState(false)
   const [imageError, setImageError] = useState(false)
   const [isPromoActive, setIsPromoActive] = useState(false)
-  const [promoPrice, setPromoPrice] = useState(24.99)
+  const [promoPrice, setPromoPrice] = useState<number | null>(null)
   const { addItem } = useCart()
   const { toast } = useToast()
 
@@ -34,14 +34,23 @@ export function ProductCard({ product, rank = null, isMostRequested = false }: P
     const checkPromo = async () => {
       const status = await storeStatusManager.getStatus()
       setIsPromoActive(status.isPromoActive ?? false)
-      setPromoPrice(status.promoPrice ?? 24.99)
+      
+      // Verifica se este produto específico está em promoção
+      const specificPromo = status.promoProducts?.find(p => p.productId === product.id)
+      if (specificPromo) {
+        setPromoPrice(specificPromo.promoPrice)
+      } else if (product.category === "batata") {
+        // Fallback para o preço global de batatas se for uma batata
+        setPromoPrice(status.promoPrice ?? 24.99)
+      } else {
+        setPromoPrice(null)
+      }
     }
     checkPromo()
-  }, [])
+  }, [product.id, product.category])
 
-  const isBatata = product.category === "batata"
-  const currentPrice = (isPromoActive && isBatata) ? promoPrice : product.price
-  const hasDiscount = isPromoActive && isBatata && product.price > promoPrice
+  const currentPrice = (isPromoActive && promoPrice !== null) ? promoPrice : product.price
+  const hasDiscount = isPromoActive && promoPrice !== null && product.price > promoPrice
 
   const handleAddClick = () => {
     if (product.category === "bebida") {

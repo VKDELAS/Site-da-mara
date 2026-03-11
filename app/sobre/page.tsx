@@ -30,7 +30,7 @@ export default async function SobrePage() {
                 Nossa História
               </div>
               <h1 className="text-5xl md:text-7xl font-black text-white tracking-tight">
-                Muito Prazer, <br /> Somos a <span className="text-gray-900">BATATOP!</span>
+                Muito Prazer, <br /> Somos a <span className="text-gray-900">batata top!</span>
               </h1>
               <p className="text-xl text-yellow-50 font-medium max-w-2xl mx-auto leading-relaxed">
                 Paixão por batatas recheadas desde 2020, levando o melhor sabor de Iacanga direto para sua mesa.
@@ -59,7 +59,7 @@ export default async function SobrePage() {
                 
                 <div className="prose prose-lg text-gray-600 space-y-6">
                   <p className="text-lg leading-relaxed">
-                    A <span className="font-bold text-gray-800">BATATOP</span> nasceu da paixão por criar as melhores batatas recheadas de Iacanga. Trabalhamos com dedicação para oferecer produtos de qualidade, sempre frescos e preparados com muito carinho para nossos clientes.
+                    A <span className="font-bold text-gray-800">batata top</span> nasceu da paixão por criar as melhores batatas recheadas de Iacanga. Trabalhamos com dedicação para oferecer produtos de qualidade, sempre frescos e preparados com muito carinho para nossos clientes.
                   </p>
                   <p className="text-lg leading-relaxed">
                     Cada batata é cuidadosamente selecionada e preparada na hora. Nossos recheios generosos e saborosos fazem a diferença, e nosso compromisso é garantir que cada pedido chegue quentinho e delicioso até você.

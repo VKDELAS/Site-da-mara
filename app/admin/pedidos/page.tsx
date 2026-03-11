@@ -90,7 +90,7 @@ export default function AdminPedidosPage() {
       
       // Notificação do navegador
       if ("Notification" in window && Notification.permission === "granted") {
-        const notification = new Notification("🚨 NOVO PEDIDO - BATATOP!", {
+        const notification = new Notification("🚨 NOVO PEDIDO - batata top!", {
           body: "Um novo pedido acaba de chegar! Abra o painel para conferir.",
           icon: "/favicon.ico",
           tag: "novo-pedido", // Evita múltiplas notificações iguais

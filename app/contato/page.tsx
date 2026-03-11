@@ -16,7 +16,7 @@ export default function ContatoPage() {
         <section className="py-16 bg-gray-50 border-b border-gray-100">
           <div className="container mx-auto px-4 text-center">
             <h1 className="text-4xl md:text-6xl font-black text-gray-900 mb-4 tracking-tighter">
-              Fale com a <span className="text-yellow-500">Batatop</span>
+              Fale com a <span className="text-yellow-500">batata top</span>
             </h1>
             <p className="text-lg text-gray-500 max-w-2xl mx-auto font-medium">
               Dúvidas, sugestões ou apenas quer bater um papo sobre batatas? Estamos aqui para você!
@@ -33,7 +33,7 @@ export default function ContatoPage() {
                 <div className="relative w-32 h-32 md:w-48 md:h-48 flex-shrink-0">
                   <Image
                     src="/logo.png"
-                    alt="Batatop"
+                    alt="batata top"
                     fill
                     className="object-contain"
                   />
@@ -86,7 +86,7 @@ export default function ContatoPage() {
                   </div>
                   <div>
                     <p className="text-xs font-black text-gray-400 uppercase tracking-widest">E-mail</p>
-                    <p className="text-lg font-black text-gray-900">contato@batatop.com</p>
+                    <p className="text-lg font-black text-gray-900">contato@batata top.com</p>
                   </div>
                 </div>
 

@@ -98,7 +98,7 @@ export function CadastroContent() {
           <ChevronLeft className="h-6 w-6 text-gray-900" />
         </button>
         <Link href="/" className="relative w-12 h-12 lg:w-16 lg:h-16 mx-auto lg:mx-0">
-          <img src="/logo.png" alt="BATATOP" className="w-full h-full object-contain" />
+          <img src="/logo.png" alt="batata top" className="w-full h-full object-contain" />
         </Link>
         <div className="w-10 lg:hidden" />
       </header>
@@ -154,7 +154,7 @@ export function CadastroContent() {
                 Crie sua conta grátis
               </h2>
               <p className="mt-2 text-gray-500 font-medium">
-                Junte-se à Batatop e peça suas favoritas.
+                Junte-se à batata top e peça suas favoritas.
               </p>
             </div>
 

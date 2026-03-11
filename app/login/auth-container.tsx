@@ -173,7 +173,7 @@ export function AuthContainer({ initialMode = "login" }: { initialMode?: "login"
                     <div className="relative w-full h-full">
                       <Image 
                         src="/logo.png" 
-                        alt="BATATOP" 
+                        alt="batata top" 
                         fill 
                         className="rounded-full object-contain pointer-events-none" 
                         priority 
@@ -340,7 +340,7 @@ export function AuthContainer({ initialMode = "login" }: { initialMode?: "login"
                     <div className="relative w-full h-full">
                       <Image 
                         src="/logo.png" 
-                        alt="BATATOP" 
+                        alt="batata top" 
                         fill 
                         className="rounded-full object-contain pointer-events-none" 
                         priority 
@@ -350,7 +350,7 @@ export function AuthContainer({ initialMode = "login" }: { initialMode?: "login"
                 </div>
               </div>
               <h2 className="text-3xl font-black text-gray-900 tracking-tighter">Crie sua conta!</h2>
-              <p className="text-gray-500 font-medium mt-2">Junte-se à família Batatop hoje mesmo.</p>
+              <p className="text-gray-500 font-medium mt-2">Junte-se à família batata top hoje mesmo.</p>
             </div>
 
             <form onSubmit={handleAuth} className="space-y-4">

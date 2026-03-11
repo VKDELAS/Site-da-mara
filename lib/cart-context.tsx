@@ -35,7 +35,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   // Carregar carrinho do localStorage
   useEffect(() => {
-    const savedCart = localStorage.getItem("batatop-cart")
+    const savedCart = localStorage.getItem("batata top-cart")
     if (savedCart) {
       setItems(JSON.parse(savedCart))
     }
@@ -45,7 +45,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   // Salvar carrinho no localStorage
   useEffect(() => {
     if (isInitialized) {
-      localStorage.setItem("batatop-cart", JSON.stringify(items))
+      localStorage.setItem("batata top-cart", JSON.stringify(items))
     }
   }, [items, isInitialized])
 

@@ -241,7 +241,7 @@ export default function CheckoutPage() {
       await ordersManager.createOrder(orderData)
       
       // Gerar mensagem do WhatsApp
-      let message = "*NOVO PEDIDO - BATATOP*\n"
+      let message = "*NOVO PEDIDO - batata top*\n"
       message += "------------------------------------------\n\n"
       message += "*CLIENTE*\n"
       message += `* Nome: ${nome}\n`

@@ -21,7 +21,7 @@ export interface Product {
 
 // Gerenciador de adicionais usando localStorage (client-only)
 class AdicionaisManager {
-  private storageKey = "batatop-adicionais-global"
+  private storageKey = "batata top-adicionais-global"
 
   getAdicionais(): Adicional[] {
     if (typeof window === "undefined") return []

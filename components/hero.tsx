@@ -114,7 +114,7 @@ export function Hero({
               <div className="relative group overflow-hidden rounded-[2rem] shadow-lg shadow-yellow-100 border-2 border-yellow-200 cursor-pointer transition-all hover:scale-[1.01] active:scale-[0.99]">
                 <img 
                   src={promoImage} 
-                  alt="Promoção Batatop" 
+                  alt="Promoção batata top" 
                   className="w-full h-auto object-contain md:object-cover max-h-[250px] md:max-h-[450px]"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -143,10 +143,10 @@ export function Hero({
 
             <div className="space-y-4">
               <h1 className="text-5xl md:text-7xl font-black tracking-tight text-gray-900 leading-[1.1]">
-                Fome de <span className="text-yellow-500">BataTop?</span>
+                Fome de <span className="text-yellow-500">batata top?</span>
               </h1>
               <p className="text-lg md:text-xl text-gray-500 max-w-2xl mx-auto lg:mx-0 leading-relaxed">
-                Batatas gigantes, recheios generosos e aquele sabor que só a <span className="font-bold text-gray-800">BATATOP</span> tem. Peça agora e receba quentinho em minutos! 🚀
+                Batatas gigantes, recheios generosos e aquele sabor que só a <span className="font-bold text-gray-800">batata top</span> tem. Peça agora e receba quentinho em minutos! 🚀
               </p>
             </div>
 

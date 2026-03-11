@@ -120,7 +120,7 @@ export function Header({ variant = "default" }: HeaderProps) {
                 <div className="relative w-full h-full">
                   <Image
                     src="/logo.png"
-                    alt="BATATOP Delivery"
+                    alt="batata top Delivery"
                     fill
                     className="rounded-full object-contain pointer-events-none"
                     priority
@@ -154,7 +154,7 @@ export function Header({ variant = "default" }: HeaderProps) {
                     <div className="relative w-full h-full">
                       <Image
                         src="/logo.png"
-                        alt="BATATOP Delivery"
+                        alt="batata top Delivery"
                         fill
                         className="rounded-full object-contain pointer-events-none"
                         priority
@@ -172,7 +172,7 @@ export function Header({ variant = "default" }: HeaderProps) {
                     <div className="relative w-full h-full">
                       <Image
                         src="/logo.png"
-                        alt="BATATOP Delivery"
+                        alt="batata top Delivery"
                         fill
                         className="rounded-full object-contain pointer-events-none"
                         priority
@@ -243,7 +243,7 @@ export function Header({ variant = "default" }: HeaderProps) {
                     <div className="relative w-full h-full">
                       <Image
                         src="/logo.png"
-                        alt="BATATOP Delivery"
+                        alt="batata top Delivery"
                         fill
                         className="rounded-full object-contain pointer-events-none"
                         priority
@@ -302,13 +302,13 @@ export function Header({ variant = "default" }: HeaderProps) {
                   </div>
                   <div>
                     <p className="font-black text-gray-800">Nossa História</p>
-                    <p className="text-xs text-gray-400">Conheça o Batatop</p>
+                    <p className="text-xs text-gray-400">Conheça o batata top</p>
                   </div>
                 </Link>
               </nav>
 
               <div className="p-8 bg-gray-50 text-center">
-                <p className="text-[10px] font-bold text-gray-300 uppercase tracking-[0.3em]">Batatop © 2026</p>
+                <p className="text-[10px] font-bold text-gray-300 uppercase tracking-[0.3em]">batata top © 2026</p>
               </div>
             </div>
           </div>
@@ -328,7 +328,7 @@ export function Header({ variant = "default" }: HeaderProps) {
                   <div className="relative w-full h-full">
                     <Image
                       src="/logo.png"
-                      alt="BATATOP Delivery"
+                      alt="batata top Delivery"
                       fill
                       className="rounded-full object-contain pointer-events-none"
                       priority
@@ -387,7 +387,7 @@ export function Header({ variant = "default" }: HeaderProps) {
                     <div className="relative w-full h-full">
                       <Image
                         src="/logo.png"
-                        alt="BATATOP Delivery"
+                        alt="batata top Delivery"
                         fill
                         className="rounded-full object-contain pointer-events-none"
                         priority

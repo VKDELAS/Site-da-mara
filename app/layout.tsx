@@ -12,7 +12,7 @@ import "./globals.css"
 const geist = Geist({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "BATATOP - Batatas Recheadas Delivery",
+  title: "batata top - Batatas Recheadas Delivery",
   description: "As melhores batatas recheadas da cidade! Peça agora pelo delivery.",
   generator: "Enzzo Baraldo",
   icons: {

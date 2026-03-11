@@ -142,7 +142,7 @@ export default function AjudaPage() {
                           className="mt-4 w-full bg-green-500 hover:bg-green-600 text-white font-bold gap-2"
                         >
                           <MessageCircle className="h-4 w-4" />
-                          Falar com a Batatop
+                          Falar com a batata top
                         </Button>
                       )}
                     </div>

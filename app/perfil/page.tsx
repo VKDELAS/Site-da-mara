@@ -325,7 +325,7 @@ export default function PerfilPage() {
             </div>
 
             <p className="text-center text-[10px] text-gray-300 uppercase font-black tracking-widest pt-4">
-              Batatop Iacanga • Versão 1.1
+              batata top Iacanga • Versão 1.1
             </p>
           </div>
         </div>
