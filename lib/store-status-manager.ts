@@ -12,12 +12,14 @@ export interface SuperPromo {
   price: number
   imageId?: string
   imageUrl?: string
+  useUrl?: boolean
 }
 
 export interface ItemPromo {
   isActive: boolean
   imageId?: string
   imageUrl?: string
+  useUrl?: boolean
 }
 
 export interface StoreStatus {
@@ -124,8 +126,8 @@ class StoreStatusManager {
         if (status.promoPrice === undefined) status.promoPrice = 24.99
         if (status.promoImage === undefined) status.promoImage = "/images/promo-batatop.png"
         if (status.promoProducts === undefined) status.promoProducts = []
-      if (status.superPromo === undefined) status.superPromo = { isActive: false, price: 26.00, imageId: undefined, imageUrl: undefined }
-      if (status.itemPromo === undefined) status.itemPromo = { isActive: false, imageId: undefined, imageUrl: undefined }
+      if (status.superPromo === undefined) status.superPromo = { isActive: false, price: 26.00, imageId: undefined, imageUrl: undefined, useUrl: false }
+      if (status.itemPromo === undefined) status.itemPromo = { isActive: false, imageId: undefined, imageUrl: undefined, useUrl: false }
       }
 
       // Aplica horário automático se não houver override manual
@@ -169,12 +171,14 @@ class StoreStatusManager {
         isActive: false,
         price: 26.00,
         imageId: undefined,
-        imageUrl: undefined
+        imageUrl: undefined,
+        useUrl: false
       },
       itemPromo: {
         isActive: false,
         imageId: undefined,
-        imageUrl: undefined
+        imageUrl: undefined,
+        useUrl: false
       }
     }
   }

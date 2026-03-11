@@ -32,12 +32,14 @@ interface SuperPromo {
   price: number
   imageId?: string
   imageUrl?: string
+  useUrl?: boolean
 }
 
 interface ItemPromo {
   isActive: boolean
   imageId?: string
   imageUrl?: string
+  useUrl?: boolean
 }
 
 export default function AdminPromocoesPage() {
@@ -54,14 +56,16 @@ export default function AdminPromocoesPage() {
     isActive: false,
     price: 26.00,
     imageId: undefined,
-    imageUrl: undefined
+    imageUrl: undefined,
+    useUrl: false
   })
   
   // Promoção de itens específicos
   const [itemPromo, setItemPromo] = useState<ItemPromo>({
     isActive: false,
     imageId: undefined,
-    imageUrl: undefined
+    imageUrl: undefined,
+    useUrl: false
   })
   
   // Imagens disponíveis
@@ -121,10 +125,16 @@ export default function AdminPromocoesPage() {
       console.log("Status carregado:", status)
       
       if (status.superPromo) {
-        setSuperPromo(status.superPromo)
+        setSuperPromo({
+          ...status.superPromo,
+          useUrl: status.superPromo.useUrl ?? false
+        })
       }
       if (status.itemPromo) {
-        setItemPromo(status.itemPromo)
+        setItemPromo({
+          ...status.itemPromo,
+          useUrl: status.itemPromo.useUrl ?? false
+        })
       }
     } catch (error) {
       console.error("Erro ao carregar status de promoção:", error)
@@ -184,8 +194,13 @@ export default function AdminPromocoesPage() {
     }
   }
 
-  const handleSuperPromoImage = async (imageId?: string, imageUrl?: string) => {
-    const newSuperPromo = { ...superPromo, imageId, imageUrl }
+  const handleSuperPromoImageUpload = async (imageId: string) => {
+    const newSuperPromo = { 
+      ...superPromo, 
+      imageId, 
+      imageUrl: undefined,
+      useUrl: false
+    }
     setSuperPromo(newSuperPromo)
     
     try {
@@ -197,8 +212,49 @@ export default function AdminPromocoesPage() {
     }
   }
 
-  const handleItemPromoImage = async (imageId?: string, imageUrl?: string) => {
-    const newItemPromo = { ...itemPromo, imageId, imageUrl }
+  const handleSuperPromoImageUrl = async (imageUrl: string) => {
+    const newSuperPromo = { 
+      ...superPromo, 
+      imageUrl, 
+      imageId: undefined,
+      useUrl: true
+    }
+    setSuperPromo(newSuperPromo)
+    
+    try {
+      await storeStatusManager.updateSuperPromo(newSuperPromo)
+      setSuccessMessage("URL da imagem atualizada!")
+      setTimeout(() => setSuccessMessage(null), 3000)
+    } catch (error) {
+      console.error("Erro ao atualizar URL:", error)
+    }
+  }
+
+  const handleSuperPromoRemoveImage = async () => {
+    const newSuperPromo = { 
+      ...superPromo, 
+      imageId: undefined,
+      imageUrl: undefined,
+      useUrl: false
+    }
+    setSuperPromo(newSuperPromo)
+    
+    try {
+      await storeStatusManager.updateSuperPromo(newSuperPromo)
+      setSuccessMessage("Imagem removida!")
+      setTimeout(() => setSuccessMessage(null), 3000)
+    } catch (error) {
+      console.error("Erro ao remover imagem:", error)
+    }
+  }
+
+  const handleItemPromoImageUpload = async (imageId: string) => {
+    const newItemPromo = { 
+      ...itemPromo, 
+      imageId, 
+      imageUrl: undefined,
+      useUrl: false
+    }
     setItemPromo(newItemPromo)
     
     try {
@@ -207,6 +263,42 @@ export default function AdminPromocoesPage() {
       setTimeout(() => setSuccessMessage(null), 3000)
     } catch (error) {
       console.error("Erro ao atualizar imagem:", error)
+    }
+  }
+
+  const handleItemPromoImageUrl = async (imageUrl: string) => {
+    const newItemPromo = { 
+      ...itemPromo, 
+      imageUrl, 
+      imageId: undefined,
+      useUrl: true
+    }
+    setItemPromo(newItemPromo)
+    
+    try {
+      await storeStatusManager.updateItemPromo(newItemPromo)
+      setSuccessMessage("URL da imagem atualizada!")
+      setTimeout(() => setSuccessMessage(null), 3000)
+    } catch (error) {
+      console.error("Erro ao atualizar URL:", error)
+    }
+  }
+
+  const handleItemPromoRemoveImage = async () => {
+    const newItemPromo = { 
+      ...itemPromo, 
+      imageId: undefined,
+      imageUrl: undefined,
+      useUrl: false
+    }
+    setItemPromo(newItemPromo)
+    
+    try {
+      await storeStatusManager.updateItemPromo(newItemPromo)
+      setSuccessMessage("Imagem removida!")
+      setTimeout(() => setSuccessMessage(null), 3000)
+    } catch (error) {
+      console.error("Erro ao remover imagem:", error)
     }
   }
 
@@ -383,11 +475,9 @@ export default function AdminPromocoesPage() {
                   {/* Abas para escolher tipo de imagem */}
                   <div className="flex gap-2 border-b border-gray-200">
                     <button
-                      onClick={() => handleSuperPromoImage(superPromo.imageId, undefined)}
+                      onClick={() => setSuperPromo({ ...superPromo, useUrl: false })}
                       className={`px-4 py-2 font-bold text-sm border-b-2 transition-colors ${
-                        superPromo.imageUrl === undefined && superPromo.imageId !== undefined
-                          ? "border-orange-500 text-orange-600"
-                          : superPromo.imageUrl === undefined
+                        !superPromo.useUrl
                           ? "border-orange-500 text-orange-600"
                           : "border-transparent text-gray-500 hover:text-gray-700"
                       }`}
@@ -395,9 +485,9 @@ export default function AdminPromocoesPage() {
                       Upload
                     </button>
                     <button
-                      onClick={() => handleSuperPromoImage(undefined, superPromo.imageUrl || "")}
+                      onClick={() => setSuperPromo({ ...superPromo, useUrl: true })}
                       className={`px-4 py-2 font-bold text-sm border-b-2 transition-colors ${
-                        superPromo.imageUrl !== undefined && superPromo.imageUrl !== ""
+                        superPromo.useUrl
                           ? "border-orange-500 text-orange-600"
                           : "border-transparent text-gray-500 hover:text-gray-700"
                       }`}
@@ -407,16 +497,16 @@ export default function AdminPromocoesPage() {
                   </div>
 
                   {/* Upload de Imagem */}
-                  {superPromo.imageUrl === undefined || superPromo.imageUrl === "" ? (
+                  {!superPromo.useUrl ? (
                     <div className="space-y-3">
                       {loadingImages ? (
                         <p className="text-sm text-gray-500">Carregando imagens...</p>
                       ) : (
                         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
                           <button
-                            onClick={() => handleSuperPromoImage(undefined, undefined)}
+                            onClick={() => handleSuperPromoRemoveImage()}
                             className={`p-3 rounded-xl border-2 transition-all ${
-                              superPromo.imageId === undefined
+                              !superPromo.imageId
                                 ? "border-orange-400 bg-orange-50"
                                 : "border-gray-200 hover:border-gray-300"
                             }`}
@@ -429,7 +519,7 @@ export default function AdminPromocoesPage() {
                           {promoImages.map(image => (
                             <button
                               key={image.id}
-                              onClick={() => handleSuperPromoImage(image.id, undefined)}
+                              onClick={() => handleSuperPromoImageUpload(image.id)}
                               className={`p-2 rounded-xl border-2 transition-all overflow-hidden ${
                                 superPromo.imageId === image.id
                                   ? "border-orange-400 ring-2 ring-orange-300"
@@ -454,7 +544,7 @@ export default function AdminPromocoesPage() {
                         type="text"
                         placeholder="Ex: /images/promo-batatop.png ou https://..."
                         value={superPromo.imageUrl || ""}
-                        onChange={(e) => handleSuperPromoImage(undefined, e.target.value)}
+                        onChange={(e) => handleSuperPromoImageUrl(e.target.value)}
                         className="w-full h-11 rounded-xl border-2 border-gray-100 focus:border-orange-400"
                       />
                       <p className="text-xs text-gray-500">Você pode usar URLs da pasta public (ex: /images/...) ou URLs externas</p>
@@ -470,6 +560,9 @@ export default function AdminPromocoesPage() {
                           src={getImagePreview(superPromo.imageId, superPromo.imageUrl) || ""}
                           alt="Preview"
                           className="w-full h-auto"
+                          onError={(e) => {
+                            e.currentTarget.style.display = "none"
+                          }}
                         />
                       </div>
                     </div>
@@ -629,11 +722,9 @@ export default function AdminPromocoesPage() {
                   {/* Abas para escolher tipo de imagem */}
                   <div className="flex gap-2 border-b border-gray-200">
                     <button
-                      onClick={() => handleItemPromoImage(itemPromo.imageId, undefined)}
+                      onClick={() => setItemPromo({ ...itemPromo, useUrl: false })}
                       className={`px-4 py-2 font-bold text-sm border-b-2 transition-colors ${
-                        itemPromo.imageUrl === undefined && itemPromo.imageId !== undefined
-                          ? "border-blue-500 text-blue-600"
-                          : itemPromo.imageUrl === undefined
+                        !itemPromo.useUrl
                           ? "border-blue-500 text-blue-600"
                           : "border-transparent text-gray-500 hover:text-gray-700"
                       }`}
@@ -641,9 +732,9 @@ export default function AdminPromocoesPage() {
                       Upload
                     </button>
                     <button
-                      onClick={() => handleItemPromoImage(undefined, itemPromo.imageUrl || "")}
+                      onClick={() => setItemPromo({ ...itemPromo, useUrl: true })}
                       className={`px-4 py-2 font-bold text-sm border-b-2 transition-colors ${
-                        itemPromo.imageUrl !== undefined && itemPromo.imageUrl !== ""
+                        itemPromo.useUrl
                           ? "border-blue-500 text-blue-600"
                           : "border-transparent text-gray-500 hover:text-gray-700"
                       }`}
@@ -653,16 +744,16 @@ export default function AdminPromocoesPage() {
                   </div>
 
                   {/* Upload de Imagem */}
-                  {itemPromo.imageUrl === undefined || itemPromo.imageUrl === "" ? (
+                  {!itemPromo.useUrl ? (
                     <div className="space-y-3">
                       {loadingImages ? (
                         <p className="text-sm text-gray-500">Carregando imagens...</p>
                       ) : (
                         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
                           <button
-                            onClick={() => handleItemPromoImage(undefined, undefined)}
+                            onClick={() => handleItemPromoRemoveImage()}
                             className={`p-3 rounded-xl border-2 transition-all ${
-                              itemPromo.imageId === undefined
+                              !itemPromo.imageId
                                 ? "border-blue-400 bg-blue-50"
                                 : "border-gray-200 hover:border-gray-300"
                             }`}
@@ -675,7 +766,7 @@ export default function AdminPromocoesPage() {
                           {promoImages.map(image => (
                             <button
                               key={image.id}
-                              onClick={() => handleItemPromoImage(image.id, undefined)}
+                              onClick={() => handleItemPromoImageUpload(image.id)}
                               className={`p-2 rounded-xl border-2 transition-all overflow-hidden ${
                                 itemPromo.imageId === image.id
                                   ? "border-blue-400 ring-2 ring-blue-300"
@@ -700,7 +791,7 @@ export default function AdminPromocoesPage() {
                         type="text"
                         placeholder="Ex: /images/promo.png ou https://..."
                         value={itemPromo.imageUrl || ""}
-                        onChange={(e) => handleItemPromoImage(undefined, e.target.value)}
+                        onChange={(e) => handleItemPromoImageUrl(e.target.value)}
                         className="w-full h-11 rounded-xl border-2 border-gray-100 focus:border-blue-400"
                       />
                       <p className="text-xs text-gray-500">Você pode usar URLs da pasta public (ex: /images/...) ou URLs externas</p>
@@ -716,6 +807,9 @@ export default function AdminPromocoesPage() {
                           src={getImagePreview(itemPromo.imageId, itemPromo.imageUrl) || ""}
                           alt="Preview"
                           className="w-full h-auto"
+                          onError={(e) => {
+                            e.currentTarget.style.display = "none"
+                          }}
                         />
                       </div>
                     </div>

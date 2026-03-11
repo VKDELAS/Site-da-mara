@@ -73,7 +73,12 @@ export function Hero({
       
       if (status.superPromo?.isActive) {
         setSuperPromoActive(true)
-        const imgUrl = status.superPromo.imageUrl || (status.superPromo.imageId ? `/api/images/${status.superPromo.imageId}` : undefined)
+        let imgUrl: string | undefined
+        if (status.superPromo.useUrl && status.superPromo.imageUrl) {
+          imgUrl = status.superPromo.imageUrl
+        } else if (status.superPromo.imageId) {
+          imgUrl = `/api/images/${status.superPromo.imageId}`
+        }
         setSuperPromoImage(imgUrl)
       } else {
         setSuperPromoActive(false)
@@ -81,7 +86,12 @@ export function Hero({
       
       if (status.itemPromo?.isActive) {
         setItemPromoActive(true)
-        const imgUrl = status.itemPromo.imageUrl || (status.itemPromo.imageId ? `/api/images/${status.itemPromo.imageId}` : undefined)
+        let imgUrl: string | undefined
+        if (status.itemPromo.useUrl && status.itemPromo.imageUrl) {
+          imgUrl = status.itemPromo.imageUrl
+        } else if (status.itemPromo.imageId) {
+          imgUrl = `/api/images/${status.itemPromo.imageId}`
+        }
         setItemPromoImage(imgUrl)
       } else {
         setItemPromoActive(false)
