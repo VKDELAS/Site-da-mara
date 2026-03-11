@@ -42,7 +42,7 @@ export function Hero({
   const [deliveryFee, setDeliveryFee] = useState(3.00)
   const [isPromoActive, setIsPromoActive] = useState(false)
   const [promoPrice, setPromoPrice] = useState(24.99)
-  const [promoImage, setPromoImage] = useState("/images/promo-batatop.png")
+  const [promoImage, setPromoImage] = useState<string | undefined>()
   const [superPromoActive, setSuperPromoActive] = useState(false)
   const [superPromoImage, setSuperPromoImage] = useState<string | undefined>()
   const [itemPromoActive, setItemPromoActive] = useState(false)
@@ -69,7 +69,7 @@ export function Hero({
       setDeliveryFee(status.deliveryFee ?? 3.00)
       setIsPromoActive(status.isPromoActive ?? false)
       setPromoPrice(status.promoPrice ?? 24.99)
-      setPromoImage(status.promoImage ?? "/images/promo-batatop.png")
+      setPromoImage(status.promoImage)
       
       if (status.superPromo?.isActive) {
         setSuperPromoActive(true)
@@ -138,7 +138,7 @@ export function Hero({
       <div className="container mx-auto px-4">
         
         {/* BANNER DE PROMOÇÃO ESTILO IFOOD */}
-        {(superPromoActive || itemPromoActive) && (
+        {(superPromoActive || itemPromoActive) && (superPromoImage || itemPromoImage || promoImage) && (
           <div className="mb-12 animate-in fade-in slide-in-from-top-8 duration-1000">
             <Link href="/cardapio">
               <div className="relative group overflow-hidden rounded-[2rem] shadow-lg shadow-yellow-100 border-2 border-yellow-200 cursor-pointer transition-all hover:scale-[1.01] active:scale-[0.99]">
@@ -147,7 +147,7 @@ export function Hero({
                   alt="Promoção batata top" 
                   className="w-full h-auto object-contain md:object-cover max-h-[250px] md:max-h-[450px]"
                   onError={(e) => {
-                    e.currentTarget.src = promoImage
+                    e.currentTarget.style.display = 'none'
                   }}
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />

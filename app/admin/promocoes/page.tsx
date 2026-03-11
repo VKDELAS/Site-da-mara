@@ -352,6 +352,13 @@ export default function AdminPromocoesPage() {
   const getBatatas = () => allProducts.filter(p => p.category === "batata")
   const getMacarrao = () => allProducts.filter(p => p.category === "macarrao")
 
+  const getImageUrl = (imageId?: string) => {
+    if (!imageId) return undefined;
+    const image = promoImages.find(img => img.id === imageId);
+    if (!image) return undefined;
+    return `data:${image.mimeType};base64,${image.data}`;
+  };
+
   const getImagePreview = (imageId?: string, imageUrl?: string) => {
     // Prioridade 1: URL personalizada
     if (imageUrl) {
@@ -359,12 +366,7 @@ export default function AdminPromocoesPage() {
     }
     
     // Prioridade 2: Imagem de upload
-    if (!imageId) return null
-    const image = promoImages.find(img => img.id === imageId)
-    if (image) {
-      return `data:${image.mimeType};base64,${image.data}`
-    }
-    return null
+    return getImageUrl(imageId) || null
   }
 
   if (loading || !isAdmin) {

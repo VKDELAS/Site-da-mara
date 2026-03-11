@@ -124,7 +124,7 @@ class StoreStatusManager {
         if (status.isDeliveryFeeEnabled === undefined) status.isDeliveryFeeEnabled = true
         if (status.isPromoActive === undefined) status.isPromoActive = false
         if (status.promoPrice === undefined) status.promoPrice = 24.99
-        if (status.promoImage === undefined) status.promoImage = "/images/promo-batatop.png"
+        if (status.promoImage === undefined) status.promoImage = undefined
         if (status.promoProducts === undefined) status.promoProducts = []
       if (status.superPromo === undefined) status.superPromo = { isActive: false, price: 26.00, imageId: undefined, imageUrl: undefined, useUrl: false }
       if (status.itemPromo === undefined) status.itemPromo = { isActive: false, imageId: undefined, imageUrl: undefined, useUrl: false }
@@ -165,7 +165,7 @@ class StoreStatusManager {
       lastManualChange: undefined,
       isPromoActive: false,
       promoPrice: 24.99,
-      promoImage: "/images/promo-batatop.png",
+      promoImage: undefined,
       promoProducts: [],
       superPromo: {
         isActive: false,
