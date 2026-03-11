@@ -47,6 +47,8 @@ export function CardapioContent({
   const searchInputRef = useRef<HTMLInputElement>(null)
   const isManualScrolling = useRef(false)
   const manualScrollTimeout = useRef<NodeJS.Timeout | null>(null)
+  const [promoProductIds, setPromoProductIds] = useState<string[]>([])
+  const [superPromoActive, setSuperPromoActive] = useState(false)
 
   // Função para centralizar a aba ativa
   const centerActiveTab = useCallback((tabId: string) => {
@@ -126,6 +128,32 @@ export function CardapioContent({
     setMounted(true)
   }, [])
 
+  useEffect(() => {
+    const loadPromoData = async () => {
+      try {
+        const { storeStatusManager } = await import("@/lib/store-status-manager")
+        const status = await storeStatusManager.getStatus()
+        
+        if (status.superPromo?.isActive) {
+          setSuperPromoActive(true)
+          setPromoProductIds(batatas.map(b => b.id))
+        } else if (status.itemPromo?.isActive && status.promoProducts) {
+          setSuperPromoActive(false)
+          setPromoProductIds(status.promoProducts.map(p => p.productId))
+        } else {
+          setSuperPromoActive(false)
+          setPromoProductIds([])
+        }
+      } catch (error) {
+        console.error("Erro ao carregar dados de promoção:", error)
+      }
+    }
+    
+    loadPromoData()
+    const interval = setInterval(loadPromoData, 5000)
+    return () => clearInterval(interval)
+  }, [batatas])
+
   const scrollToCategory = (catId: string) => {
     if (!scrollContainerRef.current) return
     
@@ -183,6 +211,12 @@ export function CardapioContent({
     })
 
     return [...filtered].sort((a, b) => {
+      const aInPromo = promoProductIds.includes(a.id)
+      const bInPromo = promoProductIds.includes(b.id)
+      
+      if (aInPromo && !bInPromo) return -1
+      if (!aInPromo && bInPromo) return 1
+      
       const indexA = topNames.findIndex(name => name.toLowerCase() === a.name.toLowerCase())
       const indexB = topNames.findIndex(name => name.toLowerCase() === b.name.toLowerCase())
       

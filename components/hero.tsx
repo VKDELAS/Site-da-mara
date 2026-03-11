@@ -43,6 +43,10 @@ export function Hero({
   const [isPromoActive, setIsPromoActive] = useState(false)
   const [promoPrice, setPromoPrice] = useState(24.99)
   const [promoImage, setPromoImage] = useState("/images/promo-batatop.png")
+  const [superPromoActive, setSuperPromoActive] = useState(false)
+  const [superPromoImage, setSuperPromoImage] = useState<string | undefined>()
+  const [itemPromoActive, setItemPromoActive] = useState(false)
+  const [itemPromoImage, setItemPromoImage] = useState<string | undefined>()
 
   useEffect(() => {
     const checkUserAddress = async () => {
@@ -66,6 +70,22 @@ export function Hero({
       setIsPromoActive(status.isPromoActive ?? false)
       setPromoPrice(status.promoPrice ?? 24.99)
       setPromoImage(status.promoImage ?? "/images/promo-batatop.png")
+      
+      if (status.superPromo?.isActive) {
+        setSuperPromoActive(true)
+        const imgUrl = status.superPromo.imageUrl || (status.superPromo.imageId ? `/api/images/${status.superPromo.imageId}` : undefined)
+        setSuperPromoImage(imgUrl)
+      } else {
+        setSuperPromoActive(false)
+      }
+      
+      if (status.itemPromo?.isActive) {
+        setItemPromoActive(true)
+        const imgUrl = status.itemPromo.imageUrl || (status.itemPromo.imageId ? `/api/images/${status.itemPromo.imageId}` : undefined)
+        setItemPromoImage(imgUrl)
+      } else {
+        setItemPromoActive(false)
+      }
     }
     updateStatus()
     const interval = setInterval(updateStatus, 10000)
@@ -108,14 +128,17 @@ export function Hero({
       <div className="container mx-auto px-4">
         
         {/* BANNER DE PROMOÇÃO ESTILO IFOOD */}
-        {isPromoActive && (
+        {(superPromoActive || itemPromoActive) && (
           <div className="mb-12 animate-in fade-in slide-in-from-top-8 duration-1000">
             <Link href="/cardapio">
               <div className="relative group overflow-hidden rounded-[2rem] shadow-lg shadow-yellow-100 border-2 border-yellow-200 cursor-pointer transition-all hover:scale-[1.01] active:scale-[0.99]">
                 <img 
-                  src={promoImage} 
+                  src={superPromoImage || itemPromoImage || promoImage} 
                   alt="Promoção batata top" 
                   className="w-full h-auto object-contain md:object-cover max-h-[250px] md:max-h-[450px]"
+                  onError={(e) => {
+                    e.currentTarget.src = promoImage
+                  }}
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                 
