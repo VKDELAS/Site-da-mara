@@ -7,6 +7,17 @@ export interface PromoProduct {
   promoPrice: number
 }
 
+export interface SuperPromo {
+  isActive: boolean
+  price: number
+  imageId?: string
+}
+
+export interface ItemPromo {
+  isActive: boolean
+  imageId?: string
+}
+
 export interface StoreStatus {
   isOpen: boolean
   isDeliveryEnabled: boolean // Novo campo para controle de entregas
@@ -22,6 +33,8 @@ export interface StoreStatus {
   promoPrice?: number
   promoImage?: string
   promoProducts?: PromoProduct[] // Produtos específicos em promoção
+  superPromo?: SuperPromo // Super promoção (todos os preços)
+  itemPromo?: ItemPromo // Promoção de itens específicos
 }
 
 class StoreStatusManager {
@@ -109,6 +122,8 @@ class StoreStatusManager {
         if (status.promoPrice === undefined) status.promoPrice = 24.99
         if (status.promoImage === undefined) status.promoImage = "/images/promo-batatop.png"
         if (status.promoProducts === undefined) status.promoProducts = []
+      if (status.superPromo === undefined) status.superPromo = { isActive: false, price: 26.00, imageId: undefined }
+      if (status.itemPromo === undefined) status.itemPromo = { isActive: false, imageId: undefined }
       }
 
       // Aplica horário automático se não houver override manual
@@ -147,7 +162,16 @@ class StoreStatusManager {
       isPromoActive: false,
       promoPrice: 24.99,
       promoImage: "/images/promo-batatop.png",
-      promoProducts: []
+      promoProducts: [],
+      superPromo: {
+        isActive: false,
+        price: 26.00,
+        imageId: undefined
+      },
+      itemPromo: {
+        isActive: false,
+        imageId: undefined
+      }
     }
   }
 
@@ -237,6 +261,33 @@ class StoreStatusManager {
 
   isProductInPromo(productId: string): boolean {
     return (this.cachedStatus?.promoProducts || []).some(p => p.productId === productId)
+  }
+
+  // Novos métodos para Super Promoção e Promoção de Itens
+  async updateSuperPromo(superPromo: SuperPromo): Promise<void> {
+    const status = await this.getStatus()
+    const newStatus = {
+      ...status,
+      superPromo
+    }
+    await this.saveStatus(newStatus)
+  }
+
+  async updateItemPromo(itemPromo: ItemPromo): Promise<void> {
+    const status = await this.getStatus()
+    const newStatus = {
+      ...status,
+      itemPromo
+    }
+    await this.saveStatus(newStatus)
+  }
+
+  getSuperPromo(): SuperPromo | undefined {
+    return this.cachedStatus?.superPromo
+  }
+
+  getItemPromo(): ItemPromo | undefined {
+    return this.cachedStatus?.itemPromo
   }
 
   /**

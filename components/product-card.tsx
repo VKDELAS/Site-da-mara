@@ -35,22 +35,38 @@ export function ProductCard({ product, rank = null, isMostRequested = false }: P
       const status = await storeStatusManager.getStatus()
       setIsPromoActive(status.isPromoActive ?? false)
       
-      // Verifica se este produto específico está em promoção
-      const specificPromo = status.promoProducts?.find(p => p.productId === product.id)
-      if (specificPromo) {
-        setPromoPrice(specificPromo.promoPrice)
-      } else if (product.category === "batata") {
-        // Fallback para o preço global de batatas se for uma batata
-        setPromoPrice(status.promoPrice ?? 24.99)
-      } else {
-        setPromoPrice(null)
+      let finalPromoPrice: number | null = null
+      
+      // Prioridade 1: Promoção de Itens Específicos
+      if (status.itemPromo?.isActive) {
+        const itemPromo = status.promoProducts?.find(p => p.productId === product.id)
+        if (itemPromo) {
+          finalPromoPrice = itemPromo.promoPrice
+        }
       }
+      
+      // Prioridade 2: Super Promoção (todos os preços para batatas)
+      if (finalPromoPrice === null && status.superPromo?.isActive && product.category === "batata") {
+        finalPromoPrice = status.superPromo.price
+      }
+      
+      // Prioridade 3: Promoção legada (compatibilidade)
+      if (finalPromoPrice === null && status.isPromoActive) {
+        const specificPromo = status.promoProducts?.find(p => p.productId === product.id)
+        if (specificPromo) {
+          finalPromoPrice = specificPromo.promoPrice
+        } else if (product.category === "batata") {
+          finalPromoPrice = status.promoPrice ?? 24.99
+        }
+      }
+      
+      setPromoPrice(finalPromoPrice)
     }
     checkPromo()
   }, [product.id, product.category])
 
-  const currentPrice = (isPromoActive && promoPrice !== null) ? promoPrice : product.price
-  const hasDiscount = isPromoActive && promoPrice !== null && product.price > promoPrice
+  const currentPrice = promoPrice !== null ? promoPrice : product.price
+  const hasDiscount = promoPrice !== null && product.price > promoPrice
 
   const handleAddClick = () => {
     if (product.category === "bebida") {

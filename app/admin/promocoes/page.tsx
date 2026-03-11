@@ -17,6 +17,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import Link from "next/link"
 import { productsManager } from "@/lib/products-db"
 import { Product } from "@/lib/products-db"
+import { imageUploadManager, UploadedImage } from "@/lib/image-upload-manager"
 
 const ADMIN_EMAILS = ["enzzobaraldo2008@gmail.com", "maraysis9010@gmail.com"]
 
@@ -26,16 +27,41 @@ interface PromoProduct {
   promoPrice: number
 }
 
+interface SuperPromo {
+  isActive: boolean
+  price: number
+  imageId?: string
+}
+
 export default function AdminPromocoesPage() {
   const { user, loading } = useAuth()
   const router = useRouter()
   const [isAdmin, setIsAdmin] = useState(false)
-  const [isPromoActive, setIsPromoActive] = useState(false)
-  const [promoImage, setPromoImage] = useState("/images/promo-batatop.png")
-  const [isUpdatingPromo, setIsUpdatingPromo] = useState(false)
   const [allProducts, setAllProducts] = useState<Product[]>([])
   const [promoProducts, setPromoProducts] = useState<PromoProduct[]>([])
   const [loadingProducts, setLoadingProducts] = useState(true)
+  const [isUpdatingPromo, setIsUpdatingPromo] = useState(false)
+  
+  // Super Promoção (todos os preços)
+  const [superPromo, setSuperPromo] = useState<SuperPromo>({
+    isActive: false,
+    price: 26.00,
+    imageId: undefined
+  })
+  
+  // Promoção de itens específicos
+  const [itemPromo, setItemPromo] = useState<{
+    isActive: boolean
+    imageId?: string
+  }>({
+    isActive: false,
+    imageId: undefined
+  })
+  
+  // Imagens disponíveis
+  const [promoImages, setPromoImages] = useState<UploadedImage[]>([])
+  const [loadingImages, setLoadingImages] = useState(true)
+  const [selectedImagePreview, setSelectedImagePreview] = useState<string | null>(null)
 
   useEffect(() => {
     if (!loading) {
@@ -45,6 +71,7 @@ export default function AdminPromocoesPage() {
         setIsAdmin(true)
         loadPromoStatus()
         loadProducts()
+        loadImages()
       } else {
         alert("Você não tem permissão para acessar esta página")
         router.push("/")
@@ -63,6 +90,9 @@ export default function AdminPromocoesPage() {
       if (status.promoProducts) {
         setPromoProducts(status.promoProducts)
       }
+      if (status.itemPromo) {
+        setItemPromo(status.itemPromo)
+      }
     } catch (error) {
       console.error("Erro ao carregar produtos:", error)
     } finally {
@@ -70,20 +100,39 @@ export default function AdminPromocoesPage() {
     }
   }
 
-  const loadPromoStatus = async () => {
-    const status = await storeStatusManager.getStatus()
-    setIsPromoActive(status.isPromoActive ?? false)
-    setPromoImage(status.promoImage ?? "/images/promo-batatop.png")
+  const loadImages = async () => {
+    try {
+      setLoadingImages(true)
+      const images = await imageUploadManager.getImagesByCategory("promo")
+      setPromoImages(images)
+    } catch (error) {
+      console.error("Erro ao carregar imagens:", error)
+    } finally {
+      setLoadingImages(false)
+    }
   }
 
-  const handleTogglePromo = async () => {
-    setIsUpdatingPromo(true)
-    try {
-      const newState = await storeStatusManager.togglePromoStatus()
-      setIsPromoActive(newState)
-    } finally {
-      setIsUpdatingPromo(false)
-    }
+  const loadPromoStatus = async () => {
+    const status = await storeStatusManager.getStatus()
+    setSuperPromo({
+      isActive: status.superPromo?.isActive ?? false,
+      price: status.superPromo?.price ?? 26.00,
+      imageId: status.superPromo?.imageId
+    })
+    setItemPromo({
+      isActive: status.itemPromo?.isActive ?? false,
+      imageId: status.itemPromo?.imageId
+    })
+  }
+
+  const handleToggleSuperPromo = async () => {
+    const newState = !superPromo.isActive
+    setSuperPromo({ ...superPromo, isActive: newState })
+  }
+
+  const handleToggleItemPromo = async () => {
+    const newState = !itemPromo.isActive
+    setItemPromo({ ...itemPromo, isActive: newState })
   }
 
   const handleAddProduct = (product: Product) => {
@@ -94,7 +143,7 @@ export default function AdminPromocoesPage() {
         {
           productId: product.id,
           productName: product.name,
-          promoPrice: product.price - 1.00 // Desconto padrão de R$ 1.00
+          promoPrice: product.price - 1.00
         }
       ])
     }
@@ -112,7 +161,17 @@ export default function AdminPromocoesPage() {
     )
   }
 
-  const handleUpdatePromoSettings = async () => {
+  const handleSaveSuperPromo = async () => {
+    setIsUpdatingPromo(true)
+    try {
+      await storeStatusManager.updateSuperPromo(superPromo)
+      alert("Super Promoção atualizada com sucesso!")
+    } finally {
+      setIsUpdatingPromo(false)
+    }
+  }
+
+  const handleSaveItemPromo = async () => {
     if (promoProducts.length === 0) {
       alert("Selecione pelo menos um produto para a promoção")
       return
@@ -120,9 +179,9 @@ export default function AdminPromocoesPage() {
 
     setIsUpdatingPromo(true)
     try {
+      await storeStatusManager.updateItemPromo(itemPromo)
       await storeStatusManager.updatePromoProducts(promoProducts)
-      await storeStatusManager.updatePromoImage(promoImage)
-      alert("Configurações da promoção atualizadas com sucesso!")
+      alert("Promoção de itens atualizada com sucesso!")
     } finally {
       setIsUpdatingPromo(false)
     }
@@ -130,6 +189,15 @@ export default function AdminPromocoesPage() {
 
   const getBatatas = () => allProducts.filter(p => p.category === "batata")
   const getMacarrao = () => allProducts.filter(p => p.category === "macarrao")
+
+  const getImagePreview = (imageId?: string) => {
+    if (!imageId) return null
+    const image = promoImages.find(img => img.id === imageId)
+    if (image) {
+      return `data:${image.mimeType};base64,${image.data}`
+    }
+    return null
+  }
 
   if (loading || !isAdmin) {
     return (
@@ -166,22 +234,22 @@ export default function AdminPromocoesPage() {
           </div>
 
           <div className="grid grid-cols-1 gap-8">
-            {/* Status da Promoção */}
-            <Card className="border-none shadow-md bg-white rounded-3xl overflow-hidden">
-              <CardHeader className="bg-orange-50 border-b border-orange-100 p-6">
+            {/* ========== SUPER PROMOÇÃO (TODOS OS PREÇOS) ========== */}
+            <Card className="border-none shadow-md bg-white rounded-3xl overflow-hidden border-l-4 border-red-500">
+              <CardHeader className="bg-red-50 border-b border-red-100 p-6">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className={`p-3 rounded-xl ${isPromoActive ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-400'}`}>
-                      <Zap className={`h-6 w-6 ${isPromoActive ? 'fill-current' : ''}`} />
+                    <div className={`p-3 rounded-xl ${superPromo.isActive ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-400'}`}>
+                      <Zap className={`h-6 w-6 ${superPromo.isActive ? 'fill-current' : ''}`} />
                     </div>
                     <div>
-                      <CardTitle className="text-xl font-black text-gray-900">Status da Promoção</CardTitle>
-                      <p className="text-sm text-gray-500">{isPromoActive ? 'A promoção está visível para todos os clientes' : 'A promoção está desativada'}</p>
+                      <CardTitle className="text-xl font-black text-gray-900">Super Promoção</CardTitle>
+                      <p className="text-sm text-gray-500">Todos os preços para um valor fixo</p>
                     </div>
                   </div>
                   <Switch 
-                    checked={isPromoActive} 
-                    onCheckedChange={handleTogglePromo}
+                    checked={superPromo.isActive} 
+                    onCheckedChange={handleToggleSuperPromo}
                     disabled={isUpdatingPromo}
                     className="data-[state=checked]:bg-green-500"
                   />
@@ -189,166 +257,303 @@ export default function AdminPromocoesPage() {
               </CardHeader>
               <CardContent className="p-8">
                 <div className="space-y-6">
+                  {/* Preço da Super Promoção */}
+                  <div className="space-y-2">
+                    <Label className="font-black text-gray-900">Preço Promocional (R$)</Label>
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-gray-600">R$</span>
+                      <Input 
+                        type="number"
+                        step="0.01"
+                        value={superPromo.price} 
+                        onChange={(e) => setSuperPromo({ ...superPromo, price: parseFloat(e.target.value) })}
+                        className="h-14 rounded-2xl border-2 border-gray-100 focus:border-red-400 font-bold"
+                      />
+                    </div>
+                    <p className="text-xs text-gray-500">Todos os produtos de batata terão este preço quando a promoção estiver ativa.</p>
+                  </div>
+
+                  {/* Imagem da Super Promoção */}
                   <div className="space-y-2">
                     <Label className="font-black text-gray-900 flex items-center gap-2">
-                      <Image className="h-4 w-4 text-orange-500" />
-                      Caminho da Imagem do Banner
+                      <Image className="h-4 w-4 text-red-500" />
+                      Imagem do Banner
                     </Label>
-                    <Input 
-                      value={promoImage} 
-                      onChange={(e) => setPromoImage(e.target.value)}
-                      placeholder="/images/promo-batatop.png"
-                      className="h-14 rounded-2xl border-2 border-gray-100 focus:border-orange-400 font-bold"
-                    />
-                    <p className="text-xs text-gray-500">Caminho da imagem que será exibida no banner promocional da página inicial.</p>
+                    <div className="space-y-3">
+                      {loadingImages ? (
+                        <p className="text-sm text-gray-500">Carregando imagens...</p>
+                      ) : promoImages.length === 0 ? (
+                        <p className="text-sm text-gray-500">Nenhuma imagem de promoção disponível. Faça upload na seção de imagens.</p>
+                      ) : (
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                          <button
+                            onClick={() => setSuperPromo({ ...superPromo, imageId: undefined })}
+                            className={`p-3 rounded-xl border-2 transition-all ${
+                              !superPromo.imageId 
+                                ? 'border-red-400 bg-red-50' 
+                                : 'border-gray-200 hover:border-gray-300'
+                            }`}
+                          >
+                            <div className="text-center">
+                              <p className="text-2xl mb-1">✕</p>
+                              <p className="text-xs font-bold text-gray-600">Sem imagem</p>
+                            </div>
+                          </button>
+                          {promoImages.map(image => (
+                            <button
+                              key={image.id}
+                              onClick={() => setSuperPromo({ ...superPromo, imageId: image.id })}
+                              className={`p-2 rounded-xl border-2 transition-all overflow-hidden ${
+                                superPromo.imageId === image.id 
+                                  ? 'border-red-400 ring-2 ring-red-300' 
+                                  : 'border-gray-200 hover:border-gray-300'
+                              }`}
+                            >
+                              <img
+                                src={`data:${image.mimeType};base64,${image.data}`}
+                                alt={image.name}
+                                className="w-full h-16 object-cover rounded"
+                              />
+                              <p className="text-xs font-bold text-gray-600 mt-1 truncate">{image.name}</p>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
+
+                  {/* Preview da imagem selecionada */}
+                  {superPromo.imageId && (
+                    <div className="space-y-2">
+                      <p className="text-sm font-bold text-gray-600">Preview:</p>
+                      <div className="w-full max-w-xs rounded-xl overflow-hidden border-2 border-gray-200">
+                        <img
+                          src={getImagePreview(superPromo.imageId) || ""}
+                          alt="Preview"
+                          className="w-full h-auto"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Botão de Salvar */}
+                  <Button 
+                    onClick={handleSaveSuperPromo}
+                    disabled={isUpdatingPromo}
+                    className="w-full h-12 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-black rounded-2xl gap-2 shadow-lg transition-all"
+                  >
+                    <Save className="h-5 w-5" /> Salvar Super Promoção
+                  </Button>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Seleção de Produtos */}
-            <Card className="border-none shadow-md bg-white rounded-3xl overflow-hidden">
+            {/* ========== PROMOÇÃO DE ITENS ESPECÍFICOS ========== */}
+            <Card className="border-none shadow-md bg-white rounded-3xl overflow-hidden border-l-4 border-blue-500">
               <CardHeader className="bg-blue-50 border-b border-blue-100 p-6">
-                <div className="flex items-center gap-3">
-                  <div className="p-3 rounded-xl bg-blue-100 text-blue-600">
-                    <Tag className="h-6 w-6" />
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className={`p-3 rounded-xl ${itemPromo.isActive ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-400'}`}>
+                      <Tag className={`h-6 w-6 ${itemPromo.isActive ? 'fill-current' : ''}`} />
+                    </div>
+                    <div>
+                      <CardTitle className="text-xl font-black text-gray-900">Promoção por Item</CardTitle>
+                      <p className="text-sm text-gray-500">Selecione itens específicos com preços customizados</p>
+                    </div>
                   </div>
-                  <div>
-                    <CardTitle className="text-xl font-black text-gray-900">Produtos em Promoção</CardTitle>
-                    <p className="text-sm text-gray-500">Selecione quais produtos terão preço reduzido</p>
-                  </div>
+                  <Switch 
+                    checked={itemPromo.isActive} 
+                    onCheckedChange={handleToggleItemPromo}
+                    disabled={isUpdatingPromo}
+                    className="data-[state=checked]:bg-green-500"
+                  />
                 </div>
               </CardHeader>
               <CardContent className="p-8">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                  {/* Coluna de Batatas */}
+                <div className="space-y-6">
+                  {/* Seleção de Produtos */}
                   <div className="space-y-4">
-                    <h3 className="text-lg font-black text-gray-900 flex items-center gap-2">
-                      <div className="h-3 w-3 rounded-full bg-yellow-500"></div>
-                      Batatas
-                    </h3>
-                    <div className="space-y-3 max-h-96 overflow-y-auto pr-4">
-                      {getBatatas().map(product => (
-                        <div 
-                          key={product.id}
-                          className="p-4 border-2 border-gray-100 rounded-2xl hover:border-yellow-300 transition-colors"
-                        >
-                          <div className="flex items-start gap-3">
-                            <Checkbox 
-                              checked={promoProducts.some(p => p.productId === product.id)}
-                              onCheckedChange={() => {
-                                if (promoProducts.some(p => p.productId === product.id)) {
-                                  handleRemoveProduct(product.id)
-                                } else {
-                                  handleAddProduct(product)
-                                }
-                              }}
-                              className="mt-1"
-                            />
-                            <div className="flex-1 min-w-0">
-                              <p className="font-bold text-gray-900 text-sm">{product.name}</p>
-                              <p className="text-xs text-gray-500">Preço original: R$ {product.price.toFixed(2)}</p>
+                    <h3 className="text-lg font-black text-gray-900">Selecione os Produtos</h3>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                      {/* Coluna de Batatas */}
+                      <div className="space-y-4">
+                        <h4 className="text-base font-black text-gray-900 flex items-center gap-2">
+                          <div className="h-3 w-3 rounded-full bg-yellow-500"></div>
+                          Batatas
+                        </h4>
+                        <div className="space-y-3 max-h-96 overflow-y-auto pr-4">
+                          {getBatatas().map(product => (
+                            <div 
+                              key={product.id}
+                              className="p-4 border-2 border-gray-100 rounded-2xl hover:border-yellow-300 transition-colors"
+                            >
+                              <div className="flex items-start gap-3">
+                                <Checkbox 
+                                  checked={promoProducts.some(p => p.productId === product.id)}
+                                  onCheckedChange={() => {
+                                    if (promoProducts.some(p => p.productId === product.id)) {
+                                      handleRemoveProduct(product.id)
+                                    } else {
+                                      handleAddProduct(product)
+                                    }
+                                  }}
+                                  className="mt-1"
+                                />
+                                <div className="flex-1 min-w-0">
+                                  <p className="font-bold text-gray-900 text-sm">{product.name}</p>
+                                  <p className="text-xs text-gray-500">Preço original: R$ {product.price.toFixed(2)}</p>
+                                </div>
+                              </div>
                             </div>
-                          </div>
+                          ))}
                         </div>
-                      ))}
+                      </div>
+
+                      {/* Coluna de Macarrão */}
+                      <div className="space-y-4">
+                        <h4 className="text-base font-black text-gray-900 flex items-center gap-2">
+                          <div className="h-3 w-3 rounded-full bg-red-500"></div>
+                          Macarrão
+                        </h4>
+                        <div className="space-y-3 max-h-96 overflow-y-auto pr-4">
+                          {getMacarrao().map(product => (
+                            <div 
+                              key={product.id}
+                              className="p-4 border-2 border-gray-100 rounded-2xl hover:border-red-300 transition-colors"
+                            >
+                              <div className="flex items-start gap-3">
+                                <Checkbox 
+                                  checked={promoProducts.some(p => p.productId === product.id)}
+                                  onCheckedChange={() => {
+                                    if (promoProducts.some(p => p.productId === product.id)) {
+                                      handleRemoveProduct(product.id)
+                                    } else {
+                                      handleAddProduct(product)
+                                    }
+                                  }}
+                                  className="mt-1"
+                                />
+                                <div className="flex-1 min-w-0">
+                                  <p className="font-bold text-gray-900 text-sm">{product.name}</p>
+                                  <p className="text-xs text-gray-500">Preço original: R$ {product.price.toFixed(2)}</p>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
                     </div>
                   </div>
 
-                  {/* Coluna de Macarrão */}
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-black text-gray-900 flex items-center gap-2">
-                      <div className="h-3 w-3 rounded-full bg-red-500"></div>
-                      Macarrão
-                    </h3>
-                    <div className="space-y-3 max-h-96 overflow-y-auto pr-4">
-                      {getMacarrao().map(product => (
-                        <div 
-                          key={product.id}
-                          className="p-4 border-2 border-gray-100 rounded-2xl hover:border-red-300 transition-colors"
-                        >
-                          <div className="flex items-start gap-3">
-                            <Checkbox 
-                              checked={promoProducts.some(p => p.productId === product.id)}
-                              onCheckedChange={() => {
-                                if (promoProducts.some(p => p.productId === product.id)) {
-                                  handleRemoveProduct(product.id)
-                                } else {
-                                  handleAddProduct(product)
-                                }
-                              }}
-                              className="mt-1"
-                            />
-                            <div className="flex-1 min-w-0">
-                              <p className="font-bold text-gray-900 text-sm">{product.name}</p>
-                              <p className="text-xs text-gray-500">Preço original: R$ {product.price.toFixed(2)}</p>
+                  {/* Preços Promocionais */}
+                  {promoProducts.length > 0 && (
+                    <div className="space-y-4">
+                      <h3 className="text-lg font-black text-gray-900">Preços Promocionais</h3>
+                      <div className="space-y-4">
+                        {promoProducts.map(promo => (
+                          <div 
+                            key={promo.productId}
+                            className="p-6 border-2 border-gray-100 rounded-2xl flex items-end gap-4"
+                          >
+                            <div className="flex-1">
+                              <p className="text-sm font-bold text-gray-600 mb-2">{promo.productName}</p>
+                              <div className="flex items-center gap-2">
+                                <span className="font-bold text-gray-400">R$</span>
+                                <Input 
+                                  type="number" 
+                                  step="0.01"
+                                  value={promo.promoPrice} 
+                                  onChange={(e) => handleUpdatePromoPrice(promo.productId, parseFloat(e.target.value))}
+                                  className="w-32 h-12 rounded-xl border-2 border-gray-100 focus:border-blue-400 font-bold text-lg"
+                                />
+                              </div>
                             </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleRemoveProduct(promo.productId)}
+                              className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                            >
+                              <Trash2 className="h-5 w-5" />
+                            </Button>
                           </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Imagem da Promoção de Itens */}
+                  <div className="space-y-2">
+                    <Label className="font-black text-gray-900 flex items-center gap-2">
+                      <Image className="h-4 w-4 text-blue-500" />
+                      Imagem do Banner (Opcional)
+                    </Label>
+                    <div className="space-y-3">
+                      {loadingImages ? (
+                        <p className="text-sm text-gray-500">Carregando imagens...</p>
+                      ) : (
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                          <button
+                            onClick={() => setItemPromo({ ...itemPromo, imageId: undefined })}
+                            className={`p-3 rounded-xl border-2 transition-all ${
+                              !itemPromo.imageId 
+                                ? 'border-blue-400 bg-blue-50' 
+                                : 'border-gray-200 hover:border-gray-300'
+                            }`}
+                          >
+                            <div className="text-center">
+                              <p className="text-2xl mb-1">✕</p>
+                              <p className="text-xs font-bold text-gray-600">Sem imagem</p>
+                            </div>
+                          </button>
+                          {promoImages.map(image => (
+                            <button
+                              key={image.id}
+                              onClick={() => setItemPromo({ ...itemPromo, imageId: image.id })}
+                              className={`p-2 rounded-xl border-2 transition-all overflow-hidden ${
+                                itemPromo.imageId === image.id 
+                                  ? 'border-blue-400 ring-2 ring-blue-300' 
+                                  : 'border-gray-200 hover:border-gray-300'
+                              }`}
+                            >
+                              <img
+                                src={`data:${image.mimeType};base64,${image.data}`}
+                                alt={image.name}
+                                className="w-full h-16 object-cover rounded"
+                              />
+                              <p className="text-xs font-bold text-gray-600 mt-1 truncate">{image.name}</p>
+                            </button>
+                          ))}
                         </div>
-                      ))}
+                      )}
                     </div>
                   </div>
+
+                  {/* Preview da imagem selecionada */}
+                  {itemPromo.imageId && (
+                    <div className="space-y-2">
+                      <p className="text-sm font-bold text-gray-600">Preview:</p>
+                      <div className="w-full max-w-xs rounded-xl overflow-hidden border-2 border-gray-200">
+                        <img
+                          src={getImagePreview(itemPromo.imageId) || ""}
+                          alt="Preview"
+                          className="w-full h-auto"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Botão de Salvar */}
+                  <Button 
+                    onClick={handleSaveItemPromo}
+                    disabled={isUpdatingPromo || promoProducts.length === 0}
+                    className="w-full h-12 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-black rounded-2xl gap-2 shadow-lg transition-all"
+                  >
+                    <Save className="h-5 w-5" /> Salvar Promoção de Itens
+                  </Button>
                 </div>
               </CardContent>
             </Card>
-
-            {/* Preços Promocionais */}
-            {promoProducts.length > 0 && (
-              <Card className="border-none shadow-md bg-white rounded-3xl overflow-hidden">
-                <CardHeader className="bg-green-50 border-b border-green-100 p-6">
-                  <div className="flex items-center gap-3">
-                    <div className="p-3 rounded-xl bg-green-100 text-green-600">
-                      <Tag className="h-6 w-6" />
-                    </div>
-                    <div>
-                      <CardTitle className="text-xl font-black text-gray-900">Preços Promocionais</CardTitle>
-                      <p className="text-sm text-gray-500">Configure o preço de cada produto em promoção</p>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="p-8">
-                  <div className="space-y-4">
-                    {promoProducts.map(promo => (
-                      <div 
-                        key={promo.productId}
-                        className="p-6 border-2 border-gray-100 rounded-2xl flex items-end gap-4"
-                      >
-                        <div className="flex-1">
-                          <p className="text-sm font-bold text-gray-600 mb-2">{promo.productName}</p>
-                          <div className="flex items-center gap-2">
-                            <span className="font-bold text-gray-400">R$</span>
-                            <Input 
-                              type="number" 
-                              step="0.01"
-                              value={promo.promoPrice} 
-                              onChange={(e) => handleUpdatePromoPrice(promo.productId, parseFloat(e.target.value))}
-                              className="w-32 h-12 rounded-xl border-2 border-gray-100 focus:border-green-400 font-bold text-lg"
-                            />
-                          </div>
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleRemoveProduct(promo.productId)}
-                          className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                        >
-                          <Trash2 className="h-5 w-5" />
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Botão de Salvar */}
-            <Button 
-              onClick={handleUpdatePromoSettings}
-              disabled={isUpdatingPromo || promoProducts.length === 0}
-              className="w-full h-16 bg-gradient-to-r from-gray-900 to-black hover:from-black hover:to-gray-900 text-white font-black rounded-2xl gap-2 shadow-lg transition-all text-lg"
-            >
-              <Save className="h-6 w-6" /> Salvar Configurações da Promoção
-            </Button>
           </div>
         </div>
       </main>
