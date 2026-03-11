@@ -33,6 +33,11 @@ interface SuperPromo {
   imageId?: string
 }
 
+interface ItemPromo {
+  isActive: boolean
+  imageId?: string
+}
+
 export default function AdminPromocoesPage() {
   const { user, loading } = useAuth()
   const router = useRouter()
@@ -50,10 +55,7 @@ export default function AdminPromocoesPage() {
   })
   
   // Promoção de itens específicos
-  const [itemPromo, setItemPromo] = useState<{
-    isActive: boolean
-    imageId?: string
-  }>({
+  const [itemPromo, setItemPromo] = useState<ItemPromo>({
     isActive: false,
     imageId: undefined
   })
@@ -61,7 +63,7 @@ export default function AdminPromocoesPage() {
   // Imagens disponíveis
   const [promoImages, setPromoImages] = useState<UploadedImage[]>([])
   const [loadingImages, setLoadingImages] = useState(true)
-  const [selectedImagePreview, setSelectedImagePreview] = useState<string | null>(null)
+  const [successMessage, setSuccessMessage] = useState<string | null>(null)
 
   useEffect(() => {
     if (!loading) {
@@ -90,9 +92,6 @@ export default function AdminPromocoesPage() {
       if (status.promoProducts) {
         setPromoProducts(status.promoProducts)
       }
-      if (status.itemPromo) {
-        setItemPromo(status.itemPromo)
-      }
     } catch (error) {
       console.error("Erro ao carregar produtos:", error)
     } finally {
@@ -113,26 +112,98 @@ export default function AdminPromocoesPage() {
   }
 
   const loadPromoStatus = async () => {
-    const status = await storeStatusManager.getStatus()
-    setSuperPromo({
-      isActive: status.superPromo?.isActive ?? false,
-      price: status.superPromo?.price ?? 26.00,
-      imageId: status.superPromo?.imageId
-    })
-    setItemPromo({
-      isActive: status.itemPromo?.isActive ?? false,
-      imageId: status.itemPromo?.imageId
-    })
+    try {
+      const status = await storeStatusManager.getStatus()
+      console.log("Status carregado:", status)
+      
+      if (status.superPromo) {
+        setSuperPromo(status.superPromo)
+      }
+      if (status.itemPromo) {
+        setItemPromo(status.itemPromo)
+      }
+    } catch (error) {
+      console.error("Erro ao carregar status de promoção:", error)
+    }
   }
 
   const handleToggleSuperPromo = async () => {
-    const newState = !superPromo.isActive
-    setSuperPromo({ ...superPromo, isActive: newState })
+    const newSuperPromo = { ...superPromo, isActive: !superPromo.isActive }
+    setSuperPromo(newSuperPromo)
+    
+    setIsUpdatingPromo(true)
+    try {
+      await storeStatusManager.updateSuperPromo(newSuperPromo)
+      setSuccessMessage("Super Promoção atualizada!")
+      setTimeout(() => setSuccessMessage(null), 3000)
+    } catch (error) {
+      console.error("Erro ao atualizar Super Promoção:", error)
+      alert("Erro ao atualizar Super Promoção")
+    } finally {
+      setIsUpdatingPromo(false)
+    }
   }
 
   const handleToggleItemPromo = async () => {
-    const newState = !itemPromo.isActive
-    setItemPromo({ ...itemPromo, isActive: newState })
+    if (promoProducts.length === 0) {
+      alert("Selecione pelo menos um produto para a promoção")
+      return
+    }
+
+    const newItemPromo = { ...itemPromo, isActive: !itemPromo.isActive }
+    setItemPromo(newItemPromo)
+    
+    setIsUpdatingPromo(true)
+    try {
+      await storeStatusManager.updateItemPromo(newItemPromo)
+      await storeStatusManager.updatePromoProducts(promoProducts)
+      setSuccessMessage("Promoção de itens atualizada!")
+      setTimeout(() => setSuccessMessage(null), 3000)
+    } catch (error) {
+      console.error("Erro ao atualizar Promoção de Itens:", error)
+      alert("Erro ao atualizar Promoção de Itens")
+    } finally {
+      setIsUpdatingPromo(false)
+    }
+  }
+
+  const handleSuperPromoPrice = async (newPrice: number) => {
+    const newSuperPromo = { ...superPromo, price: newPrice }
+    setSuperPromo(newSuperPromo)
+    
+    try {
+      await storeStatusManager.updateSuperPromo(newSuperPromo)
+      setSuccessMessage("Preço da Super Promoção atualizado!")
+      setTimeout(() => setSuccessMessage(null), 3000)
+    } catch (error) {
+      console.error("Erro ao atualizar preço:", error)
+    }
+  }
+
+  const handleSuperPromoImage = async (imageId?: string) => {
+    const newSuperPromo = { ...superPromo, imageId }
+    setSuperPromo(newSuperPromo)
+    
+    try {
+      await storeStatusManager.updateSuperPromo(newSuperPromo)
+      setSuccessMessage("Imagem da Super Promoção atualizada!")
+      setTimeout(() => setSuccessMessage(null), 3000)
+    } catch (error) {
+      console.error("Erro ao atualizar imagem:", error)
+    }
+  }
+
+  const handleItemPromoImage = async (imageId?: string) => {
+    const newItemPromo = { ...itemPromo, imageId }
+    setItemPromo(newItemPromo)
+    
+    try {
+      await storeStatusManager.updateItemPromo(newItemPromo)
+      setSuccessMessage("Imagem da Promoção de Itens atualizada!")
+      setTimeout(() => setSuccessMessage(null), 3000)
+    } catch (error) {
+      console.error("Erro ao atualizar imagem:", error)
+    }
   }
 
   const handleAddProduct = (product: Product) => {
@@ -161,16 +232,6 @@ export default function AdminPromocoesPage() {
     )
   }
 
-  const handleSaveSuperPromo = async () => {
-    setIsUpdatingPromo(true)
-    try {
-      await storeStatusManager.updateSuperPromo(superPromo)
-      alert("Super Promoção atualizada com sucesso!")
-    } finally {
-      setIsUpdatingPromo(false)
-    }
-  }
-
   const handleSaveItemPromo = async () => {
     if (promoProducts.length === 0) {
       alert("Selecione pelo menos um produto para a promoção")
@@ -179,9 +240,12 @@ export default function AdminPromocoesPage() {
 
     setIsUpdatingPromo(true)
     try {
-      await storeStatusManager.updateItemPromo(itemPromo)
       await storeStatusManager.updatePromoProducts(promoProducts)
-      alert("Promoção de itens atualizada com sucesso!")
+      setSuccessMessage("Produtos da promoção salvos com sucesso!")
+      setTimeout(() => setSuccessMessage(null), 3000)
+    } catch (error) {
+      console.error("Erro ao salvar produtos:", error)
+      alert("Erro ao salvar produtos")
     } finally {
       setIsUpdatingPromo(false)
     }
@@ -233,6 +297,16 @@ export default function AdminPromocoesPage() {
             </div>
           </div>
 
+          {/* Mensagem de Sucesso */}
+          {successMessage && (
+            <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-xl flex items-center gap-2">
+              <div className="h-5 w-5 bg-green-500 rounded-full flex items-center justify-center">
+                <span className="text-white text-sm font-bold">✓</span>
+              </div>
+              <p className="text-sm text-green-700 font-medium">{successMessage}</p>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 gap-8">
             {/* ========== SUPER PROMOÇÃO (TODOS OS PREÇOS) ========== */}
             <Card className="border-none shadow-md bg-white rounded-3xl overflow-hidden border-l-4 border-red-500">
@@ -265,8 +339,9 @@ export default function AdminPromocoesPage() {
                       <Input 
                         type="number"
                         step="0.01"
+                        min="0"
                         value={superPromo.price} 
-                        onChange={(e) => setSuperPromo({ ...superPromo, price: parseFloat(e.target.value) })}
+                        onChange={(e) => handleSuperPromoPrice(parseFloat(e.target.value) || 0)}
                         className="h-14 rounded-2xl border-2 border-gray-100 focus:border-red-400 font-bold"
                       />
                     </div>
@@ -287,7 +362,7 @@ export default function AdminPromocoesPage() {
                       ) : (
                         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
                           <button
-                            onClick={() => setSuperPromo({ ...superPromo, imageId: undefined })}
+                            onClick={() => handleSuperPromoImage(undefined)}
                             className={`p-3 rounded-xl border-2 transition-all ${
                               !superPromo.imageId 
                                 ? 'border-red-400 bg-red-50' 
@@ -302,7 +377,7 @@ export default function AdminPromocoesPage() {
                           {promoImages.map(image => (
                             <button
                               key={image.id}
-                              onClick={() => setSuperPromo({ ...superPromo, imageId: image.id })}
+                              onClick={() => handleSuperPromoImage(image.id)}
                               className={`p-2 rounded-xl border-2 transition-all overflow-hidden ${
                                 superPromo.imageId === image.id 
                                   ? 'border-red-400 ring-2 ring-red-300' 
@@ -335,15 +410,6 @@ export default function AdminPromocoesPage() {
                       </div>
                     </div>
                   )}
-
-                  {/* Botão de Salvar */}
-                  <Button 
-                    onClick={handleSaveSuperPromo}
-                    disabled={isUpdatingPromo}
-                    className="w-full h-12 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-black rounded-2xl gap-2 shadow-lg transition-all"
-                  >
-                    <Save className="h-5 w-5" /> Salvar Super Promoção
-                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -364,7 +430,7 @@ export default function AdminPromocoesPage() {
                   <Switch 
                     checked={itemPromo.isActive} 
                     onCheckedChange={handleToggleItemPromo}
-                    disabled={isUpdatingPromo}
+                    disabled={isUpdatingPromo || promoProducts.length === 0}
                     className="data-[state=checked]:bg-green-500"
                   />
                 </div>
@@ -462,8 +528,9 @@ export default function AdminPromocoesPage() {
                                 <Input 
                                   type="number" 
                                   step="0.01"
+                                  min="0"
                                   value={promo.promoPrice} 
-                                  onChange={(e) => handleUpdatePromoPrice(promo.productId, parseFloat(e.target.value))}
+                                  onChange={(e) => handleUpdatePromoPrice(promo.productId, parseFloat(e.target.value) || 0)}
                                   className="w-32 h-12 rounded-xl border-2 border-gray-100 focus:border-blue-400 font-bold text-lg"
                                 />
                               </div>
@@ -494,7 +561,7 @@ export default function AdminPromocoesPage() {
                       ) : (
                         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
                           <button
-                            onClick={() => setItemPromo({ ...itemPromo, imageId: undefined })}
+                            onClick={() => handleItemPromoImage(undefined)}
                             className={`p-3 rounded-xl border-2 transition-all ${
                               !itemPromo.imageId 
                                 ? 'border-blue-400 bg-blue-50' 
@@ -509,7 +576,7 @@ export default function AdminPromocoesPage() {
                           {promoImages.map(image => (
                             <button
                               key={image.id}
-                              onClick={() => setItemPromo({ ...itemPromo, imageId: image.id })}
+                              onClick={() => handleItemPromoImage(image.id)}
                               className={`p-2 rounded-xl border-2 transition-all overflow-hidden ${
                                 itemPromo.imageId === image.id 
                                   ? 'border-blue-400 ring-2 ring-blue-300' 
@@ -544,13 +611,15 @@ export default function AdminPromocoesPage() {
                   )}
 
                   {/* Botão de Salvar */}
-                  <Button 
-                    onClick={handleSaveItemPromo}
-                    disabled={isUpdatingPromo || promoProducts.length === 0}
-                    className="w-full h-12 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-black rounded-2xl gap-2 shadow-lg transition-all"
-                  >
-                    <Save className="h-5 w-5" /> Salvar Promoção de Itens
-                  </Button>
+                  {promoProducts.length > 0 && (
+                    <Button 
+                      onClick={handleSaveItemPromo}
+                      disabled={isUpdatingPromo}
+                      className="w-full h-12 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-black rounded-2xl gap-2 shadow-lg transition-all"
+                    >
+                      <Save className="h-5 w-5" /> Salvar Configurações dos Itens
+                    </Button>
+                  )}
                 </div>
               </CardContent>
             </Card>
