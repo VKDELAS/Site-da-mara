@@ -55,6 +55,7 @@ export default function CheckoutPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [precisaTalheres, setPrecisaTalheres] = useState<string>("")
   const [isDeliveryEnabled, setIsDeliveryEnabled] = useState(true)
+  const [hasActivePromo, setHasActivePromo] = useState(false)
 
   // Sincronizar dados do usuário e carregar endereços
   useEffect(() => {
@@ -62,6 +63,10 @@ export default function CheckoutPage() {
       const status = await storeStatusManager.getStatus()
       const deliveryActive = status.isDeliveryEnabled ?? true
       setIsDeliveryEnabled(deliveryActive)
+      
+      // Verifica se há promoção ativa
+      const hasPromo = status.superPromo?.isActive || status.itemPromo?.isActive
+      setHasActivePromo(hasPromo || false)
       
       if (!deliveryActive) {
         setDeliveryType("pickup")
@@ -529,17 +534,26 @@ export default function CheckoutPage() {
                     </div>
 
                     <div className="space-y-4 pt-6 border-t-2 border-dashed border-gray-100">
+                      {hasActivePromo && (
+                        <div className="bg-yellow-50 p-4 rounded-2xl border-2 border-yellow-200 flex items-start gap-3">
+                          <AlertCircle className="h-5 w-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+                          <div>
+                            <p className="text-sm font-black text-yellow-900">Promocao Ativa!</p>
+                            <p className="text-xs text-yellow-700 mt-1">Cupons nao podem ser usados durante promocoes. Aproveite os precos especiais!</p>
+                          </div>
+                        </div>
+                      )}
                       <div className="bg-gray-50 p-4 rounded-2xl border-2 border-transparent focus-within:border-yellow-500 focus-within:bg-white transition-all">
                         <Label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1 mb-2 block">Cupom de Desconto</Label>
                         <div className="flex gap-2">
                           <div className="relative flex-1">
                             <Ticket className={`absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 ${appliedCoupon ? "text-yellow-500" : "text-gray-400"}`} />
-                            <Input value={couponCode} onChange={(e) => setCouponCode(e.target.value.toUpperCase())} placeholder="CÓDIGO" disabled={!!appliedCoupon} className="h-12 pl-10 rounded-xl border-none bg-transparent focus-visible:ring-0 font-black text-gray-900" />
+                            <Input value={couponCode} onChange={(e) => setCouponCode(e.target.value.toUpperCase())} placeholder="CÓDIGO" disabled={!!appliedCoupon || hasActivePromo} className="h-12 pl-10 rounded-xl border-none bg-transparent focus-visible:ring-0 font-black text-gray-900" />
                           </div>
                           {appliedCoupon ? (
                             <Button variant="ghost" onClick={handleRemoveCoupon} className="h-12 px-4 rounded-xl text-red-500 font-black text-xs">REMOVER</Button>
                           ) : (
-                            <Button onClick={handleApplyCoupon} className="h-12 px-6 rounded-xl bg-yellow-500 hover:bg-yellow-600 text-white font-black shadow-md shadow-yellow-100">APLICAR</Button>
+                            <Button onClick={handleApplyCoupon} disabled={hasActivePromo} className="h-12 px-6 rounded-xl bg-yellow-500 hover:bg-yellow-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-black shadow-md shadow-yellow-100">APLICAR</Button>
                           )}
                         </div>
                         {couponError && <p className="text-[10px] font-bold text-red-500 mt-2 ml-1">{couponError}</p>}

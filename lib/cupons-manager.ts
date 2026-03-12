@@ -1,4 +1,5 @@
 import { getSupabaseBrowserClient } from "./supabase/client"
+import { storeStatusManager } from "./store-status-manager"
 
 export interface Coupon {
   id: string
@@ -106,6 +107,14 @@ class CouponsManager {
   }
 
   async validateCoupon(code: string, userId?: string): Promise<{ valid: boolean; coupon?: Coupon; message?: string }> {
+    // Verifica se há promoção ativa
+    const storeStatus = await storeStatusManager.getStatus()
+    const hasActivePromo = storeStatus.superPromo?.isActive || storeStatus.itemPromo?.isActive
+    
+    if (hasActivePromo) {
+      return { valid: false, message: "Cupons não podem ser usados durante promoções ativas" }
+    }
+
     const { data, error } = await this.supabase
       .from("coupons")
       .select("*")
