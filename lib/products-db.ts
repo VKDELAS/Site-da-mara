@@ -306,16 +306,19 @@ class ProductsManager {
     }
   }
 
-  async getBatatas() {
-    return (await this.getProducts()).filter(p => p.category === "batata" && p.available)
+  async getBatatas(includeInactive = false) {
+    const products = await this.getProducts()
+    return products.filter(p => p.category === "batata" && (includeInactive || p.available))
   }
 
-  async getMacarrao() {
-    return (await this.getProducts()).filter(p => p.category === "macarrao" && p.available)
+  async getMacarrao(includeInactive = false) {
+    const products = await this.getProducts()
+    return products.filter(p => p.category === "macarrao" && (includeInactive || p.available))
   }
 
-  async getBebidas() {
-    return (await this.getProducts()).filter(p => p.category === "bebida" && p.available)
+  async getBebidas(includeInactive = false) {
+    const products = await this.getProducts()
+    return products.filter(p => p.category === "bebida" && (includeInactive || p.available))
   }
 
   // Métodos de ordenação por popularidade para o Cardápio
@@ -460,24 +463,33 @@ class ProductsManager {
         .select("product_name, quantity, created_at")
         .gte("created_at", thirtyDaysAgo.toISOString())
       
+      const products = await this.getProducts()
+      const availableProducts = products.filter(p => p.available)
+      const availableProductNames = availableProducts.map(p => p.name)
+
       if (error || !data || data.length === 0) {
-        const products = await this.getProducts()
-        const fallbackProduct = products.find(p => p.available) || products[0]
+        const fallbackProduct = availableProducts[0] || products[0]
         return { product: fallbackProduct, totalOrders: 35, customerPhotos: [] }
       }
 
-      // Agrupa por nome e soma quantidades
+      // Agrupa por nome e soma quantidades, apenas para produtos disponíveis
       const counts: Record<string, number> = {}
       data.forEach(item => {
-        counts[item.product_name] = (counts[item.product_name] || 0) + (item.quantity || 1)
+        if (availableProductNames.includes(item.product_name)) {
+          counts[item.product_name] = (counts[item.product_name] || 0) + (item.quantity || 1)
+        }
       })
 
       const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1])
+      
+      if (sorted.length === 0) {
+        const fallbackProduct = availableProducts[0] || products[0]
+        return { product: fallbackProduct, totalOrders: 35, customerPhotos: [] }
+      }
+
       const topProductName = sorted[0][0]
       const totalOrders = sorted[0][1]
-
-      const products = await this.getProducts()
-      const topProduct = products.find(p => p.name === topProductName) || products[0]
+      const topProduct = availableProducts.find(p => p.name === topProductName) || availableProducts[0]
       
       // Buscamos o total de clientes para garantir que pedidos >= clientes
       const totalCustomers = await this.getTotalCustomers()
@@ -489,8 +501,9 @@ class ProductsManager {
       }
     } catch {
       const products = await this.getProducts()
+      const availableProducts = products.filter(p => p.available)
       return {
-        product: products[0],
+        product: availableProducts[0] || products[0],
         totalOrders: 35, // Base mínima coerente com 30 clientes
         customerPhotos: []
       }
@@ -544,9 +557,9 @@ class ProductsManager {
         .select("product_name, quantity, created_at")
         .gte("created_at", thirtyDaysAgo.toISOString())
       
-      // Filtra apenas produtos que pertencem à categoria solicitada
+      // Filtra apenas produtos que pertencem à categoria solicitada e estão disponíveis
       const products = await this.getProducts()
-      const categoryProducts = products.filter(p => p.category === category)
+      const categoryProducts = products.filter(p => p.category === category && p.available)
       const categoryProductNames = categoryProducts.map(p => p.name)
 
       if (error || !data || data.length === 0) {
@@ -554,7 +567,7 @@ class ProductsManager {
       }
 
       const counts: Record<string, number> = {}
-      // Inicializa com 0 para todos os produtos da categoria
+      // Inicializa com 0 para todos os produtos da categoria disponíveis
       categoryProductNames.forEach(name => {
         counts[name] = 0
       })

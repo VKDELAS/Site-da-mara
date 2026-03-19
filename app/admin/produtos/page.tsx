@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { HeaderWrapper } from "@/components/header-wrapper"
 import { Footer } from "@/components/footer"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { ArrowLeft, Edit, Plus, Trash2, Package, Coffee, UtensilsCrossed, Zap, Eye, EyeOff, Tag, Megaphone, Settings2, Image } from "lucide-react"
+import { ArrowLeft, Edit, Plus, Trash2, Package, Coffee, UtensilsCrossed, Eye, EyeOff } from "lucide-react"
 import Link from "next/link"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { productsManager, type Product, type Adicional } from "@/lib/products-db"
@@ -42,11 +42,7 @@ export default function AdminProdutosPage() {
   const [isAdicionalDialogOpen, setIsAdicionalDialogOpen] = useState(false)
   const [activeTab, setActiveTab] = useState("batata")
 
-  // Promo states
-  const [isPromoActive, setIsPromoActive] = useState(false)
-  const [promoPrice, setPromoPrice] = useState("24.99")
-  const [promoImage, setPromoImage] = useState<string | undefined>()
-  const [isUpdatingPromo, setIsUpdatingPromo] = useState(false)
+
 
   // Form states for products
   const [formName, setFormName] = useState("")
@@ -68,7 +64,6 @@ export default function AdminProdutosPage() {
         setIsAdmin(true)
         loadProducts()
         loadAdicionais()
-        loadPromoStatus()
       } else {
         router.push("/")
       }
@@ -85,38 +80,7 @@ export default function AdminProdutosPage() {
     setAdicionais(allAdicionais)
   }
 
-  const loadPromoStatus = async () => {
-    const status = await storeStatusManager.getStatus()
-    setIsPromoActive(status.isPromoActive ?? false)
-    setPromoPrice((status.promoPrice ?? 24.99).toString())
-    setPromoImage(status.promoImage)
-  }
 
-  const handleTogglePromo = async () => {
-    setIsUpdatingPromo(true)
-    try {
-      const newState = await storeStatusManager.togglePromoStatus()
-      setIsPromoActive(newState)
-    } finally {
-      setIsUpdatingPromo(false)
-    }
-  }
-
-  const handleUpdatePromoSettings = async () => {
-    const price = parseFloat(promoPrice)
-    if (isNaN(price) || price <= 0) {
-      alert("Preço inválido")
-      return
-    }
-    setIsUpdatingPromo(true)
-    try {
-      await storeStatusManager.updatePromoPrice(price)
-      await storeStatusManager.updatePromoImage(promoImage)
-      alert("Configurações da promoção atualizadas com sucesso!")
-    } finally {
-      setIsUpdatingPromo(false)
-    }
-  }
 
   const handleOpenDialog = (product?: Product) => {
     if (product) {
@@ -388,88 +352,7 @@ export default function AdminProdutosPage() {
           </div>
         </div>
 
-        {/* SEÇÃO DE PROMOÇÃO ESTILO IFOOD */}
-        <Card className="mb-8 border-2 border-yellow-400 bg-yellow-50/50 overflow-hidden rounded-3xl shadow-xl shadow-yellow-100">
-          <div className="bg-yellow-400 p-4 flex items-center gap-3">
-            <Megaphone className="h-6 w-6 text-gray-900 animate-bounce" />
-            <h2 className="text-xl font-black text-gray-900 uppercase tracking-tight">Sistema de Promoção Relâmpago</h2>
-          </div>
-          <CardContent className="p-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
-              <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 bg-white rounded-2xl border-2 border-yellow-100 shadow-sm">
-                  <div className="flex items-center gap-3">
-                    <div className={`p-3 rounded-xl ${isPromoActive ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-400'}`}>
-                      <Zap className={`h-6 w-6 ${isPromoActive ? 'fill-current' : ''}`} />
-                    </div>
-                    <div>
-                      <p className="font-black text-gray-900">Status da Promoção</p>
-                      <p className="text-sm text-gray-500">{isPromoActive ? 'Ativa no site agora!' : 'Desativada no momento'}</p>
-                    </div>
-                  </div>
-                  <Switch 
-                    checked={isPromoActive} 
-                    onCheckedChange={handleTogglePromo}
-                    disabled={isUpdatingPromo}
-                    className="data-[state=checked]:bg-green-500"
-                  />
-                </div>
 
-                <div className="flex flex-col gap-4 p-4 bg-white rounded-2xl border-2 border-yellow-100 shadow-sm">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label className="font-black text-gray-900 flex items-center gap-2">
-                        <Tag className="h-4 w-4 text-yellow-600" />
-                        Preço Promocional (Batatas)
-                      </Label>
-                      <div className="relative">
-                        <span className="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-gray-400">R$</span>
-                        <Input 
-                          type="number" 
-                          value={promoPrice} 
-                          onChange={(e) => setPromoPrice(e.target.value)}
-                          className="pl-12 h-12 rounded-xl border-2 border-gray-100 focus:border-yellow-400 font-bold text-lg"
-                        />
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="font-black text-gray-900 flex items-center gap-2">
-                        <Image className="h-4 w-4 text-yellow-600" />
-                        Caminho da Imagem
-                      </Label>
-                      <Input 
-                        value={promoImage} 
-                        onChange={(e) => setPromoImage(e.target.value)}
-                        placeholder="/images/promo-batatop.png"
-                        className="h-12 rounded-xl border-2 border-gray-100 focus:border-yellow-400 font-bold"
-                      />
-                    </div>
-                  </div>
-                  <Button 
-                    onClick={handleUpdatePromoSettings}
-                    disabled={isUpdatingPromo}
-                    className="h-12 bg-gray-900 hover:bg-black text-white font-black rounded-xl px-8"
-                  >
-                    Salvar Configurações da Promoção
-                  </Button>
-                </div>
-              </div>
-
-              <div className="bg-white p-6 rounded-2xl border-2 border-yellow-100 shadow-sm flex flex-col items-center text-center space-y-4">
-                <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center">
-                  <Settings2 className="h-8 w-8 text-yellow-600" />
-                </div>
-                <div>
-                  <h3 className="font-black text-gray-900 text-lg">Como funciona?</h3>
-                  <p className="text-sm text-gray-500 leading-relaxed mt-2">
-                    Ao ativar a promoção, <strong>todas as batatas</strong> do cardápio passarão a custar o preço definido acima. 
-                    Além disso, o banner promocional será exibido automaticamente na página inicial para atrair mais clientes!
-                  </p>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
 
         <Tabs defaultValue="batata" className="space-y-6" onValueChange={setActiveTab}>
           <TabsList className="bg-white p-1 rounded-2xl border-2 border-gray-100 h-auto flex flex-wrap gap-1">
