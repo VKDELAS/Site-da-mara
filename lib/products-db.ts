@@ -308,17 +308,17 @@ class ProductsManager {
 
   async getBatatas(includeInactive = false) {
     const products = await this.getProducts()
-    return products.filter(p => p.category === "batata" && (includeInactive || p.available))
+    return products.filter(p => p.category === "batata" && (includeInactive || p.available === true))
   }
 
   async getMacarrao(includeInactive = false) {
     const products = await this.getProducts()
-    return products.filter(p => p.category === "macarrao" && (includeInactive || p.available))
+    return products.filter(p => p.category === "macarrao" && (includeInactive || p.available === true))
   }
 
   async getBebidas(includeInactive = false) {
     const products = await this.getProducts()
-    return products.filter(p => p.category === "bebida" && (includeInactive || p.available))
+    return products.filter(p => p.category === "bebida" && (includeInactive || p.available === true))
   }
 
   // Métodos de ordenação por popularidade para o Cardápio
