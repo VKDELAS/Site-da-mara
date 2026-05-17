@@ -243,7 +243,31 @@ export default function CheckoutPage() {
         }))
       }
 
-      await ordersManager.createOrder(orderData)
+       // ─── Salva o pedido no banco ───────────────────────────────────────
+      const createdOrder = await ordersManager.createOrder(orderData)
+ 
+      // ─── Notifica a irmã automaticamente via WhatsApp ─────────────────
+      // "fire and forget": se falhar, o pedido do cliente NÃO é afetado
+      fetch("/api/notify-order", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          orderNumber: createdOrder.orderNumber,
+          customerName: nome,
+          customerPhone: telefone,
+          address:
+            deliveryType === "delivery"
+              ? enderecoString
+              : "Retirada no local – R. Carlos Roberto Crepaldi, 120",
+          total: getFinalTotal(),
+          discountAmount: getDiscountAmount(),
+          items: orderData.items,
+          paymentMethod: formaPagamento,
+          notes: `${observacoes}${precisaTalheres ? `\nColher: ${precisaTalheres === "sim" ? "SIM" : "NÃO"}` : ""}${formaPagamento === "dinheiro" && troco ? `\nTroco para: R$ ${troco}` : ""}`,
+          deliveryType,
+        }),
+      }).catch((err) => console.error("[NotifyOrder] falha silenciosa:", err))
+      // ──────────────────────────────────────────────────────────────────
       
       // Gerar mensagem do WhatsApp
       let message = "*NOVO PEDIDO - batata top*\n"
