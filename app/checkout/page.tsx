@@ -250,6 +250,7 @@ export default function CheckoutPage() {
       // "fire and forget": se falhar, o pedido do cliente NÃO é afetado
       fetch("/api/notify-order", {
         method: "POST",
+        keepalive: true,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           orderNumber: createdOrder.orderNumber,
