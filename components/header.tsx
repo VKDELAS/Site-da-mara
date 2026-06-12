@@ -1,11 +1,11 @@
 "use client"
 
 import Link from "next/link"
-import { ShoppingCart, Menu, X, ShieldAlert, Search, User, ChevronDown, MapPin, LogOut, Package, Clock, UserPlus, LogIn, Utensils, ArrowLeft, HelpCircle, Lock, Settings } from "lucide-react"
+import { ShoppingCart, Menu, X, ShieldAlert, Search, User, ChevronDown, MapPin, LogOut, Clock, UserPlus, LogIn, Utensils, ArrowLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useCart } from "@/lib/cart-context"
 import { useAuth } from "@/lib/auth-context"
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect } from "react"
 import { useRouter, useSearchParams, usePathname } from "next/navigation"
 import Image from "next/image"
 import { StoreStatusBadge } from "@/components/store-status-badge"
@@ -31,23 +31,11 @@ export function Header({ variant = "default" }: HeaderProps) {
   const [searchTerm, setSearchTerm] = useState(searchParams.get("q") || "")
   const [defaultAddress, setDefaultAddress] = useState<string>("Selecione o endereço")
   const [isAddressModalOpen, setIsAddressModalOpen] = useState(false)
-  const [isProfileOpen, setIsProfileOpen] = useState(false)
   const [waitTime, setWaitTime] = useState({ min: 15, max: 22 })
-  const profileRef = useRef<HTMLDivElement>(null)
 
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0)
   const totalPrice = getTotalPrice()
   const isAdmin = user?.email && ADMIN_EMAILS.includes(user.email)
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (profileRef.current && !profileRef.current.contains(event.target as Node)) {
-        setIsProfileOpen(false)
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside)
-    return () => document.removeEventListener("mousedown", handleClickOutside)
-  }, [])
 
   const loadDefaultAddress = async () => {
     if (user) {
@@ -104,7 +92,6 @@ export function Header({ variant = "default" }: HeaderProps) {
 
   const handleSignOut = async () => {
     await signOut()
-    setIsProfileOpen(false)
     router.push("/")
   }
 
@@ -437,50 +424,22 @@ export function Header({ variant = "default" }: HeaderProps) {
 
               <div className="h-8 w-[1px] bg-gray-200 hidden lg:block mx-1" />
 
-              <div className="relative" ref={profileRef}>
-                <button onClick={() => setIsProfileOpen(!isProfileOpen)} className="flex items-center gap-1 p-2 hover:bg-yellow-50 rounded-full transition-all text-yellow-500">
-                  <User className="h-6 w-6" />
-                  <ChevronDown className={`h-4 w-4 transition-transform ${isProfileOpen ? "rotate-180" : ""}`} />
-                </button>
-
-                {isProfileOpen && (
-                  <div className="absolute top-full right-0 mt-2 w-64 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden animate-in fade-in zoom-in-95 duration-100">
-                    <div className="px-4 py-4 bg-gradient-to-b from-yellow-50 to-white border-b border-gray-100">
-                      <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Minha Conta</p>
-                      <p className="text-base font-black text-gray-800 truncate">{user?.user_metadata?.full_name || user?.email || "Usuário"}</p>
-                      <p className="text-xs text-gray-500 mt-1 truncate">{user?.email}</p>
-                    </div>
-
-                    <div className="py-2">
-                      <Link href="/perfil" onClick={() => setIsProfileOpen(false)} className="flex items-center gap-3 px-4 py-3 text-sm font-bold text-gray-600 hover:bg-yellow-50 hover:text-yellow-600 transition-colors">
-                        <User className="h-4 w-4" /> Ver Perfil
-                      </Link>
-                      <Link href="/pedidos" onClick={() => setIsProfileOpen(false)} className="flex items-center gap-3 px-4 py-3 text-sm font-bold text-gray-600 hover:bg-yellow-50 hover:text-yellow-600 transition-colors">
-                        <Package className="h-4 w-4" /> Meus Pedidos
-                      </Link>
-                      <div className="border-t border-gray-50 my-1"></div>
-                      <Link href="/ajuda" onClick={() => setIsProfileOpen(false)} className="flex items-center gap-3 px-4 py-3 text-sm font-bold text-gray-600 hover:bg-yellow-50 hover:text-yellow-600 transition-colors">
-                        <HelpCircle className="h-4 w-4" /> Ajuda
-                      </Link>
-                      <Link href="/meus-dados" onClick={() => setIsProfileOpen(false)} className="flex items-center gap-3 px-4 py-3 text-sm font-bold text-gray-600 hover:bg-yellow-50 hover:text-yellow-600 transition-colors">
-                        <Settings className="h-4 w-4" /> Meus Dados
-                      </Link>
-                      <Link href="/seguranca" onClick={() => setIsProfileOpen(false)} className="flex items-center gap-3 px-4 py-3 text-sm font-bold text-gray-600 hover:bg-yellow-50 hover:text-yellow-600 transition-colors">
-                        <Lock className="h-4 w-4" /> Segurança
-                      </Link>
-                      <div className="border-t border-gray-50 my-1"></div>
-                      {isAdmin && (
-                        <Link href="/admin" onClick={() => setIsProfileOpen(false)} className="flex items-center gap-3 px-4 py-3 text-sm font-bold text-amber-600 hover:bg-amber-50 transition-colors">
-                          <ShieldAlert className="h-4 w-4" /> Painel Admin
-                        </Link>
-                      )}
-                      <button onClick={handleSignOut} className="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-red-500 hover:bg-red-50 transition-colors text-left">
-                        <LogOut className="h-4 w-4" /> Sair
-                      </button>
-                    </div>
+              <Link
+                href="/perfil"
+                className="flex items-center gap-2 p-2 hover:bg-yellow-50 rounded-full transition-all"
+              >
+                {user?.user_metadata?.avatar_url ? (
+                  <img
+                    src={user.user_metadata.avatar_url}
+                    alt={user.user_metadata?.full_name || "Perfil"}
+                    className="h-8 w-8 rounded-full object-cover border-2 border-yellow-200"
+                  />
+                ) : (
+                  <div className="h-8 w-8 rounded-full bg-yellow-100 flex items-center justify-center border-2 border-yellow-200">
+                    <User className="h-4 w-4 text-yellow-600" />
                   </div>
                 )}
-              </div>
+              </Link>
 
               <Link href="/carrinho">
                 <div className="flex items-center gap-2 p-2 hover:bg-yellow-50 rounded-xl transition-all cursor-pointer group border border-transparent hover:border-yellow-100">
