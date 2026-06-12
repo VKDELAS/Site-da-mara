@@ -156,19 +156,34 @@ export default function PerfilPage() {
   const isAdmin = user.email && ADMIN_EMAILS.includes(user.email)
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50">
+    <div
+      className="min-h-screen flex flex-col"
+      style={{
+        background: "linear-gradient(160deg, #fef9e7 0%, #fdf3c0 30%, #fce882 55%, #f5c518 80%, #e6ac00 100%)",
+      }}
+    >
       <HeaderWrapper />
 
       <main className="flex-1 py-8">
         <div className="container mx-auto px-4 max-w-2xl space-y-4">
 
           {/* ── Card de perfil ── */}
-          <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
-            {/* Faixa amarela de fundo */}
-            <div className="h-16 bg-gradient-to-r from-yellow-400 to-yellow-500" />
+          <div className="bg-white rounded-2xl shadow-md overflow-hidden">
+            {/* Banner com padrão sutil */}
+            <div
+              className="h-24 relative overflow-hidden"
+              style={{
+                background: "linear-gradient(135deg, #f5c518 0%, #e6ac00 50%, #c98f00 100%)",
+              }}
+            >
+              {/* Círculos decorativos no banner */}
+              <div className="absolute -top-4 -right-4 h-24 w-24 rounded-full bg-white/10" />
+              <div className="absolute -bottom-6 right-12 h-16 w-16 rounded-full bg-white/10" />
+              <div className="absolute top-2 left-1/3 h-10 w-10 rounded-full bg-white/10" />
+            </div>
             {/* Avatar + info */}
             <div className="px-6 pb-6 -mt-10 flex items-end gap-4">
-              <div className="h-20 w-20 rounded-full border-4 border-white shadow-md bg-yellow-100 flex items-center justify-center text-yellow-600 flex-shrink-0 overflow-hidden">
+              <div className="h-20 w-20 rounded-full border-4 border-white shadow-lg bg-yellow-100 flex items-center justify-center text-yellow-600 flex-shrink-0 overflow-hidden">
                 {user.user_metadata?.avatar_url ? (
                   <img
                     src={user.user_metadata.avatar_url}
@@ -191,47 +206,13 @@ export default function PerfilPage() {
             </div>
           </div>
 
-          {/* ── Menu principal ── */}
+          {/* ── Menu principal — Conta & Dados ── */}
           <div className="bg-white rounded-2xl shadow-sm overflow-hidden divide-y divide-gray-50">
-
-            {/* Meus Pedidos */}
-            <button
-              onClick={() => router.push("/pedidos")}
-              className="w-full flex items-center justify-between p-5 hover:bg-gray-50 transition-colors text-left"
-            >
-              <div className="flex items-center gap-4">
-                <div className="h-10 w-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-500 flex-shrink-0">
-                  <Package className="h-5 w-5" />
-                </div>
-                <div>
-                  <p className="font-bold text-gray-800">Meus Pedidos</p>
-                  <p className="text-xs text-gray-400">Histórico de compras</p>
-                </div>
-              </div>
-              <ChevronRight className="h-5 w-5 text-gray-300 flex-shrink-0" />
-            </button>
-
-            {/* Ajuda */}
-            <button
-              onClick={() => router.push("/ajuda")}
-              className="w-full flex items-center justify-between p-5 hover:bg-gray-50 transition-colors text-left"
-            >
-              <div className="flex items-center gap-4">
-                <div className="h-10 w-10 rounded-xl bg-green-50 flex items-center justify-center text-green-500 flex-shrink-0">
-                  <HelpCircle className="h-5 w-5" />
-                </div>
-                <div>
-                  <p className="font-bold text-gray-800">Ajuda</p>
-                  <p className="text-xs text-gray-400">Dúvidas e suporte</p>
-                </div>
-              </div>
-              <ChevronRight className="h-5 w-5 text-gray-300 flex-shrink-0" />
-            </button>
 
             {/* Meus Dados */}
             <button
               onClick={() => router.push("/meus-dados")}
-              className="w-full flex items-center justify-between p-5 hover:bg-gray-50 transition-colors text-left"
+              className="cursor-pointer w-full flex items-center justify-between p-5 hover:bg-gray-50 transition-colors text-left"
             >
               <div className="flex items-center gap-4">
                 <div className="h-10 w-10 rounded-xl bg-purple-50 flex items-center justify-center text-purple-500 flex-shrink-0">
@@ -248,7 +229,7 @@ export default function PerfilPage() {
             {/* Segurança */}
             <button
               onClick={() => router.push("/seguranca")}
-              className="w-full flex items-center justify-between p-5 hover:bg-gray-50 transition-colors text-left"
+              className="cursor-pointer w-full flex items-center justify-between p-5 hover:bg-gray-50 transition-colors text-left"
             >
               <div className="flex items-center gap-4">
                 <div className="h-10 w-10 rounded-xl bg-gray-100 flex items-center justify-center text-gray-500 flex-shrink-0">
@@ -280,7 +261,7 @@ export default function PerfilPage() {
                   variant="ghost"
                   size="sm"
                   onClick={() => setShowAddressForm(true)}
-                  className="text-yellow-600 hover:text-yellow-700 hover:bg-yellow-50 font-bold flex-shrink-0"
+                  className="cursor-pointer text-yellow-600 hover:text-yellow-700 hover:bg-yellow-50 font-bold flex-shrink-0"
                 >
                   <Plus className="h-4 w-4 mr-1" /> Adicionar
                 </Button>
@@ -319,7 +300,7 @@ export default function PerfilPage() {
                           variant="ghost"
                           size="icon"
                           onClick={() => handleSetDefault(addr.id)}
-                          className="h-8 w-8 text-gray-300 hover:text-blue-500"
+                          className="cursor-pointer h-8 w-8 text-gray-300 hover:text-blue-500"
                           title="Definir como padrão"
                         >
                           <Settings className="h-4 w-4" />
@@ -329,7 +310,7 @@ export default function PerfilPage() {
                         variant="ghost"
                         size="icon"
                         onClick={() => handleDeleteAddress(addr.id)}
-                        className="h-8 w-8 text-gray-300 hover:text-red-500"
+                        className="cursor-pointer h-8 w-8 text-gray-300 hover:text-red-500"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -383,14 +364,14 @@ export default function PerfilPage() {
                   <div className="flex gap-2 pt-1">
                     <Button
                       onClick={handleAddAddress}
-                      className="flex-1 bg-yellow-500 hover:bg-yellow-600 text-white rounded-xl font-bold"
+                      className="cursor-pointer flex-1 bg-yellow-500 hover:bg-yellow-600 text-white rounded-xl font-bold"
                     >
                       Salvar
                     </Button>
                     <Button
                       variant="ghost"
                       onClick={() => setShowAddressForm(false)}
-                      className="rounded-xl text-gray-400"
+                      className="cursor-pointer rounded-xl text-gray-400"
                     >
                       Cancelar
                     </Button>
@@ -400,23 +381,67 @@ export default function PerfilPage() {
             </div>
           </div>
 
+          {/* ── Meus Pedidos ── */}
+          <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+            <button
+              onClick={() => router.push("/pedidos")}
+              className="cursor-pointer w-full flex items-center justify-between p-5 hover:bg-gray-50 transition-colors text-left"
+            >
+              <div className="flex items-center gap-4">
+                <div className="h-10 w-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-500 flex-shrink-0">
+                  <Package className="h-5 w-5" />
+                </div>
+                <div>
+                  <p className="font-bold text-gray-800">Meus Pedidos</p>
+                  <p className="text-xs text-gray-400">Histórico de compras</p>
+                </div>
+              </div>
+              <ChevronRight className="h-5 w-5 text-gray-300 flex-shrink-0" />
+            </button>
+          </div>
+
+          {/* ── Ajuda ── */}
+          <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+            <button
+              onClick={() => router.push("/ajuda")}
+              className="cursor-pointer w-full flex items-center justify-between p-5 hover:bg-gray-50 transition-colors text-left"
+            >
+              <div className="flex items-center gap-4">
+                <div className="h-10 w-10 rounded-xl bg-green-50 flex items-center justify-center text-green-500 flex-shrink-0">
+                  <HelpCircle className="h-5 w-5" />
+                </div>
+                <div>
+                  <p className="font-bold text-gray-800">Ajuda</p>
+                  <p className="text-xs text-gray-400">Dúvidas e suporte</p>
+                </div>
+              </div>
+              <ChevronRight className="h-5 w-5 text-gray-300 flex-shrink-0" />
+            </button>
+          </div>
+
           {/* ── Painel Admin (só pra admins) ── */}
           {isAdmin && (
-            <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+            <div
+              className="rounded-2xl shadow-sm overflow-hidden"
+              style={{
+                background: "linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)",
+                border: "1.5px solid #fcd34d",
+              }}
+            >
               <button
                 onClick={() => router.push("/admin")}
-                className="w-full flex items-center justify-between p-5 hover:bg-amber-50 transition-colors text-left"
+                className="cursor-pointer w-full flex items-center justify-between p-5 hover:bg-yellow-50/60 transition-colors text-left"
               >
                 <div className="flex items-center gap-4">
-                  <div className="h-10 w-10 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600 flex-shrink-0">
+                  <div className="h-10 w-10 rounded-xl bg-amber-100 flex items-center justify-center text-amber-600 flex-shrink-0">
                     <ShieldAlert className="h-5 w-5" />
                   </div>
                   <div>
-                    <p className="font-bold text-amber-700">Painel Admin</p>
-                    <p className="text-xs text-gray-400">Gerenciar loja e pedidos</p>
+                    <p className="font-bold text-amber-800">Painel Admin</p>
+                    <p className="text-xs text-amber-600/70">Gerenciar loja e pedidos</p>
                   </div>
                 </div>
-                <ChevronRight className="h-5 w-5 text-amber-300 flex-shrink-0" />
+                <ChevronRight className="h-5 w-5 text-amber-400 flex-shrink-0" />
               </button>
             </div>
           )}
@@ -425,7 +450,7 @@ export default function PerfilPage() {
           <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
             <button
               onClick={handleSignOut}
-              className="w-full flex items-center gap-4 p-5 hover:bg-red-50 transition-colors text-left"
+              className="cursor-pointer w-full flex items-center gap-4 p-5 hover:bg-red-50 transition-colors text-left"
             >
               <div className="h-10 w-10 rounded-xl bg-red-50 flex items-center justify-center text-red-500 flex-shrink-0">
                 <LogOut className="h-5 w-5" />
@@ -434,7 +459,7 @@ export default function PerfilPage() {
             </button>
           </div>
 
-          <p className="text-center text-[10px] text-gray-300 uppercase font-black tracking-widest pt-2 pb-4">
+          <p className="text-center text-[10px] text-yellow-700/50 uppercase font-black tracking-widest pt-2 pb-4">
             batata top Iacanga • Versão 1.1
           </p>
         </div>
