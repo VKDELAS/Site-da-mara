@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
+import type { AuthChangeEvent, Session } from "@supabase/supabase-js"
 import Link from "next/link"
 import { Eye, EyeOff, ArrowRight, Lock, CheckCircle2, ChevronLeft } from "lucide-react"
 import { Header } from "@/components/header"
@@ -23,8 +24,12 @@ export default function ResetPasswordPage() {
   const supabase = getSupabaseBrowserClient()
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "PASSWORD_RECOVERY") {
+    supabase.auth.getSession().then(({ data: { session } }: { data: { session: Session | null } }) => {
+      if (session) setSessionReady(true)
+    })
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event: AuthChangeEvent, session: Session | null) => {
+      if (event === "PASSWORD_RECOVERY" || session) {
         setSessionReady(true)
       }
     })
