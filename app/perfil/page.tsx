@@ -163,25 +163,24 @@ export default function PerfilPage() {
         <div className="container mx-auto px-4 max-w-2xl space-y-4">
 
           {/* ── Card de perfil ── */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100">
-            {/* Banner com padrão sutil */}
-            <div
-              className="h-24 relative overflow-hidden rounded-t-2xl"
-              style={{
-                background: "linear-gradient(135deg, #f5c518 0%, #e6ac00 50%, #c98f00 100%)",
-              }}
-            >
-              {/* Círculos decorativos no banner */}
-              <div className="absolute -top-4 -right-4 h-24 w-24 rounded-full bg-white/10" />
-              <div className="absolute -bottom-6 right-12 h-16 w-16 rounded-full bg-white/10" />
-              <div className="absolute top-2 left-1/3 h-10 w-10 rounded-full bg-white/10" />
-            </div>
-            {/* Avatar + info */}
-            <div className="px-6 pt-3 pb-5">
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            {/* Banner + avatar */}
+            <div className="relative">
+              {/* Banner */}
               <div
-                className="h-20 w-20 rounded-full border-4 border-white shadow-lg bg-yellow-100 flex items-center justify-center text-yellow-600 overflow-hidden"
-                style={{ marginTop: "-48px" }}
+                className="h-24 relative overflow-hidden"
+                style={{
+                  background: "linear-gradient(135deg, #f5c518 0%, #e6ac00 50%, #c98f00 100%)",
+                }}
               >
+                {/* Círculos decorativos */}
+                <div className="absolute -top-4 -right-4 h-24 w-24 rounded-full bg-white/10" />
+                <div className="absolute -bottom-6 right-12 h-16 w-16 rounded-full bg-white/10" />
+                <div className="absolute top-2 left-1/3 h-10 w-10 rounded-full bg-white/10" />
+              </div>
+
+              {/* Avatar — absolute na borda do banner, metade pra baixo */}
+              <div className="absolute bottom-0 left-6 translate-y-1/2 h-20 w-20 rounded-full border-4 border-white shadow-lg bg-yellow-100 flex items-center justify-center text-yellow-600 overflow-hidden z-10">
                 {user.user_metadata?.avatar_url ? (
                   <img
                     src={user.user_metadata.avatar_url}
@@ -192,15 +191,17 @@ export default function PerfilPage() {
                   <User className="h-9 w-9" />
                 )}
               </div>
-              <div className="mt-2">
-                <h1 className="text-xl font-black text-gray-900 truncate">
-                  {user.user_metadata?.full_name || "Usuário"}
-                </h1>
-                <p className="text-sm text-gray-400 flex items-center gap-1 truncate">
-                  <Mail className="h-3 w-3 flex-shrink-0" />
-                  {user.email}
-                </p>
-              </div>
+            </div>
+
+            {/* Nome e email — padding top pra dar espaço ao avatar */}
+            <div className="px-6 pt-14 pb-5">
+              <h1 className="text-xl font-black text-gray-900 truncate">
+                {user.user_metadata?.full_name || "Usuário"}
+              </h1>
+              <p className="text-sm text-gray-400 flex items-center gap-1 truncate">
+                <Mail className="h-3 w-3 flex-shrink-0" />
+                {user.email}
+              </p>
             </div>
           </div>
 
