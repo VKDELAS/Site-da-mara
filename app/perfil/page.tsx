@@ -177,8 +177,11 @@ export default function PerfilPage() {
               <div className="absolute top-2 left-1/3 h-10 w-10 rounded-full bg-white/10" />
             </div>
             {/* Avatar + info */}
-            <div className="px-6 pb-6 flex items-center gap-4" style={{ marginTop: "-40px" }}>
-              <div className="h-20 w-20 rounded-full border-4 border-white shadow-lg bg-yellow-100 flex items-center justify-center text-yellow-600 flex-shrink-0 overflow-hidden">
+            <div className="px-6 pt-3 pb-5">
+              <div
+                className="h-20 w-20 rounded-full border-4 border-white shadow-lg bg-yellow-100 flex items-center justify-center text-yellow-600 overflow-hidden"
+                style={{ marginTop: "-48px" }}
+              >
                 {user.user_metadata?.avatar_url ? (
                   <img
                     src={user.user_metadata.avatar_url}
@@ -189,7 +192,7 @@ export default function PerfilPage() {
                   <User className="h-9 w-9" />
                 )}
               </div>
-              <div className="pt-10 flex-1 min-w-0">
+              <div className="mt-2">
                 <h1 className="text-xl font-black text-gray-900 truncate">
                   {user.user_metadata?.full_name || "Usuário"}
                 </h1>
