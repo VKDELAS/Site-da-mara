@@ -30,7 +30,11 @@ export function getSupabaseBrowserClient() {
     return client
   }
 
-  client = createSupabaseBrowserClient(supabaseUrl, supabaseKey)
+  client = createSupabaseBrowserClient(supabaseUrl, supabaseKey, {
+    auth: {
+      flowType: "pkce",
+    },
+  })
 
   return client
 }
