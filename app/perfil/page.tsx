@@ -163,10 +163,10 @@ export default function PerfilPage() {
         <div className="container mx-auto px-4 max-w-2xl space-y-4">
 
           {/* ── Card de perfil ── */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100">
             {/* Banner com padrão sutil */}
             <div
-              className="h-24 relative overflow-hidden"
+              className="h-24 relative overflow-hidden rounded-t-2xl"
               style={{
                 background: "linear-gradient(135deg, #f5c518 0%, #e6ac00 50%, #c98f00 100%)",
               }}
