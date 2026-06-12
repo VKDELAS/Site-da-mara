@@ -156,19 +156,14 @@ export default function PerfilPage() {
   const isAdmin = user.email && ADMIN_EMAILS.includes(user.email)
 
   return (
-    <div
-      className="min-h-screen flex flex-col"
-      style={{
-        background: "linear-gradient(160deg, #fef9e7 0%, #fdf3c0 30%, #fce882 55%, #f5c518 80%, #e6ac00 100%)",
-      }}
-    >
+    <div className="min-h-screen flex flex-col bg-gray-50">
       <HeaderWrapper />
 
       <main className="flex-1 py-8">
         <div className="container mx-auto px-4 max-w-2xl space-y-4">
 
           {/* ── Card de perfil ── */}
-          <div className="bg-white rounded-2xl shadow-md overflow-hidden">
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
             {/* Banner com padrão sutil */}
             <div
               className="h-24 relative overflow-hidden"
@@ -182,7 +177,7 @@ export default function PerfilPage() {
               <div className="absolute top-2 left-1/3 h-10 w-10 rounded-full bg-white/10" />
             </div>
             {/* Avatar + info */}
-            <div className="px-6 pb-6 -mt-10 flex items-end gap-4">
+            <div className="px-6 pb-6 flex items-center gap-4" style={{ marginTop: "-40px" }}>
               <div className="h-20 w-20 rounded-full border-4 border-white shadow-lg bg-yellow-100 flex items-center justify-center text-yellow-600 flex-shrink-0 overflow-hidden">
                 {user.user_metadata?.avatar_url ? (
                   <img
@@ -194,7 +189,7 @@ export default function PerfilPage() {
                   <User className="h-9 w-9" />
                 )}
               </div>
-              <div className="pb-1 flex-1 min-w-0">
+              <div className="pt-10 flex-1 min-w-0">
                 <h1 className="text-xl font-black text-gray-900 truncate">
                   {user.user_metadata?.full_name || "Usuário"}
                 </h1>
@@ -207,12 +202,12 @@ export default function PerfilPage() {
           </div>
 
           {/* ── Menu principal — Conta & Dados ── */}
-          <div className="bg-white rounded-2xl shadow-sm overflow-hidden divide-y divide-gray-50">
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden divide-y divide-gray-100">
 
             {/* Meus Dados */}
             <button
               onClick={() => router.push("/meus-dados")}
-              className="cursor-pointer w-full flex items-center justify-between p-5 hover:bg-gray-50 transition-colors text-left"
+              className="cursor-pointer w-full flex items-center justify-between p-5 hover:bg-gray-50 active:bg-gray-100 transition-colors text-left group"
             >
               <div className="flex items-center gap-4">
                 <div className="h-10 w-10 rounded-xl bg-purple-50 flex items-center justify-center text-purple-500 flex-shrink-0">
@@ -229,7 +224,7 @@ export default function PerfilPage() {
             {/* Segurança */}
             <button
               onClick={() => router.push("/seguranca")}
-              className="cursor-pointer w-full flex items-center justify-between p-5 hover:bg-gray-50 transition-colors text-left"
+              className="cursor-pointer w-full flex items-center justify-between p-5 hover:bg-gray-50 active:bg-gray-100 transition-colors text-left group"
             >
               <div className="flex items-center gap-4">
                 <div className="h-10 w-10 rounded-xl bg-gray-100 flex items-center justify-center text-gray-500 flex-shrink-0">
@@ -245,7 +240,7 @@ export default function PerfilPage() {
           </div>
 
           {/* ── Meus Endereços ── */}
-          <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
             <div className="flex items-center justify-between px-5 pt-5 pb-3">
               <div className="flex items-center gap-3">
                 <div className="h-10 w-10 rounded-xl bg-yellow-50 flex items-center justify-center text-yellow-500 flex-shrink-0">
@@ -382,10 +377,10 @@ export default function PerfilPage() {
           </div>
 
           {/* ── Meus Pedidos ── */}
-          <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
             <button
               onClick={() => router.push("/pedidos")}
-              className="cursor-pointer w-full flex items-center justify-between p-5 hover:bg-gray-50 transition-colors text-left"
+              className="cursor-pointer w-full flex items-center justify-between p-5 hover:bg-gray-50 active:bg-gray-100 transition-colors text-left group"
             >
               <div className="flex items-center gap-4">
                 <div className="h-10 w-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-500 flex-shrink-0">
@@ -401,10 +396,10 @@ export default function PerfilPage() {
           </div>
 
           {/* ── Ajuda ── */}
-          <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
             <button
               onClick={() => router.push("/ajuda")}
-              className="cursor-pointer w-full flex items-center justify-between p-5 hover:bg-gray-50 transition-colors text-left"
+              className="cursor-pointer w-full flex items-center justify-between p-5 hover:bg-gray-50 active:bg-gray-100 transition-colors text-left group"
             >
               <div className="flex items-center gap-4">
                 <div className="h-10 w-10 rounded-xl bg-green-50 flex items-center justify-center text-green-500 flex-shrink-0">
@@ -416,6 +411,19 @@ export default function PerfilPage() {
                 </div>
               </div>
               <ChevronRight className="h-5 w-5 text-gray-300 flex-shrink-0" />
+            </button>
+          </div>
+
+          {/* ── Botão Sair ── sempre no mesmo lugar ── */}
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            <button
+              onClick={handleSignOut}
+              className="cursor-pointer w-full flex items-center gap-4 p-5 hover:bg-red-50 transition-colors text-left"
+            >
+              <div className="h-10 w-10 rounded-xl bg-red-50 flex items-center justify-center text-red-500 flex-shrink-0">
+                <LogOut className="h-5 w-5" />
+              </div>
+              <p className="font-bold text-red-500">Sair da conta</p>
             </button>
           </div>
 
@@ -446,20 +454,7 @@ export default function PerfilPage() {
             </div>
           )}
 
-          {/* ── Botão Sair ── */}
-          <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
-            <button
-              onClick={handleSignOut}
-              className="cursor-pointer w-full flex items-center gap-4 p-5 hover:bg-red-50 transition-colors text-left"
-            >
-              <div className="h-10 w-10 rounded-xl bg-red-50 flex items-center justify-center text-red-500 flex-shrink-0">
-                <LogOut className="h-5 w-5" />
-              </div>
-              <p className="font-bold text-red-500">Sair da conta</p>
-            </button>
-          </div>
-
-          <p className="text-center text-[10px] text-yellow-700/50 uppercase font-black tracking-widest pt-2 pb-4">
+          <p className="text-center text-[10px] text-gray-400 uppercase font-black tracking-widest pt-2 pb-4">
             batata top Iacanga • Versão 1.1
           </p>
         </div>
