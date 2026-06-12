@@ -1,15 +1,13 @@
 "use client"
 
 import type React from "react"
-import { useState, useEffect, Suspense } from "react"
+import { useState, useEffect, useRef, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
-import type { AuthChangeEvent, Session } from "@supabase/supabase-js"
 import Link from "next/link"
 import { Eye, EyeOff, ArrowRight, Lock, CheckCircle2, ChevronLeft } from "lucide-react"
-import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 
 function ResetPasswordContent() {
@@ -23,11 +21,14 @@ function ResetPasswordContent() {
   const [showPassword, setShowPassword] = useState(false)
   const [sessionReady, setSessionReady] = useState(false)
   const [linkError, setLinkError] = useState(false)
+  // FIX: ref para garantir que exchangeCodeForSession só é chamado uma vez
+  // (evita double-invoke do React Strict Mode / hydration do Next.js)
+  const exchanged = useRef(false)
   const supabase = getSupabaseBrowserClient()
 
   useEffect(() => {
     const init = async () => {
-      // Já tem sessão ativa?
+      // Já tem sessão ativa? (ex: usuário já autenticado)
       const { data: { session } } = await supabase.auth.getSession()
       if (session) {
         setSessionReady(true)
@@ -36,7 +37,8 @@ function ResetPasswordContent() {
 
       // Fluxo PKCE: troca o "code" da URL por uma sessão
       const code = searchParams.get("code")
-      if (code) {
+      if (code && !exchanged.current) {
+        exchanged.current = true // bloqueia segunda chamada
         const { data, error } = await supabase.auth.exchangeCodeForSession(code)
         if (error || !data.session) {
           console.error("Erro ao trocar code por sessão:", error)
@@ -48,17 +50,14 @@ function ResetPasswordContent() {
       }
 
       // Sem sessão e sem code: link inválido/expirado
-      setLinkError(true)
+      if (!exchanged.current) {
+        setLinkError(true)
+      }
     }
 
     init()
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event: AuthChangeEvent, session: Session | null) => {
-      if (event === "PASSWORD_RECOVERY" || session) {
-        setSessionReady(true)
-      }
-    })
-    return () => subscription.unsubscribe()
+    // FIX: removido onAuthStateChange daqui — causava conflito com exchangeCodeForSession
+    // e podia resultar em sessão sendo processada duas vezes
   }, [])
 
   const handleResetPassword = async (e: React.FormEvent) => {

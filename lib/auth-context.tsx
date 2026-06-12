@@ -92,9 +92,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const resetPassword = async (email: string) => {
-    const redirectUrl = process.env.NEXT_PUBLIC_SITE_URL
-      ? `${process.env.NEXT_PUBLIC_SITE_URL}/reset-password`
-      : `${window.location.origin}/reset-password`
+    // FIX: usa window.location.origin como fallback garantido em vez de depender
+    // só do NEXT_PUBLIC_SITE_URL que pode estar undefined em alguns ambientes
+    const siteUrl =
+      process.env.NEXT_PUBLIC_SITE_URL ||
+      (typeof window !== "undefined" ? window.location.origin : "")
+
+    const redirectUrl = `${siteUrl}/reset-password`
 
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: redirectUrl,
