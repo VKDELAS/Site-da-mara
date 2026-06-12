@@ -424,7 +424,7 @@ export default function PerfilPage() {
             <div
               className="rounded-2xl shadow-sm overflow-hidden"
               style={{
-                background: "linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)",
+                background: "linear-gradient(100deg, #fffbeb 0%, #fef3c7 100%)",
                 border: "1.5px solid #fcd34d",
               }}
             >

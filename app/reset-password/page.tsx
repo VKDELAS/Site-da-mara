@@ -19,7 +19,17 @@ export default function ResetPasswordPage() {
   const [error, setError] = useState("")
   const [success, setSuccess] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
+  const [sessionReady, setSessionReady] = useState(false)
   const supabase = getSupabaseBrowserClient()
+
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "PASSWORD_RECOVERY") {
+        setSessionReady(true)
+      }
+    })
+    return () => subscription.unsubscribe()
+  }, [])
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -84,6 +94,17 @@ export default function ResetPasswordPage() {
           </div>
         </main>
         <Footer />
+      </div>
+    )
+  }
+
+  if (!sessionReady) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-500 mx-auto mb-4"></div>
+          <p className="text-gray-500 font-bold">Verificando link...</p>
+        </div>
       </div>
     )
   }
