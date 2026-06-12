@@ -1,8 +1,8 @@
 "use client"
 
 import type React from "react"
-import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { useState, useEffect, Suspense } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
@@ -12,8 +12,9 @@ import { Eye, EyeOff, ArrowRight, Lock, CheckCircle2, ChevronLeft } from "lucide
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 
-export default function ResetPasswordPage() {
+function ResetPasswordContent() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
   const [loading, setLoading] = useState(false)
@@ -21,12 +22,36 @@ export default function ResetPasswordPage() {
   const [success, setSuccess] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [sessionReady, setSessionReady] = useState(false)
+  const [linkError, setLinkError] = useState(false)
   const supabase = getSupabaseBrowserClient()
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }: { data: { session: Session | null } }) => {
-      if (session) setSessionReady(true)
-    })
+    const init = async () => {
+      // Já tem sessão ativa?
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session) {
+        setSessionReady(true)
+        return
+      }
+
+      // Fluxo PKCE: troca o "code" da URL por uma sessão
+      const code = searchParams.get("code")
+      if (code) {
+        const { data, error } = await supabase.auth.exchangeCodeForSession(code)
+        if (error || !data.session) {
+          console.error("Erro ao trocar code por sessão:", error)
+          setLinkError(true)
+          return
+        }
+        setSessionReady(true)
+        return
+      }
+
+      // Sem sessão e sem code: link inválido/expirado
+      setLinkError(true)
+    }
+
+    init()
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event: AuthChangeEvent, session: Session | null) => {
       if (event === "PASSWORD_RECOVERY" || session) {
@@ -99,6 +124,30 @@ export default function ResetPasswordPage() {
           </div>
         </main>
         <Footer />
+      </div>
+    )
+  }
+
+  if (linkError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white p-6">
+        <div className="max-w-md w-full text-center space-y-6">
+          <div className="flex justify-center">
+            <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center">
+              <Lock className="w-10 h-10 text-red-500" />
+            </div>
+          </div>
+          <h2 className="text-3xl font-black text-gray-900 tracking-tighter">Link inválido ou expirado</h2>
+          <p className="text-gray-500 font-medium">
+            Este link de redefinição de senha não é mais válido. Solicite um novo link para continuar.
+          </p>
+          <Button
+            onClick={() => router.push("/login")}
+            className="w-full h-14 bg-yellow-500 hover:bg-yellow-600 text-white font-black rounded-2xl"
+          >
+            VOLTAR PARA LOGIN
+          </Button>
+        </div>
       </div>
     )
   }
@@ -211,5 +260,22 @@ export default function ResetPasswordPage() {
       </main>
       <Footer />
     </div>
+  )
+}
+
+export default function ResetPasswordPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-white">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-500 mx-auto mb-4"></div>
+            <p className="text-gray-500 font-bold">Verificando link...</p>
+          </div>
+        </div>
+      }
+    >
+      <ResetPasswordContent />
+    </Suspense>
   )
 }
