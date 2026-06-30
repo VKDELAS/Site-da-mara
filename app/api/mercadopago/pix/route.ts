@@ -75,6 +75,8 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    console.error('Erro Mercado Pago /v1/orders:', JSON.stringify(data));
+
     return NextResponse.json({
       success: false,
       error: data.message || 'Erro ao gerar pagamento PIX no Mercado Pago',
