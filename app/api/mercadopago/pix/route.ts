@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
       },
       body: JSON.stringify({
         type: 'online',
-        external_reference: orderNumber,
+        external_reference: String(orderNumber),
         total_amount: Number(amount).toFixed(2),
         payer: {
           email: payerEmail,
