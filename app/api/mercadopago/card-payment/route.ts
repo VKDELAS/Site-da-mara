@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
         payment_method_id: paymentMethodId,
         external_reference: orderNumber,
         payer: {
-          email: email || 'usuario_teste@testuser.com',
+          email: email || 'cliente@batatatop.com',
           first_name: name.split(' ')[0] || 'Cliente',
           last_name: name.split(' ').slice(1).join(' ') || 'Batatatop',
           identification: { type: 'CPF', number: cleanDocNumber },
