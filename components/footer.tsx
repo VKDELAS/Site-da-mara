@@ -9,7 +9,7 @@ export function Footer() {
     <footer className="bg-white border-t border-gray-100 pt-16 pb-8">
       <div className="container mx-auto px-4">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-16">
-          
+
           {/* Logo e Descrição */}
           <div className="space-y-6">
             <Link href="/" className="flex items-center gap-3 group">
@@ -31,11 +31,11 @@ export function Footer() {
               </div>
             </Link>
             <p className="text-gray-500 text-sm leading-relaxed max-w-xs">
-              As melhores batatas recheadas de Iacanga. Qualidade, sabor e entrega rápida na sua porta. 
+              As melhores batatas recheadas de Iacanga. Qualidade, sabor e entrega rápida na sua porta.
             </p>
             <div className="flex gap-3">
               <a
-                href="https://www.instagram.com/batatop_1/"
+                href="https://www.instagram.com/batatatop_1/"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-10 h-10 rounded-full bg-gray-50 text-gray-400 hover:bg-yellow-500 hover:text-white flex items-center justify-center transition-all duration-300"
@@ -155,7 +155,7 @@ export function Footer() {
                 © {new Date().getFullYear()} batata top DELIVERY. TODOS OS DIREITOS RESERVADOS.
               </div>
             </div>
-            
+
             <div className="flex items-center gap-8">
               <Link href="/termos" className="text-[11px] text-gray-400 hover:text-gray-900 font-bold transition-colors uppercase tracking-tighter">
                 Termos de Uso
