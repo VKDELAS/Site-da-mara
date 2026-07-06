@@ -454,14 +454,11 @@ class ProductsManager {
     try {
       const supabase = await getSupabase()
       
-      // Busca itens vendidos nos últimos 30 dias para um ranking dinâmico que se renova
-      const thirtyDaysAgo = new Date()
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
-
+      // Busca TODOS os itens vendidos para um ranking real de todo o período
+      // Isso evita erros caso order_items não tenha a coluna created_at
       const { data, error } = await supabase
         .from("order_items")
-        .select("product_name, quantity, created_at")
-        .gte("created_at", thirtyDaysAgo.toISOString())
+        .select("product_name, quantity")
       
       const products = await this.getProducts()
       const availableProducts = products.filter(p => p.available)
@@ -548,14 +545,11 @@ class ProductsManager {
     try {
       const supabase = await getSupabase()
       
-      // Busca itens vendidos nos últimos 30 dias para um ranking dinâmico que se renova
-      const thirtyDaysAgo = new Date()
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
-
+      // Busca TODOS os itens vendidos para o ranking real de todo o período
+      // Evita o erro de coluna inexistente (created_at) no Supabase
       const { data, error } = await supabase
         .from("order_items")
-        .select("product_name, quantity, created_at")
-        .gte("created_at", thirtyDaysAgo.toISOString())
+        .select("product_name, quantity")
       
       // Filtra apenas produtos que pertencem à categoria solicitada e estão disponíveis
       const products = await this.getProducts()

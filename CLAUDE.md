@@ -84,8 +84,8 @@ Site-da-mara/
 ├── scripts/                        # Scripts SQL de criação de tabelas e políticas RLS no Supabase
 ├── styles/                         # CSS global adicional
 ├── components.json                 # Configuração do shadcn/ui
-├── next.config.mjs                 # Configuração do Next.js (ignora erros de compilação no build)
-├── proxy.ts                        # Middleware de proteção de rotas (admin e usuário) e refresh de sessão
+├── next.config.mjs                 # Configuração do Next.js (com ignoreBuildErrors: false)
+├── middleware.ts                   # Middleware de proteção de rotas (admin e usuário) e refresh de sessão
 └── tsconfig.json                   # Configurações do TypeScript e aliases de caminhos (@/*)
 ```
 
@@ -121,6 +121,7 @@ Não há um CLI de ORM (como Prisma ou Drizzle) configurado. As tabelas, trigger
 2. `002_create_rls_policies.sql`
 3. `003_create_functions.sql`
 4. ... seguindo até `010_fix_rls_for_anonymous_orders.sql`.
+5. `011_add_admin_roles_and_triggers.sql` (configuração da coluna `role` e triggers automáticos de privilégio de administrador).
 
 ---
 
@@ -147,12 +148,11 @@ Variáveis de ambiente necessárias para o funcionamento local e de produção (
 2. **Camada de Dados (Managers)**: O acesso aos dados é encapsulado em classes singleton no diretório `/lib` (ex: `ordersManager`, `storeStatusManager`). Elas realizam as validações de segurança e as chamadas ao Supabase.
 
 ### Decisões de Design Importantes
-- **Impressão Térmica Direta via Browser**: A impressão de recibos é feita do lado do cliente utilizando as APIs experimentais **Web Bluetooth** e **WebUSB** para interagir diretamente com a impressora Kapbom KA-1445. Isso evita a necessidade de um servidor de impressão centralizado.
-- **Simulação da Progressão de Pedidos**: Para viabilizar a experiência do usuário sem depender de um painel de retaguarda nativo que atualize manualmente o pedido a cada segundo, a classe `OrdersManager` implementa um mecanismo de progressão de status baseado em temporizadores (`NodeJS.Timeout`). Ao criar um pedido, ele avança automaticamente de `pending` -> `preparing` -> `ready` -> `delivered` em intervalos definidos, multiplicados pela quantidade de pedidos ativos no momento (`activeOrders.length / 2`).
+- **Simulação da Progressão de Pedidos & Serverless**: O fluxo avança automaticamente de `pending` -> `preparing` -> `ready` -> `delivered`. Para mitigar o descarte de temporizadores em funções serverless da Vercel (que finalizam a execução após a resposta HTTP), foi integrado um mecanismo de *catch-up* reativo (`catchUpOrderProgression`) no `ordersManager`. Sempre que os pedidos são consultados nas rotas da API ou painéis do cliente/admin, a diferença de tempo (`Date.now() - created_at`) é avaliada e o status é sincronizado no banco de dados. Timers locais em Node.js continuam ativos para atualização em tempo real no ambiente local de desenvolvimento.
 - **Cálculo Fila e Tempo de Espera**: O tempo de espera estimado é calculado de forma dinâmica pelo `StoreStatusManager`. O tempo base é somado a 5 minutos adicionais para cada pedido criado nos últimos 10 minutos (fila ativa).
 - **Armazenamento de Imagens**: Para simplificar a infraestrutura e evitar dependência de buckets S3 ou Supabase Storage, as imagens enviadas pelos administradores/clientes são convertidas para strings Base64 no cliente e armazenadas no PostgreSQL na tabela `uploaded_images`. A rota `/api/images/[id]` converte a string Base64 de volta para um buffer binário e serve como uma imagem comum com headers de cache eficientes.
-- **Segurança (Middleware & Guards)**: O arquivo `proxy.ts` atua como middleware de proteção de rotas no Next.js, bloqueando rotas administrativas `/admin` e rotas de usuário protegidas (`/pedidos`, `/perfil`, `/meus-dados`, `/checkout`) caso não haja sessão ativa ou o usuário não seja classificado como administrador.
-- **E-mails de Administradores**: Há um duplo controle de privilégio de administrador. E-mails administrativos autorizados estão parcialmente fixados em código no `proxy.ts` e `components/header.tsx` (`["enzzobaraldo2008@gmail.com", "maraysis9010@gmail.com"]`), e também são validados dinamicamente através da variável `process.env.NEXT_PUBLIC_ADMIN_EMAILS` e de metadados do Supabase Auth (`user_metadata.role === 'admin'`).
+- **Segurança (Middleware & Guards)**: O arquivo `middleware.ts` atua como middleware de proteção de rotas no Next.js, bloqueando rotas administrativas `/admin` e rotas de usuário protegidas (`/pedidos`, `/perfil`, `/meus-dados`, `/checkout`) caso não haja sessão ativa ou o usuário não seja classificado como administrador.
+- **Validação de Administradores**: A verificação é centralizada através do helper `isAdminUser(user)` no arquivo `lib/supabase/admin.ts`. Ela verifica de forma rápida se o e-mail atende aos critérios (exato `enzzobaraldo2008@gmail.com` ou contém a palavra `admin`) ou se a role nos metadados é `admin`. Adicionalmente, consultas assíncronas ao banco verificam a coluna `role` da tabela `profiles` (configurada via script SQL de triggers).
 
 ---
 
@@ -179,8 +179,8 @@ Os commits seguem mensagens curtas e diretas em português descrevendo a altera�
 ## 9. Constraints & Guardrails (Regras Importantes)
 - 🚫 **Nunca exponha chaves secretas no cliente**: A chave `SUPABASE_SERVICE_ROLE_KEY` e o token `MERCADO_PAGO_ACCESS_TOKEN` nunca devem ser importados ou utilizados em componentes do lado do cliente (arquivos com `"use client"`). Toda lógica que necessita dessas credenciais deve residir em rotas serverless (`/app/api/*`).
 - 🚫 **Não comite arquivos `.env` ou `.env.local`**: Mantenha as chaves de API reais fora do controle de versão do Git.
-- ⚠️ **Atenção ao build errors bypass**: A propriedade `typescript.ignoreBuildErrors: true` está ativa no `next.config.mjs`. Isso significa que o build da Vercel não falhará se houver erros de tipagem TypeScript. **É dever do desenvolvedor rodar o linter (`npm run lint`) ou checar erros do compilador TypeScript localmente antes de realizar o push para produção**.
-- ⚠️ **Sincronia de Administradores**: Sempre que alterar os e-mails administrativos autorizados no `proxy.ts`, certifique-se de replicar no array `ADMIN_EMAILS` em `components/header.tsx` para evitar inconsistências visuais de privilégios.
+- ⚠️ **Verificação de Compilação no Build**: A propriedade `typescript.ignoreBuildErrors: false` está ativa no `next.config.mjs`. O build de produção da Vercel falhará se houver erros de tipagem do TypeScript. Garanta que o código compila rodando localmente `npx tsc --noEmit` antes de realizar o push para a branch principal.
+- ⚠️ **Sincronia de Administradores**: Utilize o validador `isAdminUser(user)` importado de `lib/supabase/admin.ts` para checar privilégios administrativos. Evite duplicar lógicas ou chumbá-las estaticamente nas telas.
 
 ---
 
