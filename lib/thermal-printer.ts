@@ -3,6 +3,11 @@
  * Compatível com o modelo Kapbom KA-1445 e similares que usam protocolo ESC/POS.
  */
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+type BluetoothDevice = any;
+type BluetoothRemoteGATTCharacteristic = any;
+type USBDevice = any;
+
 export class ThermalPrinter {
   private bluetoothDevice: BluetoothDevice | null = null;
   private bluetoothCharacteristic: BluetoothRemoteGATTCharacteristic | null = null;
@@ -21,7 +26,7 @@ export class ThermalPrinter {
    */
   async connectUSB() {
     try {
-      this.usbDevice = await navigator.usb.requestDevice({ filters: [] }); // Filtro vazio para listar todas e o usuário escolher
+      this.usbDevice = await (navigator as any).usb.requestDevice({ filters: [] }); // Filtro vazio para listar todas e o usuário escolher
       await this.usbDevice.open();
       
       // Encontrar a interface de impressão (geralmente a primeira)
@@ -32,7 +37,7 @@ export class ThermalPrinter {
       await this.usbDevice.claimInterface(this.usbInterface);
       
       // Encontrar o endpoint de saída (OUT)
-      const endpoint = configuration.interfaces[0].alternates[0].endpoints.find(e => e.direction === 'out');
+      const endpoint = configuration.interfaces[0].alternates[0].endpoints.find((e: any) => e.direction === 'out');
       this.usbEndpoint = endpoint?.endpointNumber || 1;
 
       return true;
@@ -47,7 +52,7 @@ export class ThermalPrinter {
    */
   async connectBluetooth() {
     try {
-      this.bluetoothDevice = await navigator.bluetooth.requestDevice({
+      this.bluetoothDevice = await (navigator as any).bluetooth.requestDevice({
         filters: [
           { services: ['000018f0-0000-1000-8000-00805f9b34fb'] },
           { namePrefix: 'MTP' },
@@ -60,7 +65,7 @@ export class ThermalPrinter {
       const service = await server?.getPrimaryService('000018f0-0000-1000-8000-00805f9b34fb');
       const characteristics = await service?.getCharacteristics();
       
-      this.bluetoothCharacteristic = characteristics?.find(c => c.properties.write || c.properties.writeWithoutResponse) || null;
+      this.bluetoothCharacteristic = characteristics?.find((c: any) => c.properties.write || c.properties.writeWithoutResponse) || null;
 
       return !!this.bluetoothCharacteristic;
     } catch (error) {

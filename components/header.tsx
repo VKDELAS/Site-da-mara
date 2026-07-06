@@ -12,8 +12,7 @@ import { StoreStatusBadge } from "@/components/store-status-badge"
 import { AddressModal } from "@/components/address-modal"
 import { addressesManager } from "@/lib/addresses-manager"
 import { storeStatusManager } from "@/lib/store-status-manager"
-
-const ADMIN_EMAILS = ["enzzobaraldo2008@gmail.com", "maraysis9010@gmail.com"]
+import { isAdminUser } from "@/lib/supabase/admin"
 
 interface HeaderProps {
   variant?: "default" | "simple"
@@ -35,7 +34,7 @@ export function Header({ variant = "default" }: HeaderProps) {
 
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0)
   const totalPrice = getTotalPrice()
-  const isAdmin = user?.email && ADMIN_EMAILS.includes(user.email)
+  const isAdmin = isAdminUser(user)
 
   const loadDefaultAddress = async () => {
     if (user) {

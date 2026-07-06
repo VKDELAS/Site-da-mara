@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useAuth } from "@/lib/auth-context"
 import Link from "next/link"
-import { Eye, EyeOff, ArrowRight, Sparkles, MapPin, Star, ChevronLeft, Mail, X } from "lucide-react"
+import { Eye, EyeOff, ArrowRight, Sparkles, MapPin, Star, ChevronLeft, Mail, X, CheckCircle2 } from "lucide-react"
 
 export function LoginContent() {
   const router = useRouter()

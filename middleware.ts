@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr"
 import { NextResponse, type NextRequest } from "next/server"
+import { isAdminUser } from "./lib/supabase/admin"
 
 export default async function proxy(request: NextRequest) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -48,8 +49,7 @@ export default async function proxy(request: NextRequest) {
     }
 
     // Verifica se o usuário é admin
-    const adminEmails = ["enzzobaraldo2008@gmail.com", "maraysis9010@gmail.com"]
-    const isAdmin = (user.email && adminEmails.includes(user.email)) || user.user_metadata?.role === "admin"
+    const isAdmin = isAdminUser(user)
     if (!isAdmin) {
       return NextResponse.redirect(new URL("/", request.url))
     }

@@ -303,7 +303,7 @@ class StoreStatusManager {
    */
   async resetToAutoSchedule(): Promise<StoreStatus> {
     const status = await this.getStatus()
-    const shouldBeOpen = shouldBeOpenBySchedule()
+    const shouldBeOpen = this.shouldBeOpenBySchedule()
     const newStatus = {
       ...status,
       isOpen: shouldBeOpen,

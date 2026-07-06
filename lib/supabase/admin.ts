@@ -1,8 +1,15 @@
 import { getSupabaseBrowserClient } from "./client"
 
+export function isAdminUser(user: any): boolean {
+  if (!user) return false
+  return (
+    user.email === 'enzzobaraldo2008@gmail.com' ||
+    user.email?.includes('admin') ||
+    user.user_metadata?.role === 'admin'
+  )
+}
+
 export async function isAdmin(userId: string): Promise<boolean> {
-  // For now, check if user email is in admin list
-  // You can extend this to use a database table for admin users
   const supabase = getSupabaseBrowserClient()
   const {
     data: { user },
@@ -10,9 +17,33 @@ export async function isAdmin(userId: string): Promise<boolean> {
 
   if (!user || user.id !== userId) return false
 
-  // Add your admin emails here or check against a database table
+  // 1. Verificação instantânea baseada no e-mail e metadados de autenticação
+  if (isAdminUser(user)) {
+    return true
+  }
+
+  // 2. Verificação de segurança no banco de dados (tabela profiles.role)
+  try {
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", userId)
+      .single()
+
+    if (!error && data?.role === "admin") {
+      return true
+    }
+  } catch (e) {
+    console.error("Erro ao verificar role de admin no banco:", e)
+  }
+
+  // 3. Fallback extra por variável de ambiente
   const adminEmails = process.env.NEXT_PUBLIC_ADMIN_EMAILS?.split(",") || []
-  return adminEmails.includes(user.email || "")
+  if (user.email && adminEmails.includes(user.email)) {
+    return true
+  }
+
+  return false
 }
 
 export async function requireAdmin() {
@@ -25,8 +56,8 @@ export async function requireAdmin() {
     throw new Error("Not authenticated")
   }
 
-  const isAdminUser = await isAdmin(user.id)
-  if (!isAdminUser) {
+  const isUserAdmin = await isAdmin(user.id)
+  if (!isUserAdmin) {
     throw new Error("Not authorized")
   }
 

@@ -169,8 +169,8 @@ export default function DetalhesPedidoPage() {
                     <Ticket className="h-4 w-4 text-green-600" />
                     <span className="text-xs font-black text-green-700 uppercase">Cupom: {order.couponCode}</span>
                   </div>
-                  {order.discountAmount > 0 && (
-                    <span className="text-xs font-bold text-green-600">- R$ {order.discountAmount.toFixed(2).replace('.', ',')}</span>
+                  {(order.discountAmount ?? 0) > 0 && (
+                    <span className="text-xs font-bold text-green-600">- R$ {(order.discountAmount ?? 0).toFixed(2).replace('.', ',')}</span>
                   )}
                 </div>
               )}

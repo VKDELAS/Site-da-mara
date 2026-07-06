@@ -187,8 +187,8 @@ export default function PedidosPage() {
                           <Ticket className="h-3 w-3 text-green-600" />
                           <span className="text-[10px] font-black text-green-700 uppercase">Cupom: {order.couponCode}</span>
                         </div>
-                        {order.discountAmount > 0 && (
-                          <span className="text-[10px] font-bold text-green-600">- R$ {order.discountAmount.toFixed(2).replace('.', ',')}</span>
+                        {(order.discountAmount ?? 0) > 0 && (
+                          <span className="text-[10px] font-bold text-green-600">- R$ {(order.discountAmount ?? 0).toFixed(2).replace('.', ',')}</span>
                         )}
                       </div>
                     )}
@@ -244,7 +244,7 @@ export default function PedidosPage() {
       {feedbackModalOrder && (
         <FeedbackModal
           orderId={feedbackModalOrder.id}
-          orderNumber={feedbackModalOrder.orderNumber || feedbackModalOrder.id.slice(-4).toUpperCase()}
+          orderNumber={String(feedbackModalOrder.orderNumber || feedbackModalOrder.id.slice(-4).toUpperCase())}
           onClose={() => setFeedbackModalOrder(null)}
           onSuccess={() => {
             loadEvaluatedOrders()

@@ -20,12 +20,13 @@ class AdicionaisManagerClient {
         .order("name")
 
       if (error) {
-        console.error("[Supabase] Erro ao buscar disponíveis:", error.message)
-        return this.getDefaultAdicionais()
+        console.error("[Supabase] Erro ao buscar adicionais disponíveis:", error.message)
+        throw new Error("Erro ao buscar adicionais no banco de dados: " + error.message)
       }
       return data || []
     } catch (error) {
-      return this.getDefaultAdicionais()
+      console.error("[AdicionaisManager] Falha no getAdicionais:", error)
+      throw error
     }
   }
 
@@ -38,12 +39,13 @@ class AdicionaisManagerClient {
         .order("name")
 
       if (error) {
-        console.error("[Supabase] Erro ao buscar todos:", error.message)
-        return this.getDefaultAdicionais()
+        console.error("[Supabase] Erro ao buscar todos os adicionais:", error.message)
+        throw new Error("Erro ao carregar lista completa de adicionais: " + error.message)
       }
       return data || []
     } catch (error) {
-      return this.getDefaultAdicionais()
+      console.error("[AdicionaisManager] Falha no getAllAdicionais:", error)
+      throw error
     }
   }
 

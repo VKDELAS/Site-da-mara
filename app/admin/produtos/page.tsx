@@ -76,8 +76,12 @@ export default function AdminProdutosPage() {
   }
 
   const loadAdicionais = async () => {
-    const allAdicionais = await adicionaisManager.getAllAdicionais()
-    setAdicionais(allAdicionais)
+    try {
+      const allAdicionais = await adicionaisManager.getAllAdicionais()
+      setAdicionais(allAdicionais)
+    } catch (error) {
+      console.error("Erro ao carregar adicionais:", error)
+    }
   }
 
 

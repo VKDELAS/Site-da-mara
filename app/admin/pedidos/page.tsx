@@ -420,10 +420,10 @@ export default function AdminPedidosPage() {
                               <span className="text-gray-500 font-bold">Subtotal</span>
                               <span className="font-bold text-gray-900">R$ {(order.total + (order.discountAmount || 0)).toFixed(2)}</span>
                             </div>
-                            {order.discountAmount > 0 && (
+                            {(order.discountAmount ?? 0) > 0 && (
                               <div className="flex items-center justify-between mb-2 text-green-600">
                                 <span className="font-bold flex items-center gap-1"><Ticket className="h-4 w-4" /> Desconto</span>
-                                <span className="font-bold">- R$ {order.discountAmount.toFixed(2)}</span>
+                                <span className="font-bold">- R$ {(order.discountAmount ?? 0).toFixed(2)}</span>
                               </div>
                             )}
                             <div className="flex items-center justify-between pt-2">

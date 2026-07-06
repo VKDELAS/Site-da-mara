@@ -152,6 +152,50 @@ class OrdersManager {
     }
   }
 
+  async catchUpOrderProgression(order: any): Promise<any> {
+    if (order.status === "delivered" || order.status === "cancelled") {
+      return order
+    }
+
+    const createdAtTime = new Date(order.created_at).getTime()
+    const now = Date.now()
+    const elapsed = now - createdAtTime
+
+    const basePreparingTime = 6 * 60 * 1000 
+    const baseReadyTime = 9 * 60 * 1000 
+    
+    const timeMultiplier = 1.0 
+    const preparingTime = basePreparingTime * timeMultiplier
+    const readyTime = preparingTime + (baseReadyTime * timeMultiplier)
+
+    let targetStatus = order.status
+    if (elapsed >= readyTime) {
+      targetStatus = "delivered"
+    } else if (elapsed >= preparingTime) {
+      targetStatus = "ready"
+    } else if (elapsed >= 1000) {
+      targetStatus = "preparing"
+    }
+
+    if (targetStatus !== order.status) {
+      const sb = await this.supabase
+      await sb.from("orders").update({ 
+        status: targetStatus,
+        metadata: { 
+          ...(order.metadata || {}), 
+          statusUpdatedAt: new Date().toISOString() 
+        }
+      }).eq("id", order.id)
+      
+      order.status = targetStatus
+      if (targetStatus === "delivered") {
+        await storeStatusManager.decrementWaitTime()
+      }
+    }
+
+    return order
+  }
+
   async getTodayOrders(): Promise<Order[]> {
     const today = new Date()
     today.setHours(0, 0, 0, 0)
@@ -161,6 +205,11 @@ class OrdersManager {
       .select(`*, order_items (*)`)
       .gte("created_at", today.toISOString())
       .order("created_at", { ascending: false })
+    if (data) {
+      for (const o of data) {
+        await this.catchUpOrderProgression(o)
+      }
+    }
     return data?.map((o: any) => this.mapOrderData(o)) || []
   }
 
@@ -171,7 +220,13 @@ class OrdersManager {
       .select(`*, order_items (*)`)
       .in("status", ["pending", "preparing", "ready"])
       .order("created_at", { ascending: false })
-    return data?.map((o: any) => this.mapOrderData(o)) || []
+    if (data) {
+      for (const o of data) {
+        await this.catchUpOrderProgression(o)
+      }
+    }
+    const updatedData = data ? data.filter((o: any) => ["pending", "preparing", "ready"].includes(o.status)) : []
+    return updatedData.map((o: any) => this.mapOrderData(o))
   }
 
   async getUserOrders(userId: string): Promise<Order[]> {
@@ -181,6 +236,11 @@ class OrdersManager {
       .select(`*, order_items (*)`)
       .eq("user_id", userId)
       .order("created_at", { ascending: false })
+    if (data) {
+      for (const o of data) {
+        await this.catchUpOrderProgression(o)
+      }
+    }
     return data?.map((o: any) => this.mapOrderData(o)) || []
   }
 
@@ -194,6 +254,11 @@ class OrdersManager {
       .gte("created_at", start.toISOString())
       .lte("created_at", end.toISOString())
       .order("created_at", { ascending: false })
+    if (data) {
+      for (const o of data) {
+        await this.catchUpOrderProgression(o)
+      }
+    }
     return data?.map((o: any) => this.mapOrderData(o)) || []
   }
 
