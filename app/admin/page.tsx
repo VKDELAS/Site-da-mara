@@ -10,14 +10,14 @@ import { useRouter } from "next/navigation"
 import { Package, ShoppingBag, Ticket, DollarSign, TrendingUp, Clock, ChefHat, Star, Megaphone, Image } from "lucide-react"
 import { ordersManager } from "@/lib/orders-manager"
 import { BusinessHours } from "@/components/business-hours"
+import { isAdmin as checkIsAdmin } from "@/lib/supabase/admin"
 import Link from "next/link"
-
-const ADMIN_EMAILS = ["enzzobaraldo2008@gmail.com", "maraysis9010@gmail.com"]
 
 export default function AdminPage() {
   const { user, loading } = useAuth()
   const router = useRouter()
   const [isAdmin, setIsAdmin] = useState(false)
+  const [checking, setChecking] = useState(true)
   const [stats, setStats] = useState({
     totalOrders: 0,
     pendingOrders: 0,
@@ -27,17 +27,27 @@ export default function AdminPage() {
   })
 
   useEffect(() => {
-    if (!loading) {
-      if (!user) {
-        router.push("/login")
-      } else if (user.email && ADMIN_EMAILS.includes(user.email)) {
+    if (loading) return
+
+    if (!user) {
+      router.push("/login")
+      return
+    }
+
+    // FIX: antes essa checagem usava uma lista ADMIN_EMAILS hardcoded
+    // aqui na própria página, duplicando (e brigando com) a lógica central
+    // de lib/supabase/admin.ts. Agora usa o mesmo isAdmin() que já
+    // considera e-mail, metadata, profiles.role e NEXT_PUBLIC_ADMIN_EMAILS.
+    checkIsAdmin(user.id).then((allowed) => {
+      setChecking(false)
+      if (allowed) {
         setIsAdmin(true)
         loadStats()
       } else {
         alert("Você não tem permissão para acessar esta página")
         router.push("/")
       }
-    }
+    })
   }, [user, loading, router])
 
   const loadStats = async () => {
@@ -45,7 +55,7 @@ export default function AdminPage() {
     setStats(todayStats)
   }
 
-  if (loading || !isAdmin) {
+  if (loading || checking || !isAdmin) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-yellow-50 to-white">
         <div className="text-center">
@@ -143,14 +153,16 @@ export default function AdminPage() {
                   <span className="text-xs font-bold text-green-600 bg-green-50 px-3 py-1 rounded-full">Receita</span>
                 </div>
                 <p className="text-gray-600 text-sm font-semibold mb-1">Faturamento</p>
-                <p className="text-3xl font-black text-green-600 mb-2">R$ {stats.totalSales.toFixed(2)}</p>
-                <p className="text-xs text-gray-500">Pedidos entregues</p>
+                <p className="text-4xl font-black text-green-600 mb-2">
+                  R$ {stats.totalSales.toFixed(2).replace(".", ",")}
+                </p>
+                <p className="text-xs text-gray-500">Vendas de hoje</p>
               </CardContent>
             </Card>
           </div>
 
-          {/* Ações Rápidas */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Menu de Ações */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {/* Gerenciar Pedidos */}
             <Link href="/admin/pedidos" className="group">
               <Card className="border-none shadow-md bg-gradient-to-br from-yellow-50 to-white rounded-3xl overflow-hidden hover:shadow-xl transition-all hover:-translate-y-1 cursor-pointer h-full">

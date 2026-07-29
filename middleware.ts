@@ -48,8 +48,32 @@ export default async function proxy(request: NextRequest) {
       return NextResponse.redirect(redirectUrl)
     }
 
-    // Verifica se o usuário é admin
-    const isAdmin = isAdminUser(user)
+    // Verificação instantânea (e-mail exato, contém "admin" ou metadata)
+    let isAdmin = isAdminUser(user)
+
+    // FIX: se a verificação instantânea falhar, consulta a coluna `role`
+    // na tabela `profiles` — é o que permite promover alguém a admin
+    // manualmente pelo painel do Supabase sem precisar mexer em código.
+    if (!isAdmin) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", user.id)
+        .single()
+
+      if (profile?.role === "admin") {
+        isAdmin = true
+      }
+    }
+
+    // FIX: fallback extra pela variável de ambiente NEXT_PUBLIC_ADMIN_EMAILS
+    if (!isAdmin) {
+      const adminEmails = process.env.NEXT_PUBLIC_ADMIN_EMAILS?.split(",").map((e) => e.trim()) || []
+      if (user.email && adminEmails.includes(user.email)) {
+        isAdmin = true
+      }
+    }
+
     if (!isAdmin) {
       return NextResponse.redirect(new URL("/", request.url))
     }
