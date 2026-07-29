@@ -24,7 +24,7 @@ export function Header({ variant = "default" }: HeaderProps) {
   const searchParams = useSearchParams()
   const { items, getTotalPrice } = useCart()
   const { user, signOut } = useAuth()
-  
+
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [isScrolled, setIsScrolled] = useState(false)
   const [searchTerm, setSearchTerm] = useState(searchParams.get("q") || "")
@@ -101,19 +101,13 @@ export function Header({ variant = "default" }: HeaderProps) {
       <header className="w-full bg-white border-b py-6 sticky top-0 z-40">
         <div className="container mx-auto px-4 flex justify-center">
           <Link href="/" className="relative w-16 h-16 sm:w-20 sm:h-20 transition-transform hover:scale-105">
-            <div className="w-16 h-16 sm:w-20 sm:h-20 pointer-events-none relative">
-              <div className="absolute inset--10 -inset-18 sm:-inset-18">
-                <div className="relative w-full h-full">
-                  <Image
-                    src="/logo.png"
-                    alt="batata top Delivery"
-                    fill
-                    className="rounded-full object-contain pointer-events-none"
-                    priority
-                  />
-                </div>
-              </div>
-            </div>
+            <Image
+              src="/logo.png"
+              alt="batata top Delivery"
+              fill
+              className="rounded-full object-contain pointer-events-none"
+              priority
+            />
           </Link>
         </div>
       </header>
@@ -128,47 +122,35 @@ export function Header({ variant = "default" }: HeaderProps) {
         <div className="container mx-auto px-4 sm:px-8">
           <div className="flex items-center justify-between relative">
             <div className="flex items-center lg:hidden gap-1">
-              <button 
-                onClick={() => setMobileMenuOpen(true)} 
+              <button
+                onClick={() => setMobileMenuOpen(true)}
                 className="p-2 -ml-2 hover:bg-gray-50 rounded-full transition-colors"
               >
                 <Menu className="h-7 w-7 text-gray-900" />
               </button>
-              <Link href="/" className="relative w-12 h-12 flex-shrink-0">
-                <div className="w-16 h-12 sm:w-20 sm:h-20 pointer-events-none relative">
-                  <div className="absolute inset--10 -inset-18 sm:-inset-18">
-                    <div className="relative w-full h-full">
-                      <Image
-                        src="/logo.png"
-                        alt="batata top Delivery"
-                        fill
-                        className="rounded-full object-contain pointer-events-none"
-                        priority
-                      />
-                    </div>
-                  </div>
-                </div>
+              <Link href="/" className="relative w-12 h-12 sm:w-16 sm:h-16 flex-shrink-0">
+                <Image
+                  src="/logo.png"
+                  alt="batata top Delivery"
+                  fill
+                  className="rounded-full object-contain pointer-events-none"
+                  priority
+                />
               </Link>
             </div>
 
             <div className="hidden lg:flex items-center lg:mr-4">
-              <Link href="/" className="relative w-16 h-16 flex-shrink-0">
-                <div className="w-16 h-16 sm:w-20 sm:h-17 pointer-events-none relative">
-                  <div className="absolute inset--10 -inset-18 sm:-inset-22">
-                    <div className="relative w-full h-full">
-                      <Image
-                        src="/logo.png"
-                        alt="batata top Delivery"
-                        fill
-                        className="rounded-full object-contain pointer-events-none"
-                        priority
-                      />
-                    </div>
-                  </div>
-                </div>
+              <Link href="/" className="relative w-16 h-16 sm:w-20 sm:h-20 flex-shrink-0">
+                <Image
+                  src="/logo.png"
+                  alt="batata top Delivery"
+                  fill
+                  className="rounded-full object-contain pointer-events-none"
+                  priority
+                />
               </Link>
             </div>
-            
+
             <nav className="hidden lg:flex items-center gap-8 text-[15px] font-bold text-gray-600 lg:ml-4">
               <Link href="/" className="hover:text-yellow-500 transition-colors">Início</Link>
               <Link href="/cardapio" className="hover:text-yellow-500 transition-colors">Cardápio</Link>
@@ -217,28 +199,24 @@ export function Header({ variant = "default" }: HeaderProps) {
             <div className="absolute inset-0 bg-black/40 animate-in fade-in duration-300" onClick={() => setMobileMenuOpen(false)} />
             <div className="absolute inset-y-0 left-0 w-[85%] bg-white shadow-2xl animate-in slide-in-from-left duration-500 flex flex-col overflow-hidden rounded-r-[40px]">
               <div className="bg-gradient-to-b from-yellow-50 to-white p-8 pt-12 flex flex-col items-center relative">
-                <button 
-                  onClick={() => setMobileMenuOpen(false)} 
+                <button
+                  onClick={() => setMobileMenuOpen(false)}
                   className="absolute top-6 right-6 p-2.5 bg-white/80 backdrop-blur-sm hover:bg-white rounded-full shadow-sm transition-all active:scale-90"
                 >
                   <X className="h-6 w-6 text-gray-400" />
                 </button>
 
-                <div className="w-120 h-16 sm:w-20 sm:h-2 pointer-events-none relative">
-                  <div className="absolute inset--10 -inset-25 sm:-inset-18">
-                    <div className="relative w-full h-full">
-                      <Image
-                        src="/logo.png"
-                        alt="batata top Delivery"
-                        fill
-                        className="rounded-full object-contain pointer-events-none"
-                        priority
-                      />
-                    </div>
-                  </div>
+                <div className="w-20 h-20 relative">
+                  <Image
+                    src="/logo.png"
+                    alt="batata top Delivery"
+                    fill
+                    className="rounded-full object-contain pointer-events-none"
+                    priority
+                  />
                 </div>
                 <h2 className="text-2xl font-black text-gray-800 mt-4">Bem-vindo!</h2>
-                
+
                 <div className="flex items-center gap-3 mt-4">
                   <StoreStatusBadge />
                   <div className="flex items-center gap-1.5 text-gray-500 bg-white px-3 py-1.5 rounded-xl border border-gray-100 shadow-sm">
@@ -246,7 +224,7 @@ export function Header({ variant = "default" }: HeaderProps) {
                     <span className="text-xs font-black">{waitTime.min}-{waitTime.max} min</span>
                   </div>
                 </div>
-                
+
                 <p className="text-sm text-gray-500 mt-4">Faça login para continuar</p>
               </div>
 
@@ -308,27 +286,21 @@ export function Header({ variant = "default" }: HeaderProps) {
       <header className="sticky top-0 z-40 w-full bg-white border-b lg:hidden">
         <div className="px-4 py-4 sm:py-6 max-w-4xl mx-auto">
           <div className="flex items-center justify-between gap-3">
-            <Link href="/" className="block flex-shrink-0 relative">
-              <div className="w-12 h-12 sm:w-16 sm:h-16 pointer-events-none relative">
-                <div className="absolute inset--10 -inset-18">
-                  <div className="relative w-full h-full">
-                    <Image
-                      src="/logo.png"
-                      alt="batata top Delivery"
-                      fill
-                      className="rounded-full object-contain pointer-events-none"
-                      priority
-                    />
-                  </div>
-                </div>
-              </div>
+            <Link href="/" className="block flex-shrink-0 relative w-12 h-12 sm:w-16 sm:h-16">
+              <Image
+                src="/logo.png"
+                alt="batata top Delivery"
+                fill
+                className="rounded-full object-contain pointer-events-none"
+                priority
+              />
             </Link>
-            
-            <div 
+
+            <div
               onClick={(e) => {
                 e.stopPropagation();
                 setIsAddressModalOpen(true);
-              }} 
+              }}
               className="flex-1 min-w-0 cursor-pointer group px-1"
             >
               <p className="text-[10px] sm:text-[12px] font-bold text-gray-400 uppercase tracking-tighter truncate">Entrega em</p>
@@ -340,7 +312,7 @@ export function Header({ variant = "default" }: HeaderProps) {
 
             <div className="flex items-center gap-2 flex-shrink-0">
               {/* Ícone de pesquisa removido do mobile conforme solicitado */}
-              
+
               <Link href="/carrinho" className="flex items-center gap-2 sm:gap-3 bg-yellow-50 hover:bg-yellow-100 px-3 py-2 sm:px-4 sm:py-3 rounded-xl border border-yellow-200 transition-all active:scale-95 flex-shrink-0">
                 <div className="relative">
                   <ShoppingCart className="h-5.5 w-5.5 sm:h-7 sm:w-7 text-yellow-500" />
@@ -367,20 +339,14 @@ export function Header({ variant = "default" }: HeaderProps) {
         <div className="w-full px-4 sm:px-8">
           <div className="flex items-center justify-between w-full gap-4">
             <div className="flex items-center gap-6 flex-shrink-0">
-              <Link href="/" className="block flex-shrink-0 relative">
-                <div className="w-16 h-16 sm:w-20 sm:h-20 pointer-events-none relative">
-                  <div className="absolute inset--10 -inset-18 sm:-inset-18">
-                    <div className="relative w-full h-full">
-                      <Image
-                        src="/logo.png"
-                        alt="batata top Delivery"
-                        fill
-                        className="rounded-full object-contain pointer-events-none"
-                        priority
-                      />
-                    </div>
-                  </div>
-                </div>
+              <Link href="/" className="block flex-shrink-0 relative w-16 h-16 sm:w-20 sm:h-20">
+                <Image
+                  src="/logo.png"
+                  alt="batata top Delivery"
+                  fill
+                  className="rounded-full object-contain pointer-events-none"
+                  priority
+                />
               </Link>
 
               <nav className="hidden xl:flex items-center gap-5 text-[14px] font-bold">
@@ -461,9 +427,9 @@ export function Header({ variant = "default" }: HeaderProps) {
         </div>
       </header>
 
-      <AddressModal 
-        isOpen={isAddressModalOpen} 
-        onClose={() => setIsAddressModalOpen(false)} 
+      <AddressModal
+        isOpen={isAddressModalOpen}
+        onClose={() => setIsAddressModalOpen(false)}
       />
     </>
   )
