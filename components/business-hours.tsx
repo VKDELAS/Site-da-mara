@@ -1,10 +1,18 @@
 "use client"
 
-import { Clock, Power, Truck, DollarSign, Calendar, Save, RotateCcw, AlertCircle, CheckCircle2 } from "lucide-react"
+import { Clock, Power, Truck, DollarSign, Calendar, Save, RotateCcw, AlertCircle, CheckCircle2, Settings2 } from "lucide-react"
 import { useEffect, useState } from "react"
 import { storeStatusManager, StoreStatus } from "@/lib/store-status-manager"
 import { useToast } from "@/hooks/use-toast"
 import { Button } from "@/components/ui/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog"
 
 interface BusinessHoursProps {
   showToggle?: boolean // Quando true, exibe a interface administrativa completa no painel
@@ -18,6 +26,7 @@ export function BusinessHours({ showToggle = false }: BusinessHoursProps) {
   const [closeTimeInput, setCloseTimeInput] = useState<string>("22:00")
   const [autoScheduleInput, setAutoScheduleInput] = useState<boolean>(true)
   const [isSaving, setIsSaving] = useState<boolean>(false)
+  const [isScheduleModalOpen, setIsScheduleModalOpen] = useState<boolean>(false)
 
   const updateStatus = async () => {
     const s = await storeStatusManager.getStatus()
@@ -80,6 +89,7 @@ export function BusinessHours({ showToggle = false }: BusinessHoursProps) {
     try {
       await storeStatusManager.updateSchedule(openTimeInput, closeTimeInput, autoScheduleInput)
       await updateStatus()
+      setIsScheduleModalOpen(false)
       toast({
         title: "Horários Salvos com Sucesso!",
         description: `Abertura programada: ${openTimeInput} | Fechamento programado: ${closeTimeInput}`,
@@ -144,67 +154,79 @@ export function BusinessHours({ showToggle = false }: BusinessHoursProps) {
     )
   }
 
-  // Visualização Administrativa Completa no Painel
+  // Visualização Administrativa no Painel (Compacta e sem poluição visual)
   return (
-    <div className="space-y-6">
-      {/* Linha 1: Status Atual e Indicador de Modo */}
-      <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-2xl bg-gray-50 border border-gray-100">
-        <div className="flex items-center gap-3 flex-wrap">
-          <div className="flex items-center gap-2 text-sm text-gray-700 font-bold bg-white px-3 py-1.5 rounded-xl border border-gray-200 shadow-xs">
-            <Clock className="h-4 w-4 text-yellow-500" />
-            <span>Iacanga-SP: {currentTime}</span>
-          </div>
-
-          <span
-            className={`flex items-center gap-2 px-4 py-1.5 rounded-xl text-sm font-black tracking-wide shadow-xs ${
-              isOpen
-                ? "bg-emerald-500 text-white shadow-emerald-100"
-                : "bg-red-500 text-white shadow-red-100"
-            }`}
-          >
-            <span className="relative flex h-2.5 w-2.5">
-              <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${isOpen ? "bg-emerald-200" : "bg-red-200"}`} />
-              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-white" />
-            </span>
-            {isOpen ? "LOJA ABERTA" : "LOJA FECHADA"}
-          </span>
-
-          <span
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 border ${
-              isManualOverride
-                ? "bg-amber-50 text-amber-800 border-amber-200"
-                : "bg-blue-50 text-blue-700 border-blue-200"
-            }`}
-          >
-            {isManualOverride ? (
-              <>
-                <AlertCircle className="h-3.5 w-3.5 text-amber-600" />
-                <span>Sobreposição Manual Ativa (retorna no próximo ciclo)</span>
-              </>
-            ) : (
-              <>
-                <CheckCircle2 className="h-3.5 w-3.5 text-blue-600" />
-                <span>Modo Automático Ativo ({openTime} às {closeTime})</span>
-              </>
-            )}
-          </span>
-
-          {isOpen && (
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-yellow-100/70 text-yellow-800 text-xs font-bold">
-              <Clock className="h-3.5 w-3.5 text-yellow-600" />
-              <span>Fila: {waitTime.min}-{waitTime.max} min</span>
+    <>
+      <div className="space-y-4">
+        {/* Linha 1: Informações de Status e Modo */}
+        <div className="flex flex-wrap items-center justify-between gap-3 p-4 rounded-2xl bg-gray-50 border border-gray-100">
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <div className="flex items-center gap-2 text-xs font-bold text-gray-700 bg-white px-3 py-1.5 rounded-xl border border-gray-200 shadow-xs">
+              <Clock className="h-3.5 w-3.5 text-yellow-500" />
+              <span>Iacanga-SP: {currentTime}</span>
             </div>
-          )}
+
+            <span
+              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-black tracking-wide shadow-xs ${
+                isOpen
+                  ? "bg-emerald-500 text-white shadow-emerald-100"
+                  : "bg-red-500 text-white shadow-red-100"
+              }`}
+            >
+              <span className="relative flex h-2 w-2">
+                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${isOpen ? "bg-emerald-200" : "bg-red-200"}`} />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-white" />
+              </span>
+              {isOpen ? "LOJA ABERTA" : "LOJA FECHADA"}
+            </span>
+
+            <span
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 border ${
+                isManualOverride
+                  ? "bg-amber-50 text-amber-800 border-amber-200"
+                  : "bg-blue-50 text-blue-700 border-blue-200"
+              }`}
+            >
+              {isManualOverride ? (
+                <>
+                  <AlertCircle className="h-3.5 w-3.5 text-amber-600" />
+                  <span>Sobreposição Manual Ativa (retorna no próximo ciclo)</span>
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 className="h-3.5 w-3.5 text-blue-600" />
+                  <span>Modo Automático ({openTime} às {closeTime})</span>
+                </>
+              )}
+            </span>
+
+            {isOpen && (
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-yellow-100/70 text-yellow-800 text-xs font-bold">
+                <Clock className="h-3.5 w-3.5 text-yellow-600" />
+                <span>Fila: {waitTime.min}-{waitTime.max} min</span>
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Botões de Ação Imediata */}
-        <div className="flex items-center gap-2 flex-wrap">
+        {/* Linha 2: Ações Administrativas (Inclui botão para abrir Modal de Horários) */}
+        <div className="flex items-center gap-2.5 flex-wrap pt-1">
+          <Button
+            onClick={() => setIsScheduleModalOpen(true)}
+            variant="outline"
+            size="sm"
+            className="rounded-xl border-yellow-300 bg-yellow-50/80 hover:bg-yellow-100 text-yellow-800 font-bold text-xs h-9 gap-1.5 shadow-xs transition-all"
+          >
+            <Settings2 className="h-3.5 w-3.5 text-yellow-600" />
+            Configurar Horários ({openTime} - {closeTime})
+          </Button>
+
           {isManualOverride && (
             <Button
               onClick={handleResetToAuto}
               variant="outline"
               size="sm"
-              className="rounded-xl border-blue-200 text-blue-700 hover:bg-blue-50 font-bold text-xs h-9 gap-1.5"
+              className="rounded-xl border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 font-bold text-xs h-9 gap-1.5"
             >
               <RotateCcw className="h-3.5 w-3.5 text-blue-600" />
               Voltar ao Automático
@@ -214,7 +236,7 @@ export function BusinessHours({ showToggle = false }: BusinessHoursProps) {
           <Button
             onClick={handleToggleStoreManual}
             size="sm"
-            className={`rounded-xl font-black text-xs h-9 gap-1.5 shadow-sm transition-transform active:scale-95 ${
+            className={`rounded-xl font-black text-xs h-9 gap-1.5 shadow-xs transition-transform active:scale-95 ${
               isOpen
                 ? "bg-red-600 hover:bg-red-700 text-white"
                 : "bg-emerald-600 hover:bg-emerald-700 text-white"
@@ -223,104 +245,127 @@ export function BusinessHours({ showToggle = false }: BusinessHoursProps) {
             <Power className="h-3.5 w-3.5" />
             {isOpen ? "Forçar Fechar Loja" : "Forçar Abrir Loja"}
           </Button>
+
+          <Button
+            onClick={handleToggleDelivery}
+            variant="outline"
+            size="sm"
+            className={`rounded-xl text-xs font-bold h-9 gap-1.5 transition-colors ${
+              isDeliveryEnabled
+                ? "border-orange-200 bg-orange-50 text-orange-700 hover:bg-orange-100"
+                : "border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100"
+            }`}
+          >
+            <Truck className="h-3.5 w-3.5" />
+            {isDeliveryEnabled ? "Pausar Entregas" : "Ativar Entregas"}
+          </Button>
+
+          <Button
+            onClick={handleToggleDeliveryFee}
+            variant="outline"
+            size="sm"
+            className={`rounded-xl text-xs font-bold h-9 gap-1.5 transition-colors ${
+              isDeliveryFeeEnabled
+                ? "border-yellow-200 bg-yellow-50 text-yellow-800 hover:bg-yellow-100"
+                : "border-gray-200 bg-gray-50 text-gray-600 hover:bg-gray-100"
+            }`}
+          >
+            <DollarSign className="h-3.5 w-3.5" />
+            {isDeliveryFeeEnabled ? `Taxa Ativa (R$ ${deliveryFee.toFixed(2)})` : "Taxa Desativada"}
+          </Button>
         </div>
       </div>
 
-      {/* Linha 2: Configuração de Horários Automáticos (Editável) */}
-      <div className="bg-white p-5 rounded-2xl border border-yellow-100 shadow-xs">
-        <div className="flex items-center gap-2 mb-4">
-          <Calendar className="h-5 w-5 text-yellow-600" />
-          <h3 className="font-extrabold text-gray-900 text-sm md:text-base">
-            Configurar Horários Automáticos de Funcionamento
-          </h3>
-        </div>
+      {/* Modal de Configuração de Horários */}
+      <Dialog open={isScheduleModalOpen} onOpenChange={setIsScheduleModalOpen}>
+        <DialogContent className="sm:max-w-md rounded-3xl p-6 bg-white border border-yellow-100 shadow-2xl">
+          <DialogHeader className="text-left space-y-2">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 bg-yellow-100 rounded-2xl flex items-center justify-center text-yellow-600 shadow-xs">
+                <Calendar className="h-5 w-5" />
+              </div>
+              <div>
+                <DialogTitle className="text-lg font-black text-gray-900">
+                  Horários de Funcionamento
+                </DialogTitle>
+                <DialogDescription className="text-xs text-gray-500 font-medium">
+                  Defina os horários para abertura e fechamento automático da loja.
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
 
-        <form onSubmit={handleSaveSchedule} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
-          <div>
-            <label className="block text-xs font-bold text-gray-600 mb-1.5">
-              Horário de Abertura:
-            </label>
-            <input
-              type="time"
-              value={openTimeInput}
-              onChange={(e) => setOpenTimeInput(e.target.value)}
-              required
-              className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-yellow-400 focus:outline-hidden text-sm font-bold text-gray-900"
-            />
-          </div>
+          <form onSubmit={handleSaveSchedule} className="space-y-4 pt-2">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1.5">
+                  Horário de Abertura:
+                </label>
+                <input
+                  type="time"
+                  value={openTimeInput}
+                  onChange={(e) => setOpenTimeInput(e.target.value)}
+                  required
+                  className="w-full h-11 px-3 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-yellow-400 focus:outline-hidden text-sm font-bold text-gray-900 transition-all"
+                />
+              </div>
 
-          <div>
-            <label className="block text-xs font-bold text-gray-600 mb-1.5">
-              Horário de Fechamento:
-            </label>
-            <input
-              type="time"
-              value={closeTimeInput}
-              onChange={(e) => setCloseTimeInput(e.target.value)}
-              required
-              className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-yellow-400 focus:outline-hidden text-sm font-bold text-gray-900"
-            />
-          </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1.5">
+                  Horário de Fechamento:
+                </label>
+                <input
+                  type="time"
+                  value={closeTimeInput}
+                  onChange={(e) => setCloseTimeInput(e.target.value)}
+                  required
+                  className="w-full h-11 px-3 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-yellow-400 focus:outline-hidden text-sm font-bold text-gray-900 transition-all"
+                />
+              </div>
+            </div>
 
-          <div className="flex items-center gap-2 h-10">
-            <label className="flex items-center gap-2 cursor-pointer select-none text-xs font-bold text-gray-700">
-              <input
-                type="checkbox"
-                checked={autoScheduleInput}
-                onChange={(e) => setAutoScheduleInput(e.target.checked)}
-                className="w-4 h-4 rounded-sm text-yellow-500 border-gray-300 focus:ring-yellow-400"
-              />
-              Ativar ciclo automático
-            </label>
-          </div>
+            <div className="p-3.5 bg-yellow-50/70 border border-yellow-200/70 rounded-2xl">
+              <label className="flex items-center gap-3 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={autoScheduleInput}
+                  onChange={(e) => setAutoScheduleInput(e.target.checked)}
+                  className="w-4 h-4 rounded text-yellow-500 border-gray-300 focus:ring-yellow-400"
+                />
+                <div>
+                  <p className="text-xs font-bold text-gray-900">Ativar ciclo automático</p>
+                  <p className="text-[11px] text-gray-500">
+                    Abre e fecha a loja no Supabase no horário programado sem precisar de ninguém online.
+                  </p>
+                </div>
+              </label>
+            </div>
 
-          <div>
-            <Button
-              type="submit"
-              disabled={isSaving}
-              className="w-full h-10 bg-yellow-500 hover:bg-yellow-600 text-white font-black rounded-xl text-xs gap-1.5 shadow-sm active:scale-95 transition-all"
-            >
-              <Save className="h-4 w-4" />
-              {isSaving ? "Salvando..." : "Salvar Horários"}
-            </Button>
-          </div>
-        </form>
+            <div className="text-[11px] text-gray-500 leading-relaxed bg-gray-50 p-3 rounded-xl border border-gray-100">
+              💡 <strong>Sobreposição manual:</strong> caso você force abrir ou fechar a loja manualmente pelo painel, a loja respeitará sua decisão até o próximo horário programado ({openTimeInput} ou {closeTimeInput}) ser atingido, quando voltará a seguir o ciclo normalmente.
+            </div>
 
-        <p className="text-[11px] text-gray-400 mt-3">
-          * A abertura e fechamento ocorrem autonomamente no Supabase às {openTime} e {closeTime}. Caso alguém force abrir/fechar manualmente, a loja respeitará a escolha até o próximo horário programado ser atingido.
-        </p>
-      </div>
-
-      {/* Linha 3: Controles de Entregas e Taxa de Entrega (Preservados) */}
-      <div className="flex items-center gap-2 flex-wrap pt-1">
-        <Button
-          onClick={handleToggleDelivery}
-          variant="outline"
-          size="sm"
-          className={`rounded-xl text-xs font-bold h-9 gap-1.5 transition-colors ${
-            isDeliveryEnabled
-              ? "border-orange-200 bg-orange-50 text-orange-700 hover:bg-orange-100"
-              : "border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100"
-          }`}
-        >
-          <Truck className="h-3.5 w-3.5" />
-          {isDeliveryEnabled ? "Pausar Entregas" : "Ativar Entregas"}
-        </Button>
-
-        <Button
-          onClick={handleToggleDeliveryFee}
-          variant="outline"
-          size="sm"
-          className={`rounded-xl text-xs font-bold h-9 gap-1.5 transition-colors ${
-            isDeliveryFeeEnabled
-              ? "border-yellow-200 bg-yellow-50 text-yellow-800 hover:bg-yellow-100"
-              : "border-gray-200 bg-gray-50 text-gray-600 hover:bg-gray-100"
-          }`}
-        >
-          <DollarSign className="h-3.5 w-3.5" />
-          {isDeliveryFeeEnabled ? `Taxa Ativa (R$ ${deliveryFee.toFixed(2)})` : "Taxa Desativada"}
-        </Button>
-      </div>
-    </div>
+            <DialogFooter className="flex flex-row items-center justify-end gap-2 pt-2 sm:space-x-0">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsScheduleModalOpen(false)}
+                className="rounded-xl font-bold text-xs h-10 px-4"
+              >
+                Cancelar
+              </Button>
+              <Button
+                type="submit"
+                disabled={isSaving}
+                className="bg-yellow-500 hover:bg-yellow-600 text-white font-black rounded-xl text-xs h-10 px-5 gap-1.5 shadow-sm active:scale-95 transition-all"
+              >
+                <Save className="h-4 w-4" />
+                {isSaving ? "Salvando..." : "Salvar Horários"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </>
   )
 }
