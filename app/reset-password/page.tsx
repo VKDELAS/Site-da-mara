@@ -99,7 +99,7 @@ function ResetPasswordContent() {
     return (
       <div className="min-h-screen flex flex-col bg-white">
         <header className="w-full bg-white border-b border-gray-100 py-4 px-4 flex items-center justify-between sticky top-0 z-50">
-          <Link href="/" className="relative w-12 h-12 lg:w-16 lg:h-16 mx-auto lg:mx-0">
+          <Link href="/" className="relative w-10 h-10 lg:w-12 lg:h-12 mx-auto lg:mx-0">
             <img src="/logo.png" alt="batata top" className="w-full h-full object-contain" />
           </Link>
         </header>
@@ -168,7 +168,7 @@ function ResetPasswordContent() {
         <button onClick={() => router.back()} className="p-2 hover:bg-gray-50 rounded-full transition-colors lg:hidden">
           <ChevronLeft className="h-6 w-6 text-gray-900" />
         </button>
-        <Link href="/" className="relative w-12 h-12 lg:w-16 lg:h-16 mx-auto lg:mx-0">
+        <Link href="/" className="relative w-10 h-10 lg:w-12 lg:h-12 mx-auto lg:mx-0">
           <img src="/logo.png" alt="batata top" className="w-full h-full object-contain" />
         </Link>
         <div className="w-10 lg:hidden" />

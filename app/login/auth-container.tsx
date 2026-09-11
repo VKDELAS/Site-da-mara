@@ -167,19 +167,14 @@ export function AuthContainer({ initialMode = "login" }: { initialMode?: "login"
           <div className="max-w-sm mx-auto w-full space-y-8">
             <div className="text-center lg:text-left">
               <div className="flex justify-center lg:justify-start mb-6">
-                {/* LOGO GIGANTE RESTAURADA */}
-                <div className="relative w-16 h-16 sm:w-20 sm:h-20">
-                  <div className="absolute -inset-20 sm:-inset-18">
-                    <div className="relative w-full h-full">
-                      <Image 
-                        src="/logo.png" 
-                        alt="batata top" 
-                        fill 
-                        className="rounded-full object-contain pointer-events-none" 
-                        priority 
-                      />
-                    </div>
-                  </div>
+                <div className="relative w-16 h-16 sm:w-20 sm:h-20 flex-shrink-0">
+                  <Image 
+                    src="/logo.png" 
+                    alt="batata top" 
+                    fill 
+                    className="rounded-full object-contain pointer-events-none" 
+                    priority 
+                  />
                 </div>
               </div>
               <h2 className="text-3xl font-black text-gray-900 tracking-tighter">Bem-vindo de volta!</h2>
@@ -333,20 +328,15 @@ export function AuthContainer({ initialMode = "login" }: { initialMode?: "login"
         >
           <div className="max-w-sm mx-auto w-full space-y-8">
             <div className="text-center lg:text-left">
-              <div className="flex justify-center lg:justify-start -mb-10 lg:mb-0">
-                {/* LOGO GIGANTE RESTAURADA */}
-                <div className="relative w-16 h-35 sm:w-20 sm:h-25">
-                  <div className="absolute -inset-5 sm:-inset-18">
-                    <div className="relative w-full h-full">
-                      <Image 
-                        src="/logo.png" 
-                        alt="batata top" 
-                        fill 
-                        className="rounded-full object-contain pointer-events-none" 
-                        priority 
-                      />
-                    </div>
-                  </div>
+              <div className="flex justify-center lg:justify-start mb-6">
+                <div className="relative w-16 h-16 sm:w-20 sm:h-20 flex-shrink-0">
+                  <Image 
+                    src="/logo.png" 
+                    alt="batata top" 
+                    fill 
+                    className="rounded-full object-contain pointer-events-none" 
+                    priority 
+                  />
                 </div>
               </div>
               <h2 className="text-3xl font-black text-gray-900 tracking-tighter">Crie sua conta!</h2>

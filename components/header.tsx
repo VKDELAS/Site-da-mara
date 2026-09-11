@@ -100,7 +100,7 @@ export function Header({ variant = "default" }: HeaderProps) {
     return (
       <header className="w-full bg-white border-b py-6 sticky top-0 z-40">
         <div className="container mx-auto px-4 flex justify-center">
-          <Link href="/" className="relative w-16 h-16 sm:w-20 sm:h-20 transition-transform hover:scale-105">
+          <Link href="/" className="relative w-12 h-12 sm:w-14 sm:h-14 transition-transform hover:scale-105">
             <Image
               src="/logo.png"
               alt="batata top Delivery"
@@ -128,7 +128,7 @@ export function Header({ variant = "default" }: HeaderProps) {
               >
                 <Menu className="h-7 w-7 text-gray-900" />
               </button>
-              <Link href="/" className="relative w-12 h-12 sm:w-16 sm:h-16 flex-shrink-0">
+              <Link href="/" className="relative w-10 h-10 sm:w-12 sm:h-12 flex-shrink-0">
                 <Image
                   src="/logo.png"
                   alt="batata top Delivery"
@@ -140,7 +140,7 @@ export function Header({ variant = "default" }: HeaderProps) {
             </div>
 
             <div className="hidden lg:flex items-center lg:mr-4">
-              <Link href="/" className="relative w-16 h-16 sm:w-20 sm:h-20 flex-shrink-0">
+              <Link href="/" className="relative w-12 h-12 sm:w-14 sm:h-14 flex-shrink-0">
                 <Image
                   src="/logo.png"
                   alt="batata top Delivery"
@@ -206,7 +206,7 @@ export function Header({ variant = "default" }: HeaderProps) {
                   <X className="h-6 w-6 text-gray-400" />
                 </button>
 
-                <div className="w-20 h-20 relative">
+                <div className="w-14 h-14 relative">
                   <Image
                     src="/logo.png"
                     alt="batata top Delivery"
@@ -286,7 +286,7 @@ export function Header({ variant = "default" }: HeaderProps) {
       <header className="sticky top-0 z-40 w-full bg-white border-b lg:hidden">
         <div className="px-4 py-4 sm:py-6 max-w-4xl mx-auto">
           <div className="flex items-center justify-between gap-3">
-            <Link href="/" className="block flex-shrink-0 relative w-12 h-12 sm:w-16 sm:h-16">
+            <Link href="/" className="block flex-shrink-0 relative w-10 h-10 sm:w-12 sm:h-12">
               <Image
                 src="/logo.png"
                 alt="batata top Delivery"
@@ -339,7 +339,7 @@ export function Header({ variant = "default" }: HeaderProps) {
         <div className="w-full px-4 sm:px-8">
           <div className="flex items-center justify-between w-full gap-4">
             <div className="flex items-center gap-6 flex-shrink-0">
-              <Link href="/" className="block flex-shrink-0 relative w-16 h-16 sm:w-20 sm:h-20">
+              <Link href="/" className="block flex-shrink-0 relative w-12 h-12 sm:w-14 sm:h-14">
                 <Image
                   src="/logo.png"
                   alt="batata top Delivery"

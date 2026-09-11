@@ -15,8 +15,8 @@ export function OfflineScreen() {
         <Image
           src="/logo.png"
           alt="batata top"
-          width={80}
-          height={80}
+          width={64}
+          height={64}
           className="mx-auto mb-12"
         />
         

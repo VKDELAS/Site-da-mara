@@ -13,19 +13,15 @@ export function Footer() {
           {/* Logo e Descrição */}
           <div className="space-y-6">
             <Link href="/" className="flex items-center gap-3 group">
-              <div className="w-16 h-16 sm:w-20 sm:h-20 pointer-events-none relative">
-                  <div className="absolute inset--10 -inset-18 sm:-inset-18">
-                    <div className="relative w-full h-full">
-                      <Image
-                        src="/logo.png"
-                        alt="batata top Delivery"
-                        fill
-                        className="rounded-full object-contain pointer-events-none"
-                        priority
-                      />
-                    </div>
-                  </div>
-                </div>
+              <div className="w-12 h-12 sm:w-14 sm:h-14 relative flex-shrink-0">
+                <Image
+                  src="/logo.png"
+                  alt="batata top Delivery"
+                  fill
+                  className="rounded-full object-contain pointer-events-none"
+                  priority
+                />
+              </div>
               <div className="text-2xl font-black tracking-tighter text-gray-900">
                 BATA<span className="text-yellow-500">TOP</span>
               </div>
@@ -143,7 +139,7 @@ export function Footer() {
         <div className="border-t border-gray-100 pt-8">
           <div className="flex flex-col md:flex-row justify-between items-center gap-6">
             <div className="flex items-center gap-4">
-              <div className="relative w-10 h-10 grayscale opacity-50">
+              <div className="relative w-8 h-8 grayscale opacity-50 flex-shrink-0">
                 <Image
                   src="/logo.png"
                   alt="batata top"

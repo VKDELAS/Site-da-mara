@@ -24,15 +24,20 @@ export interface ItemPromo {
 
 export interface StoreStatus {
   isOpen: boolean
-  isDeliveryEnabled: boolean // Novo campo para controle de entregas
+  isDeliveryEnabled: boolean // Controle de entregas
   deliveryFee: number // Taxa de entrega
   isDeliveryFeeEnabled: boolean // Se a taxa de entrega está ativa
   waitTimeMin: number
   waitTimeMax: number
   activeOrders?: number[] // Lista de timestamps (ms) de cada pedido realizado
-  manualOverride?: boolean // Se true, ignora horário automático
+  manualOverride?: boolean // Se true, sobrepõe horário automático até o próximo ciclo
   lastManualChange?: string // Timestamp da última mudança manual
-  // Novos campos para promoção
+  lastCycleState?: boolean // Estado do ciclo programado no momento da sobreposição manual
+  openTime?: string // Horário de abertura programado (ex: "10:00")
+  closeTime?: string // Horário de fechamento programado (ex: "22:00")
+  autoSchedule?: boolean // Se a automação por horário está ativada
+  lastAutoSync?: string // Timestamp da última sincronização automática
+  // Campos para promoção
   isPromoActive?: boolean
   promoPrice?: number
   promoImage?: string
@@ -49,10 +54,9 @@ class StoreStatusManager {
   private defaultWaitTime = { min: 15, max: 22 }
   private cachedStatus: StoreStatus | null = null
 
-  // Constantes de horário
-  private readonly OPENING_HOUR = 10 // 10:00
-  private readonly CLOSING_HOUR = 23 // 23:30
-  private readonly CLOSING_MINUTE = 30
+  // Horários padrão de fallback
+  private readonly DEFAULT_OPEN_TIME = "10:00"
+  private readonly DEFAULT_CLOSE_TIME = "22:00"
 
   // Métodos síncronos para UI rápida
   isStoreOpenSync(): boolean {
@@ -67,20 +71,37 @@ class StoreStatusManager {
   }
 
   /**
-   * Verifica se a loja deve estar aberta baseado no horário automático
-   * Retorna true se está dentro do horário de funcionamento
+   * Verifica se a loja deve estar aberta baseado no horário programado
+   * Respeita o fuso horário de São Paulo (America/Sao_Paulo) e suporta virada de noite
    */
-  private shouldBeOpenBySchedule(): boolean {
+  shouldBeOpenBySchedule(status?: StoreStatus): boolean {
+    const openTime = status?.openTime || this.cachedStatus?.openTime || this.DEFAULT_OPEN_TIME
+    const closeTime = status?.closeTime || this.cachedStatus?.closeTime || this.DEFAULT_CLOSE_TIME
+
+    // Obtém hora e minuto atual no fuso de São Paulo
     const now = new Date()
-    const currentHour = now.getHours()
-    const currentMinute = now.getMinutes()
+    const spTimeStr = now.toLocaleTimeString("pt-BR", {
+      timeZone: "America/Sao_Paulo",
+      hour12: false,
+      hour: "2-digit",
+      minute: "2-digit",
+    })
 
-    // Abre às 10:00 e fecha às 23:30
-    const openingTime = this.OPENING_HOUR * 60 // 600 minutos
-    const closingTime = this.CLOSING_HOUR * 60 + this.CLOSING_MINUTE // 1410 minutos
-    const currentTime = currentHour * 60 + currentMinute
+    const [curH, curM] = spTimeStr.split(":").map(Number)
+    const [openH, openM] = openTime.split(":").map(Number)
+    const [closeH, closeM] = closeTime.split(":").map(Number)
 
-    return currentTime >= openingTime && currentTime < closingTime
+    const curTotal = (isNaN(curH) ? 0 : curH) * 60 + (isNaN(curM) ? 0 : curM)
+    const openTotal = (isNaN(openH) ? 10 : openH) * 60 + (isNaN(openM) ? 0 : openM)
+    const closeTotal = (isNaN(closeH) ? 22 : closeH) * 60 + (isNaN(closeM) ? 0 : closeM)
+
+    if (openTotal <= closeTotal) {
+      // Janela no mesmo dia (ex: 10:00 às 22:00)
+      return curTotal >= openTotal && curTotal < closeTotal
+    } else {
+      // Janela que vira a meia-noite (ex: 18:00 às 02:00)
+      return curTotal >= openTotal || curTotal < closeTotal
+    }
   }
 
   private processActiveOrders(status: StoreStatus): StoreStatus {
@@ -120,22 +141,38 @@ class StoreStatusManager {
       } else {
         status = data.setting_value as StoreStatus
         // Garante que novos campos existam
+        if (status.openTime === undefined) status.openTime = this.DEFAULT_OPEN_TIME
+        if (status.closeTime === undefined) status.closeTime = this.DEFAULT_CLOSE_TIME
+        if (status.autoSchedule === undefined) status.autoSchedule = true
+        if (status.manualOverride === undefined) status.manualOverride = false
         if (status.deliveryFee === undefined) status.deliveryFee = 3.00
         if (status.isDeliveryFeeEnabled === undefined) status.isDeliveryFeeEnabled = true
         if (status.isPromoActive === undefined) status.isPromoActive = false
         if (status.promoPrice === undefined) status.promoPrice = 24.99
         if (status.promoImage === undefined) status.promoImage = undefined
         if (status.promoProducts === undefined) status.promoProducts = []
-      if (status.superPromo === undefined) status.superPromo = { isActive: false, price: 26.00, imageId: undefined, imageUrl: undefined, useUrl: false }
-      if (status.itemPromo === undefined) status.itemPromo = { isActive: false, imageId: undefined, imageUrl: undefined, useUrl: false }
+        if (status.superPromo === undefined) status.superPromo = { isActive: false, price: 26.00, imageId: undefined, imageUrl: undefined, useUrl: false }
+        if (status.itemPromo === undefined) status.itemPromo = { isActive: false, imageId: undefined, imageUrl: undefined, useUrl: false }
       }
 
-      // Aplica horário automático se não houver override manual
-      if (!status.manualOverride) {
-        const shouldBeOpen = this.shouldBeOpenBySchedule()
-        if (status.isOpen !== shouldBeOpen) {
-          status.isOpen = shouldBeOpen
-          await this.saveStatus(status)
+      // Aplica horário automático se estiver ativado
+      if (status.autoSchedule !== false) {
+        const scheduledOpen = this.shouldBeOpenBySchedule(status)
+        if (status.manualOverride) {
+          // Se o ciclo programado mudou desde o override manual (ex: bateu 22:00 ou 10:00),
+          // desarma a sobreposição e retoma o agendamento normal automaticamente!
+          if (status.lastCycleState !== undefined && scheduledOpen !== status.lastCycleState) {
+            status.manualOverride = false
+            status.isOpen = scheduledOpen
+            status.lastCycleState = scheduledOpen
+            await this.saveStatus(status)
+          }
+        } else {
+          if (status.isOpen !== scheduledOpen) {
+            status.isOpen = scheduledOpen
+            status.lastCycleState = scheduledOpen
+            await this.saveStatus(status)
+          }
         }
       }
 
@@ -153,15 +190,19 @@ class StoreStatusManager {
   }
 
   private getDefaultStatus(): StoreStatus {
-    return {
-      isOpen: this.shouldBeOpenBySchedule(),
+    const baseStatus: StoreStatus = {
+      isOpen: true,
+      openTime: this.DEFAULT_OPEN_TIME,
+      closeTime: this.DEFAULT_CLOSE_TIME,
+      autoSchedule: true,
+      manualOverride: false,
+      lastCycleState: true,
       isDeliveryEnabled: true, // Padrão: entregas ativas
       deliveryFee: 3.00,
       isDeliveryFeeEnabled: true,
       waitTimeMin: this.defaultWaitTime.min,
       waitTimeMax: this.defaultWaitTime.max,
       activeOrders: [],
-      manualOverride: false,
       lastManualChange: undefined,
       isPromoActive: false,
       promoPrice: 24.99,
@@ -181,14 +222,19 @@ class StoreStatusManager {
         useUrl: false
       }
     }
+    baseStatus.isOpen = this.shouldBeOpenBySchedule(baseStatus)
+    baseStatus.lastCycleState = baseStatus.isOpen
+    return baseStatus
   }
 
   async toggleStoreStatus(): Promise<boolean> {
     const status = await this.getStatus()
-    const newStatus = {
+    const scheduledOpen = this.shouldBeOpenBySchedule(status)
+    const newStatus: StoreStatus = {
       ...status,
       isOpen: !status.isOpen,
-      manualOverride: true, // Marca como override manual
+      manualOverride: true, // Marca sobreposição manual válida até o próximo ciclo
+      lastCycleState: scheduledOpen, // Salva o estado do ciclo programado no momento
       lastManualChange: new Date().toISOString()
     }
     await this.saveStatus(newStatus)
@@ -299,15 +345,34 @@ class StoreStatusManager {
   }
 
   /**
-   * Remove o override manual e volta a usar o horário automático
+   * Atualiza os horários programados de abertura e fechamento
+   */
+  async updateSchedule(openTime: string, closeTime: string, autoSchedule: boolean = true): Promise<StoreStatus> {
+    const status = await this.getStatus()
+    const tempStatus: StoreStatus = { ...status, openTime, closeTime, autoSchedule }
+    const scheduledOpen = this.shouldBeOpenBySchedule(tempStatus)
+
+    const newStatus: StoreStatus = {
+      ...tempStatus,
+      // Se não estiver em sobreposição manual, sincroniza o isOpen imediatamente
+      isOpen: status.manualOverride ? status.isOpen : scheduledOpen,
+      lastCycleState: scheduledOpen,
+    }
+    await this.saveStatus(newStatus)
+    return newStatus
+  }
+
+  /**
+   * Remove a sobreposição manual e volta a usar o horário automático imediatamente
    */
   async resetToAutoSchedule(): Promise<StoreStatus> {
     const status = await this.getStatus()
-    const shouldBeOpen = this.shouldBeOpenBySchedule()
-    const newStatus = {
+    const shouldBeOpen = this.shouldBeOpenBySchedule(status)
+    const newStatus: StoreStatus = {
       ...status,
       isOpen: shouldBeOpen,
       manualOverride: false,
+      lastCycleState: shouldBeOpen,
       lastManualChange: undefined
     }
     await this.saveStatus(newStatus)
@@ -322,12 +387,15 @@ class StoreStatusManager {
     closingTime: string
     isManualOverride: boolean
     shouldBeOpenNow: boolean
+    autoSchedule: boolean
   } {
+    const status = this.cachedStatus
     return {
-      openingTime: `${String(this.OPENING_HOUR).padStart(2, '0')}:00`,
-      closingTime: `${String(this.CLOSING_HOUR).padStart(2, '0')}:${String(this.CLOSING_MINUTE).padStart(2, '0')}`,
-      isManualOverride: this.cachedStatus?.manualOverride ?? false,
-      shouldBeOpenNow: this.shouldBeOpenBySchedule()
+      openingTime: status?.openTime || this.DEFAULT_OPEN_TIME,
+      closingTime: status?.closeTime || this.DEFAULT_CLOSE_TIME,
+      isManualOverride: status?.manualOverride ?? false,
+      shouldBeOpenNow: this.shouldBeOpenBySchedule(status || undefined),
+      autoSchedule: status?.autoSchedule ?? true,
     }
   }
 

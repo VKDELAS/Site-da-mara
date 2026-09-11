@@ -30,7 +30,7 @@ export default function ContatoPage() {
               
               {/* Card WhatsApp - O Principal */}
               <div className="lg:col-span-2 bg-white border-2 border-yellow-100 rounded-3xl p-8 md:p-12 shadow-xl shadow-yellow-50 flex flex-col md:flex-row items-center gap-8 transition-transform hover:scale-[1.01]">
-                <div className="relative w-32 h-32 md:w-48 md:h-48 flex-shrink-0">
+                <div className="relative w-24 h-24 md:w-32 md:h-32 flex-shrink-0">
                   <Image
                     src="/logo.png"
                     alt="batata top"
